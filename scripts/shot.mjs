@@ -37,4 +37,15 @@ await page.waitForTimeout(800);
 await page.screenshot({ path: `${OUT}-camera.png` });
 console.log("wrote camera");
 
+// Back to top-down, then HOLD reverse to confirm the rig actually drives.
+await page.click("[data-view]");
+const rev = await page.$("[data-rev]");
+const box = await rev.boundingBox();
+await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+await page.mouse.down();
+await page.waitForTimeout(2600);
+await page.screenshot({ path: `${OUT}-drive.png` });
+await page.mouse.up();
+console.log("wrote drive");
+
 await browser.close();

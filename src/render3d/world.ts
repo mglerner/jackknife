@@ -115,17 +115,19 @@ export function buildWorld(gs: GameState): THREE.Group {
 
 function addLighting(group: THREE.Group, bounds: WorldBounds): void {
   // Sky/ground hemisphere fill: warm bluish sky, soft green-tinted ground bounce.
-  const hemi = new THREE.HemisphereLight(0xbcd6ff, 0x6b7a52, 0.7);
+  const hemi = new THREE.HemisphereLight(0xd2e4ff, 0x9aa982, 1.25);
   hemi.position.set(0, 30, 0);
   group.add(hemi);
 
-  // A touch of flat ambient so deep shadows do not go fully black.
-  const ambient = new THREE.AmbientLight(0xffffff, 0.22);
+  // Strong flat ambient so shadows and back-facing surfaces (what the backup cam
+  // and rear mirror look at) stay clearly visible. This is a learning tool, not a
+  // mood piece, so favor visibility over contrast.
+  const ambient = new THREE.AmbientLight(0xffffff, 0.55);
   group.add(ambient);
 
-  // Slightly warm late-afternoon sun.
-  const sun = new THREE.DirectionalLight(0xfff2dc, 1.1);
-  sun.position.set(12, 20, 8);
+  // Bright, slightly warm midday sun.
+  const sun = new THREE.DirectionalLight(0xfff4e2, 1.25);
+  sun.position.set(12, 22, 8);
   sun.castShadow = true;
 
   // Size the orthographic shadow camera to cover the world bounds (Three's XZ

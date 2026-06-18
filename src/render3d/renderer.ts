@@ -35,7 +35,7 @@ export function createRenderer3d(canvas: HTMLCanvasElement, gs: GameState): Rend
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
-  renderer.toneMappingExposure = 1.35;
+  renderer.toneMappingExposure = 1.5;
 
   const scene = new THREE.Scene();
   scene.background = new THREE.Color("#0e1217");
