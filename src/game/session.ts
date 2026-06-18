@@ -4,10 +4,11 @@ import type { Rig, State } from "../core/types";
 export interface SessionState {
   pathLength: number; // total distance traveled (m)
   maxAbsGamma: number; // worst articulation reached (rad)
-  stops: number; // number of times the rig came to rest after moving
-  pullForwards: number; // number of reverse -> forward direction changes
+  stops: number; // number of times the rig came to rest after moving (info only)
+  pullForwards: number; // pull-ups: reverse -> forward changes that followed real reversing
   startedMoving: boolean;
   movingPrev: boolean;
+  reversedSinceForward: boolean; // has the rig actually reversed since the last forward pull?
 }
 
 export function initSession(): SessionState {
@@ -18,6 +19,7 @@ export function initSession(): SessionState {
     pullForwards: 0,
     startedMoving: false,
     movingPrev: false,
+    reversedSinceForward: false,
   };
 }
 
@@ -40,5 +42,6 @@ export function updateSession(
     pullForwards: s.pullForwards,
     startedMoving,
     movingPrev: moving,
+    reversedSinceForward: s.reversedSinceForward || (moving && v < 0),
   };
 }

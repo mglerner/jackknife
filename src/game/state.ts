@@ -61,12 +61,19 @@ export function setThrottle(gs: GameState, value: number): GameState {
 }
 
 export function setGear(gs: GameState, gear: Gear): GameState {
-  const pullForward = gs.gear === "reverse" && gear === "forward";
+  // Count a pull-up only when switching reverse -> forward AFTER actually reversing
+  // (so idly toggling gears at rest does not rack up penalties).
+  const pullForward =
+    gs.gear === "reverse" && gear === "forward" && gs.session.reversedSinceForward;
   return {
     ...gs,
     gear,
     session: pullForward
-      ? { ...gs.session, pullForwards: gs.session.pullForwards + 1 }
+      ? {
+          ...gs.session,
+          pullForwards: gs.session.pullForwards + 1,
+          reversedSinceForward: false,
+        }
       : gs.session,
   };
 }

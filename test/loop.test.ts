@@ -48,6 +48,20 @@ describe("game loop — fixed timestep", () => {
     expect(gs.physics.x).toBe(DEFAULT_SCENARIO.start.x);
   });
 
+  it("counts a pull-up only after actually reversing (not idle gear toggles)", () => {
+    let gs = createGame(DEFAULT_RIG, DEFAULT_SCENARIO, BEGINNER);
+    // Toggle reverse -> forward at rest: no real reversing happened.
+    gs = setGear(gs, "reverse");
+    gs = setGear(gs, "forward");
+    expect(gs.session.pullForwards).toBe(0);
+
+    // Actually reverse and move, then pull forward: that is a real pull-up.
+    gs = setThrottle(setGear(gs, "reverse"), 1);
+    gs = simulate(gs, 0.4);
+    gs = setGear(gs, "forward");
+    expect(gs.session.pullForwards).toBe(1);
+  });
+
   it("blocks reverse past the critical angle, but forward straightens it", () => {
     const crit = computeCriticalGamma(DEFAULT_RIG);
     // Start folded beyond the recoverable angle.

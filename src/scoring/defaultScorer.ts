@@ -5,13 +5,14 @@ import { isTrailerInTarget, trailerTargetError } from "./types";
 
 const clamp01 = (x: number): number => (x < 0 ? 0 : x > 1 ? 1 : x);
 
-// Weights (a clean attempt tops out near 100).
-const W_LATERAL = 40; // accuracy: lateral offset to target
-const W_HEADING = 30; // accuracy: heading match to target
-const W_STOPS = 15; // efficiency: few stops
-const W_PATH = 15; // efficiency: short path
+// Weights (a clean attempt tops out near 100). Stopping to reassess is good
+// technique, so it is NOT penalized; inefficiency shows up as path length and
+// pull-ups instead.
+const W_LATERAL = 45; // accuracy: lateral offset to target
+const W_HEADING = 35; // accuracy: heading match to target
+const W_PATH = 20; // efficiency: short path
 const P_GAMMA = 25; // graduated penalty for nearing/passing criticalGamma
-const P_PULLFWD = 5; // per pull-forward, capped
+const P_PULLFWD = 6; // per pull-up, capped
 
 /**
  * Accuracy + efficiency scorer. Never instant-fails: a sloppy run still returns
@@ -30,10 +31,7 @@ export const defaultScorer: Scorer = {
     const lateralPts = W_LATERAL * latFrac;
     const headingPts = W_HEADING * headFrac;
 
-    // --- Efficiency: fewer stops, shorter path. ---
-    // First stop (parking) is free; each extra stop costs.
-    const extraStops = Math.max(0, session.stops - 1);
-    const stopsPts = W_STOPS / (1 + extraStops);
+    // --- Efficiency: shorter path. ---
     // Reference path: a straight shot from start to target as a cheap baseline.
     const refLen = Math.hypot(
       gs.scenario.target.x - gs.scenario.start.x,
@@ -65,19 +63,18 @@ export const defaultScorer: Scorer = {
     const breakdown: Record<string, number> = {
       lateral: lateralPts,
       heading: headingPts,
-      stops: stopsPts,
       path: pathPts,
       gammaPenalty: -gammaPenalty,
       pullForwardPenalty: -pullPenalty,
     };
 
-    const raw =
-      lateralPts + headingPts + stopsPts + pathPts - gammaPenalty - pullPenalty;
+    const raw = lateralPts + headingPts + pathPts - gammaPenalty - pullPenalty;
     const score = Math.max(0, Math.round(raw * 10) / 10);
     const passed = isTrailerInTarget(gs);
 
+    const pullStr = session.pullForwards === 1 ? "1 pull-up" : `${session.pullForwards} pull-ups`;
     const summary = passed
-      ? `Parked it, score ${score}. Lateral off by ${Math.abs(e.lateral).toFixed(2)} m, heading off by ${degStr(e.heading)}, ${session.stops} stops.`
+      ? `Parked it, score ${score}. Lateral off by ${Math.abs(e.lateral).toFixed(2)} m, heading off by ${degStr(e.heading)}, ${pullStr}.`
       : `Missed the box, score ${score}. Lateral off by ${Math.abs(e.lateral).toFixed(2)} m, heading off by ${degStr(e.heading)}.`;
 
     return { score, passed, breakdown, summary };
