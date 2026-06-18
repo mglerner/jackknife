@@ -1,0 +1,361 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>The Jackknife: Kinematics and Stability of Backing a Trailer</title>
+    <script>
+      window.MathJax = { tex: { inlineMath: [["\\(", "\\)"]], displayMath: [["\\[", "\\]"]] } };
+    </script>
+    <script
+      id="MathJax-script"
+      async
+      src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"
+    ></script>
+    <style>
+      :root {
+        --ink: #1b1f24;
+        --muted: #5b6770;
+        --accent: #1f6feb;
+        --rule: #e3e7ec;
+        --card: #f6f8fa;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: #fff;
+        color: var(--ink);
+        font: 16px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial,
+          sans-serif;
+      }
+      .wrap {
+        max-width: 820px;
+        margin: 0 auto;
+        padding: 40px 22px 90px;
+      }
+      h1 {
+        font-size: 30px;
+        line-height: 1.2;
+        margin: 0 0 6px;
+      }
+      .sub {
+        color: var(--muted);
+        margin: 0 0 28px;
+      }
+      h2 {
+        font-size: 21px;
+        margin: 38px 0 10px;
+        padding-bottom: 6px;
+        border-bottom: 2px solid var(--rule);
+      }
+      h3 {
+        font-size: 17px;
+        margin: 24px 0 8px;
+      }
+      p,
+      li {
+        color: #232a31;
+      }
+      code {
+        background: var(--card);
+        padding: 1px 5px;
+        border-radius: 4px;
+        font-size: 0.92em;
+      }
+      .note {
+        background: var(--card);
+        border-left: 3px solid var(--accent);
+        border-radius: 0 8px 8px 0;
+        padding: 12px 16px;
+        margin: 18px 0;
+      }
+      .pset {
+        background: #fff8ec;
+        border: 1px solid #f0e2c2;
+        border-radius: 10px;
+        padding: 6px 20px 14px;
+        margin: 18px 0;
+      }
+      .pset h3 {
+        color: #9a6a00;
+      }
+      .tag {
+        display: inline-block;
+        font-size: 12px;
+        font-weight: 700;
+        color: #9a6a00;
+        background: #fbeec9;
+        border-radius: 4px;
+        padding: 1px 7px;
+        margin-right: 8px;
+      }
+      table {
+        border-collapse: collapse;
+        margin: 14px 0;
+        width: 100%;
+      }
+      th,
+      td {
+        border: 1px solid var(--rule);
+        padding: 7px 10px;
+        text-align: left;
+        font-size: 15px;
+      }
+      th {
+        background: var(--card);
+      }
+      footer {
+        margin-top: 50px;
+        padding-top: 16px;
+        border-top: 1px solid var(--rule);
+        color: var(--muted);
+        font-size: 14px;
+      }
+      .fig {
+        font-family: ui-monospace, Menlo, Consolas, monospace;
+        background: var(--card);
+        border: 1px solid var(--rule);
+        border-radius: 10px;
+        padding: 16px;
+        white-space: pre;
+        overflow-x: auto;
+        font-size: 13px;
+        line-height: 1.35;
+        color: #2b333a;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <h1>The Jackknife</h1>
+      <p class="sub">
+        Kinematics and stability of backing a vehicle with a trailer &mdash; a classical-mechanics
+        case study, and the model behind the <em>Jackknife</em> game.
+      </p>
+
+      <div class="note">
+        <strong>The punchline.</strong> Backing a trailer is unstable: the straight configuration is
+        a saddle when reversing. You stabilize it by steering, but only up to a point. Beyond a purely
+        <em>geometric</em> critical articulation angle, no amount of counter-steer can arrest the
+        fold &mdash; the trailer jackknifes, and the only escape is to drive forward.
+      </div>
+
+      <h2>1. Model and assumptions</h2>
+      <p>
+        We work in the low-speed regime where tires roll without slipping, so each axle is a
+        <em>nonholonomic</em> rolling constraint: its velocity is parallel to its own heading. No
+        tire forces, no mass, no momentum &mdash; this is pure kinematics, and it is an excellent
+        match to parking-lot speeds.
+      </p>
+      <p>Geometry (all lengths fixed by the hardware):</p>
+      <table>
+        <tr>
+          <th>Symbol</th>
+          <th>Meaning</th>
+        </tr>
+        <tr><td>\(W\)</td><td>tow vehicle wheelbase (front axle to rear axle)</td></tr>
+        <tr><td>\(L\)</td><td>hitch offset: rear axle to the hitch ball (the "off-axle" overhang)</td></tr>
+        <tr><td>\(D\)</td><td>trailer wheelbase: hitch ball to trailer axle</td></tr>
+        <tr><td>\(\delta\)</td><td>front-wheel steer angle (control input), \(|\delta|\le\delta_{\max}\)</td></tr>
+        <tr><td>\(v\)</td><td>signed speed of the tow vehicle's rear axle (reverse \(\Rightarrow v<0\))</td></tr>
+        <tr><td>\(\theta_c,\ \theta_t\)</td><td>absolute headings of car and trailer</td></tr>
+        <tr><td>\(\gamma=\theta_t-\theta_c\)</td><td>articulation (hitch) angle</td></tr>
+      </table>
+
+      <div class="fig">        front axle
+           |  \  delta
+           |   \
+     W     |              car heading th_c
+           |
+        rear axle  ----L----  hitch  ----------D---------- trailer axle
+        (x, y)                  o                          heading th_t
+                                         gamma = th_t - th_c</div>
+
+      <h2>2. The tow vehicle: kinematic bicycle model</h2>
+      <p>
+        Collapse each axle to a single central wheel. The rear axle rolls along \(\theta_c\); the
+        front wheel rolls along \(\theta_c+\delta\). Eliminating the instantaneous center of rotation
+        gives the standard result
+      </p>
+      \[
+        \dot x = v\cos\theta_c,\qquad \dot y = v\sin\theta_c,\qquad
+        \boxed{\;\dot\theta_c = \frac{v}{W}\tan\delta\;}
+      \]
+      <p>
+        with \((x,y)\) the rear-axle point. The turn radius of the rear axle is \(R = W/\tan\delta\).
+      </p>
+
+      <h2>3. Adding the trailer: the articulation equation</h2>
+      <p>
+        The hitch ball sits a distance \(L\) behind the rear axle, so its position is
+        \(\mathbf{p}_h = (x,y) - L(\cos\theta_c,\sin\theta_c)\). Its velocity is
+      </p>
+      \[
+        \dot{\mathbf p}_h = v(\cos\theta_c,\sin\theta_c) - L\dot\theta_c(-\sin\theta_c,\cos\theta_c).
+      \]
+      <p>
+        The trailer axle is a distance \(D\) behind the hitch along \(\theta_t\). Its no-slip
+        constraint says its velocity component <em>perpendicular</em> to \(\theta_t\) vanishes. The
+        perpendicular speed of the hitch, expressed in the trailer frame, drives the trailer's
+        rotation: resolving \(\dot{\mathbf p}_h\) onto the trailer's lateral direction and dividing by
+        \(D\) gives
+      </p>
+      \[
+        \boxed{\;\dot\theta_t = -\frac{v}{D}\sin\gamma \;-\; \frac{L}{D}\cos\gamma\,\dot\theta_c\;}
+      \]
+      <p>Subtracting \(\dot\theta_c\) yields the single governing ODE for the articulation angle:</p>
+      \[
+        \boxed{\;\dot\gamma = -\frac{v}{D}\sin\gamma
+        \;-\; \frac{v}{W}\!\left(1+\frac{L}{D}\cos\gamma\right)\tan\delta\;}
+      \]
+      <div class="note">
+        The sign of the \(\sin\gamma\) term is the whole story. With \(\delta=0\), forward motion
+        (\(v>0\)) gives \(\dot\gamma=-\frac{v}{D}\sin\gamma\), which pushes \(\gamma\to 0\). Reverse
+        (\(v<0\)) flips the sign and pushes \(\gamma\) away from \(0\). A trailer self-centers going
+        forward and runs away going backward.
+      </div>
+
+      <h2>4. Stability of the straight configuration</h2>
+      <p>Linearize about \(\gamma=0\) with \(\delta=0\):</p>
+      \[
+        \dot\gamma \approx -\frac{v}{D}\,\gamma
+        \;\Rightarrow\; \gamma(t)=\gamma_0\,e^{-(v/D)\,t}.
+      \]
+      <p>
+        Forward (\(v>0\)): exponential decay, \(\gamma=0\) is asymptotically stable, time constant
+        \(D/|v|\). Reverse (\(v<0\)): exponential growth, \(\gamma=0\) is unstable. This sign flip is
+        exactly why backing a trailer is hard and driving forward is trivial.
+      </p>
+
+      <h2>5. The critical angle: when steering can no longer save you</h2>
+      <p>
+        While reversing you fight the instability with the steering term. Ask: for a given \(\gamma\),
+        is there an admissible steer that makes \(\dot\gamma\le 0\) (i.e. arrests or reverses the
+        fold)? Setting \(\dot\gamma=0\) and solving for the required steer,
+      </p>
+      \[
+        \tan\delta \;=\; -\,\frac{W}{D}\,
+        \frac{\sin\gamma}{\,1+\frac{L}{D}\cos\gamma\,}.
+      \]
+      <p>
+        The right side grows with \(\gamma\); the steer is bounded by \(|\delta|\le\delta_{\max}\).
+        The largest holdable angle \(\gamma_c\) saturates the lock, \(\delta=\pm\delta_{\max}\):
+      </p>
+      \[
+        \boxed{\;\frac{\sin\gamma_c}{D} \;=\;
+        \frac{\tan\delta_{\max}}{W}\left(1+\frac{L}{D}\cos\gamma_c\right)\;}
+      \]
+      <p>
+        Two consequences worth emphasizing to students:
+      </p>
+      <ul>
+        <li>
+          <strong>It is \(v\)-independent.</strong> Speed factors out of \(\dot\gamma=0\) entirely, so
+          \(\gamma_c\) is a property of the <em>geometry and steering limit alone</em>. Crawling does
+          not buy you a larger safe angle.
+        </li>
+        <li>
+          <strong>Beyond \(\gamma_c\) it is hopeless.</strong> For \(|\gamma|>\gamma_c\), even full
+          opposite lock gives \(\dot\gamma\) the wrong sign, so \(|\gamma|\) grows monotonically to the
+          physical contact angle. That is the jackknife.
+        </li>
+      </ul>
+      <p>
+        <strong>The escape.</strong> Pulling forward (\(v>0\)) flips the unstable term to a stable one,
+        so \(\gamma\) decays back toward zero regardless of how far it had folded (short of physical
+        contact). "Pull forward to straighten" is not folklore; it is the sign of one term.
+      </p>
+
+      <h3>Worked number (the game's default rig)</h3>
+      <p>
+        For a Honda Odyssey with a small utility trailer: \(W=3.0\,\mathrm m\), \(L=1.1\,\mathrm m\),
+        \(D=1.8\,\mathrm m\), \(\delta_{\max}=33^\circ\) (\(\tan\delta_{\max}=0.649\)). Solving the
+        boxed transcendental equation numerically gives
+      </p>
+      \[
+        \gamma_c \approx 0.62\ \text{rad} \approx 35^\circ .
+      \]
+      <p>
+        Shorten the trailer (smaller \(D\)) and \(\gamma_c\) shrinks &mdash; short trailers jackknife
+        sooner, which is exactly why a small utility trailer is harder to back than a long camper.
+      </p>
+
+      <h2>6. Problem set</h2>
+      <div class="pset">
+        <h3><span class="tag">P1</span>Derive the articulation ODE</h3>
+        <p>
+          Starting from the rolling (no-slip) constraints at the rear axle, front wheel, and trailer
+          axle, derive \(\dot\theta_c=(v/W)\tan\delta\) and the boxed expression for \(\dot\gamma\).
+          Identify precisely where the off-axle term \((L/D)\cos\gamma\) enters and show it vanishes
+          for an on-axle hitch (\(L=0\)).
+        </p>
+      </div>
+      <div class="pset">
+        <h3><span class="tag">P2</span>Linear stability</h3>
+        <p>
+          Linearize \(\dot\gamma\) about \(\gamma=0\) for \(\delta=0\) and show the straight
+          configuration is asymptotically stable in forward motion and unstable in reverse. Give the
+          growth/decay time constant. Interpret physically.
+        </p>
+      </div>
+      <div class="pset">
+        <h3><span class="tag">P3</span>The critical angle</h3>
+        <p>
+          Derive the boxed condition for \(\gamma_c\). Prove it is independent of \(v\). Compute
+          \(\partial\gamma_c/\partial D\) and \(\partial\gamma_c/\partial \delta_{\max}\) and state
+          their signs; explain why a shorter trailer or a smaller steering lock is more dangerous.
+        </p>
+      </div>
+      <div class="pset">
+        <h3><span class="tag">P4</span>Phase line</h3>
+        <p>
+          Fix \(\delta=\delta_{\max}\) and \(v<0\). Sketch \(\dot\gamma\) versus \(\gamma\) on
+          \([0,\pi/2]\). Locate the equilibria, classify their stability, and connect the unstable one
+          to \(\gamma_c\). Add the \(\delta=0\) curve and discuss what the driver is doing by steering.
+        </p>
+      </div>
+      <div class="pset">
+        <h3><span class="tag">P5</span>A Lyapunov view</h3>
+        <p>
+          Consider \(V(\gamma)=1-\cos\gamma\ge 0\). Compute \(\dot V\) along trajectories for forward
+          motion with \(\delta=0\) and show \(\dot V\le 0\), giving a Lyapunov proof that the trailer
+          self-centers going forward. What goes wrong in reverse?
+        </p>
+      </div>
+      <div class="pset">
+        <h3><span class="tag">P6</span>Off-tracking (steady turn)</h3>
+        <p>
+          In a constant-radius turn the articulation angle settles to \(\dot\gamma=0\). Find the
+          steady \(\gamma\) and the trailer-axle turn radius as functions of \(\delta\). Show the
+          trailer cuts inside the tow vehicle's path (off-tracking) and quantify the offset for a
+          \(90^\circ\) turn.
+        </p>
+      </div>
+      <div class="pset">
+        <h3><span class="tag">P7</span>Tandem axle (extension)</h3>
+        <p>
+          A dual-axle trailer is often modeled by a single effective axle at the midpoint of the two.
+          Justify this for the kinematic model, define an effective \(D_\mathrm{eff}\), and predict
+          how the critical angle and the off-tracking change relative to a single-axle trailer of the
+          same hitch-to-rear-axle length.
+        </p>
+      </div>
+
+      <h2>7. Notes on the simulation</h2>
+      <p>
+        The <em>Jackknife</em> game integrates the boxed \(\dot\gamma\) (and the car pose) with
+        semi-implicit Euler at 120 Hz, stores both absolute headings, and computes \(\gamma_c\) once
+        per rig by bisection on the boxed condition. When \(|\gamma|\) crosses \(\gamma_c\) the game
+        disables reverse and prompts you to pull forward &mdash; the rule and the physics are the same
+        object.
+      </p>
+
+      <footer>
+        Generated for Michael Lerner. Kinematic single-track (bicycle) model with an off-axle
+        one-trailer extension; low-speed no-slip assumptions throughout.
+      </footer>
+    </div>
+  </body>
+</html>

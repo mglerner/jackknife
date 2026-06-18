@@ -25,6 +25,8 @@ interface MirrorSpec {
   lateral: number;
   yaw: number;
   height: number;
+  lookDist: number; // meters back the camera aims
+  lookY: number; // height of the aim point (low = pitched down)
 }
 
 const MIRROR_H = 110; // CSS px
@@ -168,16 +170,19 @@ export function createRenderer3d(canvas: HTMLCanvasElement, gs: GameState): Rend
     cam.aspect = aspect;
     cam.position.set(ex, s.height, -ey);
     cam.up.set(0, 1, 0);
-    cam.lookAt(ex + Math.cos(look), s.height - 0.4, -(ey + Math.sin(look)));
+    const tx = ex + s.lookDist * Math.cos(look);
+    const ty = ey + s.lookDist * Math.sin(look);
+    cam.lookAt(tx, s.lookY, -ty);
     mirror(cam);
   }
 
   function renderMirrors(g: GameState): void {
     const halfW = g.rig.carWidth / 2;
     const specs: MirrorSpec[] = [
-      { forward: 1.2, lateral: halfW + 0.15, yaw: -0.4, height: 1.1 },
-      { forward: 0.3, lateral: 0, yaw: 0, height: 1.4 },
-      { forward: 1.2, lateral: -(halfW + 0.15), yaw: 0.4, height: 1.1 },
+      { forward: 1.2, lateral: halfW + 0.15, yaw: -0.4, height: 1.1, lookDist: 1, lookY: 0.7 },
+      // High "look back over the trailer" view: clears the van body and sees the lit path.
+      { forward: -1.4, lateral: 0, yaw: 0, height: 2.7, lookDist: 6, lookY: 0.15 },
+      { forward: 1.2, lateral: -(halfW + 0.15), yaw: 0.4, height: 1.1, lookDist: 1, lookY: 0.7 },
     ];
     const paneW = (W - MIRROR_MARGIN * 4) / 3;
     renderer.setScissorTest(true);
