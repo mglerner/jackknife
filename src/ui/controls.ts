@@ -9,6 +9,7 @@ export interface ControlHandlers {
   onToggleDebug: () => void;
   onRestart: () => void;
   onDemo: () => void;
+  onToggleModel: () => void;
 }
 
 export interface Controls {
@@ -30,6 +31,7 @@ export function createControls(parent: HTMLElement, h: ControlHandlers): Control
     '<div class="toggles">' +
     '<button data-view>View: top-down</button>' +
     '<button data-mirrors>Mirrors: on</button>' +
+    '<button data-model>Model: built</button>' +
     '<button data-demo-run>Demo</button>' +
     '<button data-restart>Restart</button>' +
     '<button data-debug>Debug</button>' +
@@ -78,6 +80,11 @@ export function createControls(parent: HTMLElement, h: ControlHandlers): Control
   (bar.querySelector("[data-restart]") as HTMLElement).addEventListener("click", h.onRestart);
   (bar.querySelector("[data-debug]") as HTMLElement).addEventListener("click", h.onToggleDebug);
   (bar.querySelector("[data-demo-run]") as HTMLElement).addEventListener("click", h.onDemo);
+  const modelBtn = bar.querySelector("[data-model]") as HTMLButtonElement;
+  modelBtn.addEventListener("click", () => {
+    h.onToggleModel();
+    modelBtn.textContent = modelBtn.textContent === "Model: built" ? "Model: real" : "Model: built";
+  });
 
   return {
     detach() {

@@ -13,6 +13,7 @@ import { DEFAULT_SCENARIO } from "./scenarios/scenarios";
 import { DEFAULT_DIFFICULTY } from "./difficulty/difficulty";
 import { steerFromBottomWheel } from "./input/bottomWheel";
 import { createRenderer3d, type ViewMode } from "./render3d/renderer";
+import type { CarStyle } from "./render3d/rig";
 import { isTrailerInTarget } from "./scoring/types";
 import { defaultScorer } from "./scoring/defaultScorer";
 import { createHud } from "./ui/hud";
@@ -57,6 +58,7 @@ let won = false;
 let demoActive = false;
 let demoT = 0;
 let demoAcc = 0;
+let carStyle: CarStyle = "procedural";
 const solution = SOLUTIONS[game.scenario.id];
 
 const renderer3d = createRenderer3d(canvas, game);
@@ -94,6 +96,10 @@ const controls = createControls(app, {
     demoActive = true;
     demoT = 0;
     demoAcc = 0;
+  },
+  onToggleModel: () => {
+    carStyle = carStyle === "procedural" ? "gltf" : "procedural";
+    renderer3d.setCarStyle(carStyle);
   },
 });
 

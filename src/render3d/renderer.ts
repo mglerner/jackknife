@@ -5,7 +5,7 @@ import { commandedSpeed } from "../game/loop";
 import type { GameState } from "../game/state";
 import { worldToThree } from "./coords";
 import { buildWorld } from "./world";
-import { buildRig, type RigView } from "./rig";
+import { buildRig, type RigView, type CarStyle } from "./rig";
 
 export type ViewMode = "topdown" | "backupcam";
 
@@ -18,6 +18,7 @@ export interface RenderOptions {
 export interface Renderer3D {
   render(gs: GameState, view: ViewMode, opts: RenderOptions): void;
   resize(wCss: number, hCss: number, dpr: number): void;
+  setCarStyle(style: CarStyle): void;
 }
 
 interface MirrorSpec {
@@ -216,5 +217,5 @@ export function createRenderer3d(canvas: HTMLCanvasElement, gs: GameState): Rend
     if (opts.mirrors) renderMirrors(g);
   }
 
-  return { render, resize };
+  return { render, resize, setCarStyle: (style: CarStyle) => rig.setCarStyle(style) };
 }

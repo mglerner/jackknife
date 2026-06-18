@@ -31,6 +31,13 @@ await page.waitForTimeout(1500);
 await page.screenshot({ path: `${OUT}-topdown.png` });
 console.log("wrote topdown");
 
+// Toggle to the real glTF model and capture, then back.
+await page.click("[data-model]");
+await page.waitForTimeout(1000);
+await page.screenshot({ path: `${OUT}-real.png` });
+console.log("wrote real");
+await page.click("[data-model]");
+
 // Switch to camera view.
 await page.click("[data-view]");
 await page.waitForTimeout(800);

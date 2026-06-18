@@ -43,7 +43,7 @@ export function createHud(parent: HTMLElement): Hud {
       jk.style.color = JK_COLOR[d.jackknifeState];
 
       const e = trailerTargetError(gs);
-      err.textContent = `offset ${e.lateral.toFixed(2)} m, heading ${deg(e.heading).toFixed(0)} deg`;
+      err.textContent = `offset ${e.lateral.toFixed(2)} m, heading ${deg(e.heading).toFixed(0)}°`;
 
       dbg.hidden = !debug;
       if (debug) {
