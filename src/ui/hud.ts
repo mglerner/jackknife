@@ -29,7 +29,7 @@ export function createHud(parent: HTMLElement): Hud {
   el.innerHTML =
     '<div class="chip" data-jk></div>' +
     '<div class="readout" data-err></div>' +
-    '<pre class="debug" data-debug hidden></pre>';
+    '<div class="debug" data-debug hidden></div>';
   parent.appendChild(el);
 
   const jk = el.querySelector("[data-jk]") as HTMLElement;
@@ -47,12 +47,16 @@ export function createHud(parent: HTMLElement): Hud {
 
       dbg.hidden = !debug;
       if (debug) {
-        // Unicode Greek directly (no MathJax needed): articulation gamma, its rate
-        // gamma-dot, steer delta, critical and hard-limit gamma.
-        dbg.textContent =
-          `γ ${deg(d.gamma).toFixed(1)}°  γ̇ ${d.gammaDot.toFixed(3)}\n` +
-          `δ ${deg(gs.delta).toFixed(1)}°  v ${commandedSpeed(gs).toFixed(2)} m/s\n` +
-          `γc ${deg(d.criticalGamma).toFixed(1)}°  γmax ${deg(d.hardLimitGamma).toFixed(1)}°`;
+        // A CSS grid (see styles) aligns the columns; Unicode Greek for the symbols.
+        const cell = (k: string, v: string): string =>
+          `<span class="k">${k}</span><span class="v">${v}</span>`;
+        dbg.innerHTML =
+          cell("γ", `${deg(d.gamma).toFixed(1)}°`) +
+          cell("γ̇", d.gammaDot.toFixed(3)) +
+          cell("δ", `${deg(gs.delta).toFixed(1)}°`) +
+          cell("v", `${commandedSpeed(gs).toFixed(2)} m/s`) +
+          cell("γc", `${deg(d.criticalGamma).toFixed(1)}°`) +
+          cell("γmax", `${deg(d.hardLimitGamma).toFixed(1)}°`);
       }
     },
   };
