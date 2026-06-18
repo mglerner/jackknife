@@ -3,7 +3,7 @@ import { derive } from "../core/physics";
 import { predictTailPath } from "../core/predict";
 import { commandedSpeed } from "../game/loop";
 import type { GameState } from "../game/state";
-import { TOPDOWN_UP, worldToThree } from "./coords";
+import { worldToThree } from "./coords";
 import { buildWorld } from "./world";
 import { buildRig, type RigView } from "./rig";
 
@@ -34,6 +34,8 @@ export function createRenderer3d(canvas: HTMLCanvasElement, gs: GameState): Rend
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure = 1.35;
 
   const scene = new THREE.Scene();
   scene.background = new THREE.Color("#0e1217");
@@ -103,7 +105,10 @@ export function createRenderer3d(canvas: HTMLCanvasElement, gs: GameState): Rend
 
   // Meters shown along the screen's LONG axis. Follows the action rather than
   // trying to frame the entire (wide) street, so it fills a portrait screen.
-  const TOP_VIEW_M = 32;
+  const TOP_VIEW_M = 34;
+  // A gentle tilt off straight-down so the 3D depth reads, while the maneuver
+  // geometry stays clear (looking slightly from the south toward the driveway).
+  const TILT = 0.42; // rad (~24 deg from vertical)
 
   function aimTopCam(g: GameState): void {
     const t = g.scenario.target;
@@ -119,12 +124,16 @@ export function createRenderer3d(canvas: HTMLCanvasElement, gs: GameState): Rend
       hh = TOP_VIEW_M / 2;
       hw = hh * aspect;
     }
+    // Tilt foreshortens the ground vertically; widen the frustum to compensate.
+    hh /= Math.cos(TILT);
     topCam.left = -hw;
     topCam.right = hw;
     topCam.top = hh;
     topCam.bottom = -hh;
-    topCam.position.set(fx, 80, -fy);
-    topCam.up.copy(TOPDOWN_UP);
+    const H = 70;
+    const south = H * Math.tan(TILT); // pull the eye toward the south (world -y)
+    topCam.position.set(fx, H, -fy + south);
+    topCam.up.set(0, 1, 0);
     topCam.lookAt(fx, 0, -fy);
     topCam.updateProjectionMatrix();
   }
@@ -135,9 +144,12 @@ export function createRenderer3d(canvas: HTMLCanvasElement, gs: GameState): Rend
     const ex = g.physics.x - rearDist * Math.cos(H);
     const ey = g.physics.y - rearDist * Math.sin(H);
     backCam.aspect = W / Hc;
-    backCam.position.set(ex, 1.05, -ey);
+    // Mounted high (like a tailgate/roof cam) and angled down to see OVER the low
+    // load to the ground and guide path behind.
+    backCam.position.set(ex, 1.75, -ey);
     backCam.up.set(0, 1, 0);
-    backCam.lookAt(ex - Math.cos(H), 0.55, -(ey - Math.sin(H)));
+    const look = 4; // meters back, at ground level
+    backCam.lookAt(ex - look * Math.cos(H), 0.0, -(ey - look * Math.sin(H)));
     mirror(backCam);
   }
 
