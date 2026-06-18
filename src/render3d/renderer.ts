@@ -102,23 +102,31 @@ export function createRenderer3d(canvas: HTMLCanvasElement, gs: GameState): Rend
     ghost.visible = pts.length > 1;
   }
 
+  // Meters shown along the screen's LONG axis. Follows the action rather than
+  // trying to frame the entire (wide) street, so it fills a portrait screen.
+  const TOP_VIEW_M = 32;
+
   function aimTopCam(g: GameState): void {
-    const b = g.scenario.worldBounds;
-    const cx = (b.minX + b.maxX) / 2;
-    const cy = (b.minY + b.maxY) / 2;
-    const margin = 2.5;
-    let hw = (b.maxX - b.minX) / 2 + margin; // world X half-extent (screen width)
-    let hh = (b.maxY - b.minY) / 2 + margin; // world Y half-extent (screen height)
+    const t = g.scenario.target;
+    const fx = (g.physics.x + t.x) / 2; // focus between the rig and the target
+    const fy = (g.physics.y + t.y) / 2;
     const aspect = W / Hc;
-    if (hw / hh < aspect) hw = hh * aspect;
-    else hh = hw / aspect;
+    let hw: number;
+    let hh: number;
+    if (aspect >= 1) {
+      hw = TOP_VIEW_M / 2;
+      hh = hw / aspect;
+    } else {
+      hh = TOP_VIEW_M / 2;
+      hw = hh * aspect;
+    }
     topCam.left = -hw;
     topCam.right = hw;
     topCam.top = hh;
     topCam.bottom = -hh;
-    topCam.position.set(cx, 80, -cy);
+    topCam.position.set(fx, 80, -fy);
     topCam.up.copy(TOPDOWN_UP);
-    topCam.lookAt(cx, 0, -cy);
+    topCam.lookAt(fx, 0, -fy);
     topCam.updateProjectionMatrix();
   }
 
