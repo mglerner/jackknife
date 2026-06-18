@@ -9,6 +9,8 @@ export interface SessionState {
   startedMoving: boolean;
   movingPrev: boolean;
   reversedSinceForward: boolean; // has the rig actually reversed since the last forward pull?
+  wallContacts: number; // number of distinct times the rig bumped a wall / the bounds
+  collidingNow: boolean; // currently pressed against a wall / the bounds
 }
 
 export function initSession(): SessionState {
@@ -20,6 +22,8 @@ export function initSession(): SessionState {
     startedMoving: false,
     movingPrev: false,
     reversedSinceForward: false,
+    wallContacts: 0,
+    collidingNow: false,
   };
 }
 
@@ -36,10 +40,10 @@ export function updateSession(
   const startedMoving = s.startedMoving || moving;
   const cameToRest = s.movingPrev && !moving && startedMoving;
   return {
+    ...s,
     pathLength: s.pathLength + Math.abs(v) * dt,
     maxAbsGamma: Math.max(s.maxAbsGamma, gamma),
     stops: cameToRest ? s.stops + 1 : s.stops,
-    pullForwards: s.pullForwards,
     startedMoving,
     movingPrev: moving,
     reversedSinceForward: s.reversedSinceForward || (moving && v < 0),

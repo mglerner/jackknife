@@ -3,6 +3,7 @@ import { computeCriticalGamma } from "../core/jackknife";
 import { clamp } from "../core/vec";
 import type { GameState } from "./state";
 import { updateSession } from "./session";
+import { rigCollision } from "./collision";
 
 /**
  * Cap a frame's worth of catch-up to avoid a spiral of death after a stall.
@@ -50,8 +51,19 @@ export function advance(gs: GameState, frameDt: number): GameState {
       const gamma = Math.abs(physics.trailerHeading - physics.carHeading);
       if (gamma >= crit) vSub = 0;
     }
-    physics = step(physics, gs.rig, { delta, v: vSub, dt });
-    session = updateSession(session, physics, gs.rig, vSub, dt);
+
+    const candidate = step(physics, gs.rig, { delta, v: vSub, dt });
+    const col = rigCollision(candidate, gs.rig, gs.scenario.obstacles, gs.scenario.worldBounds);
+    if (col.wall || col.bounds) {
+      // Walls are solid: reject the move. Count one contact on the rising edge.
+      if (!session.collidingNow) {
+        session = { ...session, collidingNow: true, wallContacts: session.wallContacts + 1 };
+      }
+    } else {
+      physics = candidate;
+      if (session.collidingNow) session = { ...session, collidingNow: false };
+      session = updateSession(session, physics, gs.rig, vSub, dt);
+    }
     acc -= dt;
   }
 

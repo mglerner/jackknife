@@ -43,6 +43,15 @@ describe("game loop — fixed timestep", () => {
     expect(Math.abs(split.physics.x - single.physics.x)).toBeLessThan(2 * substep);
   });
 
+  it("blocks the rig at the world boundary and counts a contact", () => {
+    let gs = createGame(DEFAULT_RIG, DEFAULT_SCENARIO, BEGINNER);
+    gs = { ...gs, physics: { x: 12, y: 0, carHeading: 0, trailerHeading: 0 } };
+    gs = setThrottle(setGear(gs, "forward"), 1);
+    const after = simulate(gs, 4.0); // unblocked this would run well past maxX (18)
+    expect(after.physics.x).toBeLessThan(15); // stopped at the boundary
+    expect(after.session.wallContacts).toBeGreaterThan(0);
+  });
+
   it("park gear holds the rig still", () => {
     const gs = simulate(createGame(DEFAULT_RIG, DEFAULT_SCENARIO, BEGINNER), 1.0);
     expect(gs.physics.x).toBe(DEFAULT_SCENARIO.start.x);

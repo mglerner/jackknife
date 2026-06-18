@@ -13,6 +13,7 @@ const W_HEADING = 35; // accuracy: heading match to target
 const W_PATH = 20; // efficiency: short path
 const P_GAMMA = 25; // graduated penalty for nearing/passing criticalGamma
 const P_PULLFWD = 6; // per pull-up, capped
+const P_CONTACT = 8; // per wall/bounds contact, capped
 
 /**
  * Accuracy + efficiency scorer. Never instant-fails: a sloppy run still returns
@@ -59,6 +60,7 @@ export const defaultScorer: Scorer = {
     }
 
     const pullPenalty = Math.min(P_PULLFWD * session.pullForwards, 15);
+    const contactPenalty = Math.min(P_CONTACT * session.wallContacts, 30);
 
     const breakdown: Record<string, number> = {
       lateral: lateralPts,
@@ -66,9 +68,11 @@ export const defaultScorer: Scorer = {
       path: pathPts,
       gammaPenalty: -gammaPenalty,
       pullForwardPenalty: -pullPenalty,
+      contactPenalty: -contactPenalty,
     };
 
-    const raw = lateralPts + headingPts + pathPts - gammaPenalty - pullPenalty;
+    const raw =
+      lateralPts + headingPts + pathPts - gammaPenalty - pullPenalty - contactPenalty;
     const score = Math.max(0, Math.round(raw * 10) / 10);
     const passed = isTrailerInTarget(gs);
 

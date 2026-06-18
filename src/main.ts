@@ -42,6 +42,11 @@ pull.innerHTML =
   '<div class="pf-sub">Ease forward to straighten the trailer</div>';
 app.appendChild(pull);
 
+const contact = document.createElement("div");
+contact.id = "contact";
+contact.hidden = true;
+app.appendChild(contact);
+
 let game = createGame(DEFAULT_RIG, DEFAULT_SCENARIO, DEFAULT_DIFFICULTY);
 let view: ViewMode = "topdown";
 let mirrors = DEFAULT_DIFFICULTY.mirrorsDefault;
@@ -124,6 +129,7 @@ function frame(t: number): void {
   const d = derive(game.physics, game.rig, { v: commandedSpeed(game), delta: game.delta });
   coach.textContent = coachingMessage(game, d);
   pull.hidden = !(d.jackknifeState === "recoverable" || d.jackknifeState === "contact");
+  contact.hidden = !game.session.collidingNow;
 
   checkWin();
   requestAnimationFrame(frame);

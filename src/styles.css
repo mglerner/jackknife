@@ -218,3 +218,11 @@ body {
   font-size: 14px;
   color: rgba(255, 255, 255, 0.9);
 }
+
+#contact {
+  position: absolute;
+  inset: 0;
+  border: 6px solid rgba(239, 111, 108, 0.9);
+  box-shadow: inset 0 0 40px rgba(239, 111, 108, 0.45);
+  pointer-events: none;
+}
