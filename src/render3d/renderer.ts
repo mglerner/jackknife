@@ -37,7 +37,8 @@ export function createRenderer3d(canvas: HTMLCanvasElement, gs: GameState): Rend
 
   const scene = new THREE.Scene();
   scene.background = new THREE.Color("#0e1217");
-  scene.fog = new THREE.Fog("#0e1217", 24, 70);
+  // No scene fog: it ruins the top-down (camera is ~40 m up). The backup-cam reads
+  // fine without it. A subtle ground-level haze can come back per-camera later.
 
   scene.add(buildWorld(gs));
   const rig: RigView = buildRig(gs);
@@ -58,7 +59,7 @@ export function createRenderer3d(canvas: HTMLCanvasElement, gs: GameState): Rend
   ghost.frustumCulled = false;
   scene.add(ghost);
 
-  const topCam = new THREE.PerspectiveCamera(50, 1, 0.1, 220);
+  const topCam = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 500);
   const backCam = new THREE.PerspectiveCamera(86, 1, 0.05, 220);
   const mirrorCams = [0, 1, 2].map(() => new THREE.PerspectiveCamera(72, 1, 0.05, 220));
 
@@ -105,9 +106,17 @@ export function createRenderer3d(canvas: HTMLCanvasElement, gs: GameState): Rend
     const b = g.scenario.worldBounds;
     const cx = (b.minX + b.maxX) / 2;
     const cy = (b.minY + b.maxY) / 2;
-    const span = Math.max(b.maxX - b.minX, b.maxY - b.minY);
-    topCam.aspect = W / Hc;
-    topCam.position.set(cx, span * 1.1, -cy);
+    const margin = 2.5;
+    let hw = (b.maxX - b.minX) / 2 + margin; // world X half-extent (screen width)
+    let hh = (b.maxY - b.minY) / 2 + margin; // world Y half-extent (screen height)
+    const aspect = W / Hc;
+    if (hw / hh < aspect) hw = hh * aspect;
+    else hh = hw / aspect;
+    topCam.left = -hw;
+    topCam.right = hw;
+    topCam.top = hh;
+    topCam.bottom = -hh;
+    topCam.position.set(cx, 80, -cy);
     topCam.up.copy(TOPDOWN_UP);
     topCam.lookAt(cx, 0, -cy);
     topCam.updateProjectionMatrix();
