@@ -37,15 +37,11 @@ await page.waitForTimeout(800);
 await page.screenshot({ path: `${OUT}-camera.png` });
 console.log("wrote camera");
 
-// Back to top-down, then HOLD reverse to confirm the rig actually drives.
+// Back to top-down, then play the Demo and capture the parked result.
 await page.click("[data-view]");
-const rev = await page.$("[data-rev]");
-const box = await rev.boundingBox();
-await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
-await page.mouse.down();
-await page.waitForTimeout(2600);
-await page.screenshot({ path: `${OUT}-drive.png` });
-await page.mouse.up();
-console.log("wrote drive");
+await page.click("[data-demo-run]");
+await page.waitForTimeout(6200); // solution is ~5.2s
+await page.screenshot({ path: `${OUT}-demo.png` });
+console.log("wrote demo");
 
 await browser.close();

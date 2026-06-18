@@ -67,7 +67,8 @@ body {
 #hud {
   position: absolute;
   left: 10px;
-  bottom: 116px;
+  bottom: 124px;
+  max-width: 46%;
   font-size: 13px;
   background: rgba(0, 0, 0, 0.4);
   padding: 6px 10px;
@@ -186,14 +187,24 @@ body {
   margin: 6px 0 14px;
   max-width: 240px;
 }
+#banner .row {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+}
 #banner button {
   background: var(--accent);
   color: #06222e;
   border: none;
   border-radius: 10px;
-  padding: 10px 18px;
+  padding: 10px 16px;
   font-size: 15px;
   font-weight: 700;
+}
+#banner #look {
+  background: var(--panel);
+  color: var(--ink);
+  border: 1px solid #3a414a;
 }
 
 #pullforward {

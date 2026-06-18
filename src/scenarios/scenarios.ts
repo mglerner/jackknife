@@ -13,11 +13,16 @@ const seg = (ax: number, ay: number, bx: number, by: number) =>
 export const STREET_TO_DRIVEWAY_90: Scenario = {
   id: "street-to-driveway-90",
   label: "Street → perpendicular driveway (90° back-in)",
-  start: { x: 8, y: 0, carHeading: 0, trailerHeading: 0 },
-  target: { x: 0, y: 9, heading: Math.PI / 2, halfWidth: 1.4, halfLength: 2.2 },
+  // Pulled up on the south side of the street, angled toward the driveway: the
+  // canonical 90deg back-in setup. This start is solvable REVERSE-ONLY (see the
+  // baked solution in game/solutions.ts and test/solvable.test.ts).
+  start: { x: 3.565, y: -2.386, carHeading: -0.842, trailerHeading: -1.028 },
+  // Back-in: the trailer ends deep in the driveway pointing OUT toward the street
+  // (heading south, -90deg), with the tow vehicle nearer the street.
+  target: { x: 0, y: 9, heading: -Math.PI / 2, halfWidth: 1.4, halfLength: 2.2 },
   obstacles: [
-    // South curb of the street.
-    { kind: "curb", shape: seg(-18, -3, 18, -3), penalty: 50 },
+    // South curb of the street (street is ~8 m wide: y in [-5, 3]).
+    { kind: "curb", shape: seg(-18, -5, 18, -5), penalty: 50 },
     // North frontage flanking the driveway opening (lawn/house edge at y=3).
     { kind: "curb", shape: seg(-18, 3, -3, 3), penalty: 50 },
     { kind: "curb", shape: seg(3, 3, 18, 3), penalty: 50 },
@@ -31,7 +36,7 @@ export const STREET_TO_DRIVEWAY_90: Scenario = {
   slope: 0,
   mirrorsAvailable: true,
   cameraAvailable: true,
-  worldBounds: { minX: -18, minY: -6, maxX: 18, maxY: 17 },
+  worldBounds: { minX: -18, minY: -8, maxX: 18, maxY: 17 },
 };
 
 export const SCENARIOS: Record<string, Scenario> = {

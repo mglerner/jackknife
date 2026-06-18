@@ -196,8 +196,8 @@ function addGround(group: THREE.Group, bounds: WorldBounds): void {
     -0.02,
   );
 
-  // Street corridor: x across the bounds, y in [-3, 3].
-  addGroundRegion(group, asphaltMat, bounds.minX, bounds.maxX, -3, 3, 0.0);
+  // Street corridor: x across the bounds, y in [-5, 3] (~8 m wide).
+  addGroundRegion(group, asphaltMat, bounds.minX, bounds.maxX, -5, 3, 0.0);
 
   // Driveway: x in [-3, 3], y in [3, 15].
   addGroundRegion(group, concreteMat, -3, 3, 3, 15, 0.0);

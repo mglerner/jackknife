@@ -8,6 +8,7 @@ export interface ControlHandlers {
   onToggleMirrors: () => void;
   onToggleDebug: () => void;
   onRestart: () => void;
+  onDemo: () => void;
 }
 
 export interface Controls {
@@ -27,6 +28,7 @@ export function createControls(parent: HTMLElement, h: ControlHandlers): Control
     '<div class="toggles">' +
     '<button data-view>View: top-down</button>' +
     '<button data-mirrors>Mirrors: on</button>' +
+    '<button data-demo-run>Demo</button>' +
     '<button data-restart>Restart</button>' +
     '<button data-debug>Debug</button>' +
     "</div>";
@@ -73,6 +75,7 @@ export function createControls(parent: HTMLElement, h: ControlHandlers): Control
   });
   (bar.querySelector("[data-restart]") as HTMLElement).addEventListener("click", h.onRestart);
   (bar.querySelector("[data-debug]") as HTMLElement).addEventListener("click", h.onToggleDebug);
+  (bar.querySelector("[data-demo-run]") as HTMLElement).addEventListener("click", h.onDemo);
 
   return {
     detach() {

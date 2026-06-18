@@ -7,8 +7,12 @@ import { DEFAULT_SCENARIO } from "../src/scenarios/scenarios";
 import { BEGINNER } from "../src/difficulty/difficulty";
 import { computeCriticalGamma } from "../src/core/jackknife";
 
-const reversing = () =>
-  setThrottle(setGear(createGame(DEFAULT_RIG, DEFAULT_SCENARIO, BEGINNER), "reverse"), 1);
+// An explicit straight, axis-aligned pose (the scenario start is angled).
+const straightGame = (): GameState => ({
+  ...createGame(DEFAULT_RIG, DEFAULT_SCENARIO, BEGINNER),
+  physics: { x: 0, y: 0, carHeading: 0, trailerHeading: 0 },
+});
+const reversing = () => setThrottle(setGear(straightGame(), "reverse"), 1);
 
 // Drive the loop the way the real rAF driver does: many small frames.
 function simulate(gs: GameState, seconds: number, frameDt = 1 / 60): GameState {

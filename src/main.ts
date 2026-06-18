@@ -18,6 +18,8 @@ import { defaultScorer } from "./scoring/defaultScorer";
 import { createHud } from "./ui/hud";
 import { createControls } from "./ui/controls";
 import { coachingMessage } from "./ui/coach";
+import { applyManeuverAt, maneuverDuration } from "./game/autopilot";
+import { SOLUTIONS } from "./game/solutions";
 
 const app = document.querySelector<HTMLDivElement>("#app")!;
 app.innerHTML = "";
@@ -52,6 +54,10 @@ let view: ViewMode = "topdown";
 let mirrors = DEFAULT_DIFFICULTY.mirrorsDefault;
 let debug = false;
 let won = false;
+let demoActive = false;
+let demoT = 0;
+let demoAcc = 0;
+const solution = SOLUTIONS[game.scenario.id];
 
 const renderer3d = createRenderer3d(canvas, game);
 
@@ -60,6 +66,7 @@ const hud = createHud(app);
 function restart(): void {
   game = resetGame(game);
   won = false;
+  demoActive = false;
   banner.hidden = true;
 }
 
@@ -81,6 +88,13 @@ createControls(app, {
     debug = !debug;
   },
   onRestart: restart,
+  onDemo: () => {
+    if (!solution) return;
+    restart();
+    demoActive = true;
+    demoT = 0;
+    demoAcc = 0;
+  },
 });
 
 let cssW = 0;
@@ -105,9 +119,16 @@ function checkWin(): void {
       '<div class="title">Parked!</div>' +
       `<div class="score">Score ${Math.round(result.score)}</div>` +
       `<div class="sub">${result.summary}</div>` +
-      '<button id="again">Try again</button>';
+      '<div class="row">' +
+      '<button id="look">Keep looking</button>' +
+      '<button id="again">Try again</button>' +
+      "</div>";
     banner.hidden = false;
     (banner.querySelector("#again") as HTMLElement).addEventListener("click", restart);
+    // Dismiss the banner but keep the parked scene, so you can free-look / switch views.
+    (banner.querySelector("#look") as HTMLElement).addEventListener("click", () => {
+      banner.hidden = true;
+    });
   }
 }
 
@@ -117,7 +138,26 @@ function frame(t: number): void {
   const dt = last ? (t - last) / 1000 : 0;
   last = t;
 
-  if (!won) game = advance(game, dt);
+  if (demoActive && solution) {
+    // Fixed-timestep playback so it reproduces the verified solution exactly
+    // (the reverse direction is unstable, so variable dt would drift).
+    const fixed = 1 / 60;
+    const dur = maneuverDuration(solution);
+    demoAcc += dt;
+    while (demoAcc >= fixed) {
+      demoAcc -= fixed;
+      if (demoT > dur) {
+        game = setThrottle(game, 0);
+        demoActive = false;
+        break;
+      }
+      game = applyManeuverAt(game, solution, demoT);
+      game = advance(game, fixed);
+      demoT += fixed;
+    }
+  } else if (!won) {
+    game = advance(game, dt);
+  }
 
   renderer3d.render(game, view, {
     mirrors,
@@ -127,7 +167,9 @@ function frame(t: number): void {
 
   hud.update(game, debug);
   const d = derive(game.physics, game.rig, { v: commandedSpeed(game), delta: game.delta });
-  coach.textContent = coachingMessage(game, d);
+  coach.textContent = demoActive
+    ? "Demo: easing back and steering toward the driveway. Watch the trailer follow the wheel."
+    : coachingMessage(game, d);
   pull.hidden = !(d.jackknifeState === "recoverable" || d.jackknifeState === "contact");
   contact.hidden = !game.session.collidingNow;
 
