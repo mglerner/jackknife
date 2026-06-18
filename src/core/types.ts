@@ -24,7 +24,7 @@ export interface Rig {
   // Dimensions (for rendering + collision):
   carLength: number;
   carWidth: number;
-  carFrontOverhang: number; // rear axle -> front bumper minus W; kept simple: rear axle -> front bumper
+  carFrontOverhang: number; // distance rear axle -> front bumper (m); rear bumper sits carLength - this behind the axle
   trailerLength: number;
   trailerWidth: number;
   trailerRearOverhang: number; // trailer axle -> tail (m)

@@ -17,7 +17,7 @@ export const ODYSSEY_UTILITY: Rig = {
   carLength: 5.16,
   carWidth: 2.0,
   carFrontOverhang: 4.06, // rear axle -> front bumper (rear bumper is carLength - this behind axle)
-  trailerLength: 2.6,
+  trailerLength: 2.3, // overall hitch ball -> tail = D (1.8) + trailerRearOverhang (0.5)
   trailerWidth: 1.8,
   trailerRearOverhang: 0.5, // trailer axle -> tail
   hardLimitGamma: deg(75),

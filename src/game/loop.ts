@@ -3,7 +3,11 @@ import { clamp } from "../core/vec";
 import type { GameState } from "./state";
 import { updateSession } from "./session";
 
-/** Cap a frame's worth of catch-up to avoid a spiral of death after a stall. */
+/**
+ * Cap a frame's worth of catch-up to avoid a spiral of death after a stall.
+ * Time beyond this is intentionally DROPPED (the sim pauses rather than
+ * fast-forwards) - do not "fix" this into an unbounded catch-up loop.
+ */
 const MAX_FRAME = 0.25;
 
 /** Signed commanded speed from gear + throttle + difficulty caps. */
