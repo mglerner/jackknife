@@ -59,18 +59,17 @@ export function createRenderer3d(canvas: HTMLCanvasElement, gs: GameState): Rend
   ghost.frustumCulled = false;
   scene.add(ghost);
 
+
   const topCam = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 500);
   const backCam = new THREE.PerspectiveCamera(86, 1, 0.05, 220);
   const mirrorCams = [0, 1, 2].map(() => new THREE.PerspectiveCamera(72, 1, 0.05, 220));
 
   let W = 1;
   let Hc = 1;
-  let DPR = 1;
 
   function resize(wCss: number, hCss: number, dpr: number): void {
     W = wCss;
     Hc = hCss;
-    DPR = dpr;
     renderer.setPixelRatio(dpr);
     renderer.setSize(wCss, hCss, false);
   }
@@ -172,17 +171,16 @@ export function createRenderer3d(canvas: HTMLCanvasElement, gs: GameState): Rend
     renderer.setScissorTest(true);
     specs.forEach((s, i) => {
       const px = MIRROR_MARGIN + i * (paneW + MIRROR_MARGIN);
-      const vx = px * DPR;
-      const vy = (Hc - (MIRROR_MARGIN + MIRROR_H)) * DPR;
-      const vw = paneW * DPR;
-      const vh = MIRROR_H * DPR;
-      renderer.setViewport(vx, vy, vw, vh);
-      renderer.setScissor(vx, vy, vw, vh);
+      // CSS px (Three multiplies by pixelRatio internally). WebGL y is bottom-up.
+      const vx = px;
+      const vy = Hc - (MIRROR_MARGIN + MIRROR_H);
+      renderer.setViewport(vx, vy, paneW, MIRROR_H);
+      renderer.setScissor(vx, vy, paneW, MIRROR_H);
       aimMirrorCam(mirrorCams[i], g, s, paneW / MIRROR_H);
       renderer.render(scene, mirrorCams[i]);
     });
     renderer.setScissorTest(false);
-    renderer.setViewport(0, 0, W * DPR, Hc * DPR);
+    renderer.setViewport(0, 0, W, Hc);
   }
 
   function render(g: GameState, view: ViewMode, opts: RenderOptions): void {
@@ -190,7 +188,7 @@ export function createRenderer3d(canvas: HTMLCanvasElement, gs: GameState): Rend
     updateGhost(g, opts);
 
     renderer.setScissorTest(false);
-    renderer.setViewport(0, 0, W * DPR, Hc * DPR);
+    renderer.setViewport(0, 0, W, Hc);
     if (view === "topdown") {
       aimTopCam(g);
       renderer.render(scene, topCam);
