@@ -28,18 +28,32 @@ export interface BottomWheelOptions {
   holdOnRelease?: boolean;
 }
 
+/** Wheel travel (radians) that corresponds to full steering lock. */
+const MAX_WHEEL_ROT = (140 * Math.PI) / 180;
+
 /**
- * Thin DOM binder: drag the widget left/right to steer. Pure mapping lives in
- * `normalizeDrag` / `steerFromBottomWheel`; this only wires pointer events and
- * publishes a CSS var `--wheel-u` for the visual.
+ * Thin DOM binder: grab the wheel ANYWHERE (top, bottom, or side) and rotate it
+ * like a real steering wheel. Accumulated rotation maps to u, so grabbing the top
+ * and pushing right steers opposite to grabbing the bottom and pushing right (as a
+ * real wheel does), while "the bottom leads the trailer" still holds. Pure mapping
+ * stays in `steerFromBottomWheel`; this only tracks angular drag and publishes the
+ * CSS var `--wheel-u` for the visual.
  */
 export function attachBottomWheel(el: HTMLElement, opts: BottomWheelOptions): () => void {
   const hold = opts.holdOnRelease ?? true;
   let active = false;
+  let lastAngle = 0;
+  let rot = 0; // accumulated wheel rotation (screen radians; CSS positive = clockwise)
 
-  const apply = (clientX: number): void => {
+  const angleAt = (clientX: number, clientY: number): number => {
     const r = el.getBoundingClientRect();
-    const u = normalizeDrag(clientX, r.left + r.width / 2, r.width / 2);
+    return Math.atan2(clientY - (r.top + r.height / 2), clientX - (r.left + r.width / 2));
+  };
+
+  const publish = (): void => {
+    rot = clamp(rot, -MAX_WHEEL_ROT, MAX_WHEEL_ROT);
+    // Pushing the bottom to the right is a negative screen rotation; read it as u>0.
+    const u = clamp(-rot / MAX_WHEEL_ROT, -1, 1);
     el.style.setProperty("--wheel-u", String(u));
     opts.onChange(u);
   };
@@ -47,12 +61,18 @@ export function attachBottomWheel(el: HTMLElement, opts: BottomWheelOptions): ()
   const down = (e: PointerEvent): void => {
     active = true;
     el.setPointerCapture(e.pointerId);
-    apply(e.clientX);
+    lastAngle = angleAt(e.clientX, e.clientY);
     e.preventDefault();
   };
   const move = (e: PointerEvent): void => {
     if (!active) return;
-    apply(e.clientX);
+    const a = angleAt(e.clientX, e.clientY);
+    let da = a - lastAngle;
+    while (da > Math.PI) da -= 2 * Math.PI;
+    while (da <= -Math.PI) da += 2 * Math.PI;
+    rot += da;
+    lastAngle = a;
+    publish();
     e.preventDefault();
   };
   const end = (e: PointerEvent): void => {
@@ -63,8 +83,8 @@ export function attachBottomWheel(el: HTMLElement, opts: BottomWheelOptions): ()
       /* pointer already released */
     }
     if (!hold) {
-      el.style.setProperty("--wheel-u", "0");
-      opts.onChange(0);
+      rot = 0;
+      publish();
     }
   };
 

@@ -14,7 +14,7 @@ export function coachingMessage(gs: GameState, d: PhysicsDerived): string {
       break;
   }
   if (Math.abs(gs.delta) < 0.02) {
-    return "Push the bottom of the wheel toward where you want the trailer to go.";
+    return "Turn the wheel toward where you want the trailer to go. The bottom of the wheel leads.";
   }
   return "Small inputs. The trailer follows the bottom of the wheel.";
 }

@@ -1,4 +1,5 @@
 import { step } from "../core/physics";
+import { computeCriticalGamma } from "../core/jackknife";
 import { clamp } from "../core/vec";
 import type { GameState } from "./state";
 import { updateSession } from "./session";
@@ -28,6 +29,9 @@ export function advance(gs: GameState, frameDt: number): GameState {
   const v = commandedSpeed(gs);
   const slew = gs.difficulty.steerRateLimit * dt;
 
+  const crit = computeCriticalGamma(gs.rig);
+  const blockRev = gs.difficulty.blockReverseWhenJackknifed;
+
   let acc = gs.accumulator + Math.min(frameDt, MAX_FRAME);
   let physics = gs.physics;
   let delta = gs.delta;
@@ -39,8 +43,15 @@ export function advance(gs: GameState, frameDt: number): GameState {
       -gs.rig.maxSteer,
       gs.rig.maxSteer,
     );
-    physics = step(physics, gs.rig, { delta, v, dt });
-    session = updateSession(session, physics, gs.rig, v, dt);
+    // Once folded past the recoverable angle, reverse is disabled: the only way
+    // out is to pull forward and straighten. (Beginner guardrail; data-driven.)
+    let vSub = v;
+    if (blockRev && vSub < 0) {
+      const gamma = Math.abs(physics.trailerHeading - physics.carHeading);
+      if (gamma >= crit) vSub = 0;
+    }
+    physics = step(physics, gs.rig, { delta, v: vSub, dt });
+    session = updateSession(session, physics, gs.rig, vSub, dt);
     acc -= dt;
   }
 

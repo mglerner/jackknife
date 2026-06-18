@@ -16,6 +16,7 @@ export const BEGINNER: DifficultyConfig = {
   showCoaching: true,
   mirrorsDefault: true,
   allowPullForwardAlways: true,
+  blockReverseWhenJackknifed: true,
   posTolerance: 0.9,
   headingTolerance: deg(12),
 };

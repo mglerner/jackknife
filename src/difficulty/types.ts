@@ -21,6 +21,7 @@ export interface DifficultyConfig {
 
   // Rules:
   allowPullForwardAlways: boolean; // false => only when jackknifeState is recoverable/contact
+  blockReverseWhenJackknifed: boolean; // true => once past criticalGamma, reverse is disabled (must pull forward)
 
   // Scoring tolerances (scaled by difficulty):
   posTolerance: number; // m

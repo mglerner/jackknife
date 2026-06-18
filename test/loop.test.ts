@@ -5,6 +5,7 @@ import type { GameState } from "../src/game/state";
 import { DEFAULT_RIG } from "../src/rigs/rigs";
 import { DEFAULT_SCENARIO } from "../src/scenarios/scenarios";
 import { BEGINNER } from "../src/difficulty/difficulty";
+import { computeCriticalGamma } from "../src/core/jackknife";
 
 const reversing = () =>
   setThrottle(setGear(createGame(DEFAULT_RIG, DEFAULT_SCENARIO, BEGINNER), "reverse"), 1);
@@ -45,5 +46,22 @@ describe("game loop — fixed timestep", () => {
   it("park gear holds the rig still", () => {
     const gs = simulate(createGame(DEFAULT_RIG, DEFAULT_SCENARIO, BEGINNER), 1.0);
     expect(gs.physics.x).toBe(DEFAULT_SCENARIO.start.x);
+  });
+
+  it("blocks reverse past the critical angle, but forward straightens it", () => {
+    const crit = computeCriticalGamma(DEFAULT_RIG);
+    // Start folded beyond the recoverable angle.
+    let gs = setThrottle(setGear(createGame(DEFAULT_RIG, DEFAULT_SCENARIO, BEGINNER), "reverse"), 1);
+    gs = { ...gs, physics: { ...gs.physics, trailerHeading: gs.physics.carHeading + crit + 0.1 } };
+    const g0 = Math.abs(gs.physics.trailerHeading - gs.physics.carHeading);
+
+    // Holding reverse must NOT worsen the fold (reverse is blocked).
+    gs = simulate(gs, 0.5);
+    expect(Math.abs(gs.physics.trailerHeading - gs.physics.carHeading)).toBeLessThanOrEqual(g0 + 1e-9);
+
+    // Pulling forward straightens it back below where it started.
+    gs = setThrottle(setGear(gs, "forward"), 1);
+    gs = simulate(gs, 1.0);
+    expect(Math.abs(gs.physics.trailerHeading - gs.physics.carHeading)).toBeLessThan(g0);
   });
 });
