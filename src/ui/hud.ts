@@ -47,10 +47,12 @@ export function createHud(parent: HTMLElement): Hud {
 
       dbg.hidden = !debug;
       if (debug) {
+        // Unicode Greek directly (no MathJax needed): articulation gamma, its rate
+        // gamma-dot, steer delta, critical and hard-limit gamma.
         dbg.textContent =
-          `gamma ${deg(d.gamma).toFixed(1)}  gammaDot ${d.gammaDot.toFixed(3)}\n` +
-          `delta ${deg(gs.delta).toFixed(1)}  v ${commandedSpeed(gs).toFixed(2)}\n` +
-          `crit ${deg(d.criticalGamma).toFixed(1)}  hard ${deg(d.hardLimitGamma).toFixed(1)}`;
+          `γ ${deg(d.gamma).toFixed(1)}°  γ̇ ${d.gammaDot.toFixed(3)}\n` +
+          `δ ${deg(gs.delta).toFixed(1)}°  v ${commandedSpeed(gs).toFixed(2)} m/s\n` +
+          `γc ${deg(d.criticalGamma).toFixed(1)}°  γmax ${deg(d.hardLimitGamma).toFixed(1)}°`;
       }
     },
   };
