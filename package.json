@@ -1,0 +1,20 @@
+{
+  "name": "jackknife",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Jackknife — a mobile-web game that teaches you to back up a trailer.",
+  "scripts": {
+    "dev": "vite --host",
+    "build": "tsc && vite build",
+    "preview": "vite preview --host",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.3",
+    "vite": "^6.0.7",
+    "vitest": "^3.0.4"
+  }
+}
