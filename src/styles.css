@@ -190,3 +190,26 @@ body {
   font-size: 15px;
   font-weight: 700;
 }
+
+#pullforward {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  background: rgba(239, 111, 108, 0.18);
+  pointer-events: none;
+}
+#pullforward .pf-title {
+  font-size: 28px;
+  font-weight: 800;
+  letter-spacing: 1px;
+  color: #fff;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.6);
+}
+#pullforward .pf-sub {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.9);
+}

@@ -12,7 +12,7 @@ import { DEFAULT_RIG } from "./rigs/rigs";
 import { DEFAULT_SCENARIO } from "./scenarios/scenarios";
 import { DEFAULT_DIFFICULTY } from "./difficulty/difficulty";
 import { steerFromBottomWheel } from "./input/bottomWheel";
-import { renderGame, type ViewMode } from "./render/renderGame";
+import { createRenderer3d, type ViewMode } from "./render3d/renderer";
 import { isTrailerInTarget } from "./scoring/types";
 import { defaultScorer } from "./scoring/defaultScorer";
 import { createHud } from "./ui/hud";
@@ -25,8 +25,6 @@ app.innerHTML = "";
 const canvas = document.createElement("canvas");
 canvas.id = "view";
 app.appendChild(canvas);
-const ctx = canvas.getContext("2d")!;
-
 const coach = document.createElement("div");
 coach.id = "coach";
 app.appendChild(coach);
@@ -36,11 +34,21 @@ banner.id = "banner";
 banner.hidden = true;
 app.appendChild(banner);
 
+const pull = document.createElement("div");
+pull.id = "pullforward";
+pull.hidden = true;
+pull.innerHTML =
+  '<div class="pf-title">PULL FORWARD</div>' +
+  '<div class="pf-sub">Ease forward to straighten the trailer</div>';
+app.appendChild(pull);
+
 let game = createGame(DEFAULT_RIG, DEFAULT_SCENARIO, DEFAULT_DIFFICULTY);
 let view: ViewMode = "topdown";
 let mirrors = DEFAULT_DIFFICULTY.mirrorsDefault;
 let debug = false;
 let won = false;
+
+const renderer3d = createRenderer3d(canvas, game);
 
 const hud = createHud(app);
 
@@ -79,8 +87,7 @@ function resize(): void {
   const r = canvas.getBoundingClientRect();
   cssW = r.width;
   cssH = r.height;
-  canvas.width = Math.max(1, Math.round(cssW * dpr));
-  canvas.height = Math.max(1, Math.round(cssH * dpr));
+  renderer3d.resize(cssW, cssH, dpr);
 }
 window.addEventListener("resize", resize);
 
@@ -107,7 +114,7 @@ function frame(t: number): void {
 
   if (!won) game = advance(game, dt);
 
-  renderGame(ctx, cssW, cssH, dpr, game, view, {
+  renderer3d.render(game, view, {
     mirrors,
     showGhost: game.difficulty.showGhost,
     showGuides: game.difficulty.showGuideLines,
@@ -116,6 +123,7 @@ function frame(t: number): void {
   hud.update(game, debug);
   const d = derive(game.physics, game.rig, { v: commandedSpeed(game), delta: game.delta });
   coach.textContent = coachingMessage(game, d);
+  pull.hidden = !(d.jackknifeState === "recoverable" || d.jackknifeState === "contact");
 
   checkWin();
   requestAnimationFrame(frame);
