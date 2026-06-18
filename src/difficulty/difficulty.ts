@@ -21,8 +21,48 @@ export const BEGINNER: DifficultyConfig = {
   headingTolerance: deg(12),
 };
 
+/** Phase-2 difficulty: fewer aids, tighter tolerances, brisker handling. */
+export const INTERMEDIATE: DifficultyConfig = {
+  id: "intermediate",
+  label: "Intermediate",
+  physicsDt: 1 / 120,
+  maxReverseSpeed: 1.8, // ~4 mph
+  maxForwardSpeed: 2.4,
+  steerRateLimit: deg(170),
+  ghostHorizon: 1.8,
+  showGhost: true,
+  showGuideLines: false,
+  showCoaching: true,
+  mirrorsDefault: true,
+  allowPullForwardAlways: true,
+  blockReverseWhenJackknifed: true,
+  posTolerance: 0.6,
+  headingTolerance: deg(8),
+};
+
+/** Phase-3 difficulty: no aids, strict tolerances, true-to-life feel. */
+export const EXPERT: DifficultyConfig = {
+  id: "expert",
+  label: "Expert",
+  physicsDt: 1 / 120,
+  maxReverseSpeed: 2.2, // ~5 mph
+  maxForwardSpeed: 3.1,
+  steerRateLimit: deg(200),
+  ghostHorizon: 0,
+  showGhost: false,
+  showGuideLines: false,
+  showCoaching: false,
+  mirrorsDefault: true,
+  allowPullForwardAlways: false, // only when jackknifeState is recoverable/contact
+  blockReverseWhenJackknifed: true,
+  posTolerance: 0.4,
+  headingTolerance: deg(5),
+};
+
 export const DIFFICULTIES: Record<string, DifficultyConfig> = {
   [BEGINNER.id]: BEGINNER,
+  [INTERMEDIATE.id]: INTERMEDIATE,
+  [EXPERT.id]: EXPERT,
 };
 
 export const DEFAULT_DIFFICULTY = BEGINNER;

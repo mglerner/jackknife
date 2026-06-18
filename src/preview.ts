@@ -66,12 +66,16 @@ const size = bbox.getSize(new THREE.Vector3());
 const radius = 0.5 * Math.hypot(size.x, size.y, size.z);
 const fitDist = (radius / Math.sin((cam.fov * Math.PI) / 360)) * 1.25;
 const dir = new THREE.Vector3(1.0, 0.5, 0.82).normalize(); // front-3/4, slightly above
-// eslint-disable-next-line no-console
-console.log("PREVIEW center", center.toArray(), "size", size.toArray(), "fitDist", fitDist);
+const baseAng = Math.atan2(dir.z, dir.x);
+const horiz = Math.hypot(dir.x, dir.z) * fitDist;
+const vert = dir.y * fitDist;
 
+let t = 0;
 function frame(): void {
   rig.update(gs, derive(gs.physics, gs.rig, { v: 0, delta: 0 }));
-  cam.position.copy(center).add(dir.clone().multiplyScalar(fitDist));
+  t += 1 / 60;
+  const ang = baseAng + t * 0.5; // slow orbit so screenshots catch different sides
+  cam.position.set(center.x + Math.cos(ang) * horiz, center.y + vert, center.z + Math.sin(ang) * horiz);
   cam.lookAt(center);
   renderer.render(scene, cam);
   requestAnimationFrame(frame);

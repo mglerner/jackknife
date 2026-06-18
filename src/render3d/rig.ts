@@ -1,5 +1,6 @@
 import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
+import { RoundedBoxGeometry } from "three/examples/jsm/geometries/RoundedBoxGeometry.js";
 import type { PhysicsDerived } from "../core/types";
 import type { GameState } from "../game/state";
 import { placeObject } from "./coords";
@@ -47,13 +48,29 @@ function box(
 }
 
 // -----------------------------------------------------------------------------
-// CAR: a Honda Odyssey-style minivan from layered boxes.
+// CAR: a Honda Odyssey-style minivan.
 //
-// The look we are after: a long, tall, slab-sided van. Low short hood, steeply
-// raked windshield, a long tall greenhouse with side glass running the length,
-// a near-vertical tailgate with a roof spoiler, alloy-look wheels in black
-// arches, and a two-tone body (metallic paint + black lower cladding).
+// The look we are after: a LONG, fairly LOW minivan (not a tall boxy SUV). A
+// short low hood, a steeply raked windshield, then a long low-slung greenhouse
+// with lots of glass running most of the length, a roofline that gently tapers
+// down toward the rear, and a near-vertical tailgate. Soft rounded corners with
+// a little tumblehome (the glass tilts inward at the top). Light silver paint.
 // -----------------------------------------------------------------------------
+
+/** A smooth-shaded rounded box helper used for the main body masses. */
+function roundedBox(
+  length: number,
+  height: number,
+  width: number,
+  radius: number,
+  mat: THREE.Material,
+  cast = true,
+): THREE.Mesh {
+  const r = Math.min(radius, length / 2, height / 2, width / 2) * 0.999;
+  const mesh = new THREE.Mesh(new RoundedBoxGeometry(length, height, width, 4, r), mat);
+  mesh.castShadow = cast;
+  return mesh;
+}
 
 function buildCar(gs: GameState): THREE.Group {
   const { carLength, carWidth, carFrontOverhang, W } = gs.rig;
@@ -67,55 +84,58 @@ function buildCar(gs: GameState): THREE.Group {
   const halfW = carWidth / 2;
 
   // --- Materials (shared across this car) ---
-  const bodyColor = 0x939a9e; // Honda "Polished Metal Metallic" (silver-grey)
+  // Light silver (Honda Polished Metal Metallic). Lighter than nominal so it
+  // reads as light silver paint rather than charcoal under this lighting.
   const bodyMat = new THREE.MeshStandardMaterial({
-    color: bodyColor,
-    roughness: 0.32,
-    metalness: 0.6,
+    color: 0xc3c8cc,
+    roughness: 0.38,
+    metalness: 0.55,
+    envMapIntensity: 1.3,
   });
   const lowerTrimMat = new THREE.MeshStandardMaterial({
-    color: 0x202327, // dark rocker / cladding / wheel arches
-    roughness: 0.75,
-    metalness: 0.15,
+    color: 0x35383c, // dark rocker / cladding (lighter than before so it isn't a black void)
+    roughness: 0.7,
+    metalness: 0.2,
   });
   const glassMat = new THREE.MeshStandardMaterial({
-    color: 0x10141b,
-    roughness: 0.06,
-    metalness: 0.25,
+    color: 0x1c232b, // tinted glass: dark but not pure black
+    roughness: 0.1,
+    metalness: 0.4,
     transparent: true,
-    opacity: 0.78,
+    opacity: 0.82,
   });
   const trimMat = new THREE.MeshStandardMaterial({
-    color: 0x101316, // black pillars / glass surround / mirror
-    roughness: 0.5,
-    metalness: 0.3,
+    color: 0x14171b, // black pillar trim / glass surround / mirror
+    roughness: 0.45,
+    metalness: 0.35,
   });
   const chromeMat = new THREE.MeshStandardMaterial({
-    color: 0xccd1d6,
-    roughness: 0.2,
+    color: 0xd6dade,
+    roughness: 0.18,
     metalness: 0.95,
   });
   const tireMat = new THREE.MeshStandardMaterial({
-    color: 0x111114,
+    color: 0x16161a,
     roughness: 0.92,
     metalness: 0.05,
   });
   const rimMat = new THREE.MeshStandardMaterial({
-    color: 0xc4c9ce,
+    color: 0xb6bbc0,
     roughness: 0.3,
     metalness: 0.9,
   });
   const headMat = new THREE.MeshStandardMaterial({
-    color: 0xfff6da,
-    emissive: 0xffe7a0,
-    emissiveIntensity: 1.0,
-    roughness: 0.25,
+    color: 0xeef4ff,
+    emissive: 0xbcd2ff,
+    emissiveIntensity: 0.6,
+    roughness: 0.15,
+    metalness: 0.2,
   });
   const tailMat = new THREE.MeshStandardMaterial({
-    color: 0xff342a,
-    emissive: 0xd11409,
-    emissiveIntensity: 1.0,
-    roughness: 0.35,
+    color: 0xd9261c,
+    emissive: 0xb01007,
+    emissiveIntensity: 0.8,
+    roughness: 0.3,
   });
   const plateMat = new THREE.MeshStandardMaterial({
     color: 0xf2f2ea,
@@ -123,147 +143,207 @@ function buildCar(gs: GameState): THREE.Group {
     metalness: 0.0,
   });
 
-  const wheelRadius = 0.36;
-  const wheelWidth = 0.26;
+  const wheelRadius = 0.38;
+  const wheelWidth = 0.25;
 
-  // Ride geometry. A minivan is tall and slab sided: the lower body is a deep
-  // box, the greenhouse (cabin) is a tall glassy box on top that runs most of
-  // the length, capped by a near-flat roof. Total height ~1.75 m.
-  const lowerH = 0.72; // main body box height (deep slab sides)
-  const lowerY = wheelRadius + 0.1 + lowerH / 2;
+  // Ride geometry. A minivan is LONG and fairly low. The lower body is a single
+  // rounded slab; the greenhouse (cabin) is a long glassy mass on top that runs
+  // most of the length and tapers down toward the rear; capped by a roof.
+  // Total height ~1.73 m.
+  const lowerH = 0.62; // main body height (beltline sits fairly low on a van)
+  const lowerY = wheelRadius + 0.04 + lowerH / 2;
   const lowerTopY = lowerY + lowerH / 2;
 
-  // Greenhouse: tall and long, set back from the nose to leave a short hood,
-  // and stopping just short of the tail for the near-vertical tailgate.
-  const greenhouseH = 0.66;
-  const ghFrontX = front - carLength * 0.24; // base of A-pillar (behind short hood)
-  const ghBackX = rearBumper + carLength * 0.06; // base of tailgate
-  const greenhouseLen = ghFrontX - ghBackX;
-  const greenhouseCenterX = (ghFrontX + ghBackX) / 2;
-  const greenhouseY = lowerTopY + greenhouseH / 2;
-  const greenhouseTopY = greenhouseY + greenhouseH / 2;
-  const ghHalfW = carWidth * 0.45; // glass inset from the body sides
-
-  // --- Lower body (main slab) ---
-  const body = box(carLength * 0.99, lowerH, carWidth, bodyMat);
+  // --- Lower body (main rounded slab), nearly full length ---
+  const bodyLen = carLength - 0.18;
+  const body = roundedBox(bodyLen, lowerH, carWidth, 0.28, bodyMat);
   body.position.set(bodyCenterX, lowerY, 0);
   g.add(body);
 
-  // Short, low hood ahead of the windshield; nose dips toward the bumper.
-  const hoodLen = front - ghFrontX;
-  const hood = box(hoodLen, 0.14, carWidth * 0.97, bodyMat);
-  hood.position.set(front - hoodLen / 2, lowerTopY - 0.02, 0);
-  hood.rotation.z = -0.05;
+  // Short, low hood ahead of the windshield; the nose dips toward the bumper.
+  const hoodFrontX = front - 0.14;
+  const ghFrontX = front - carLength * 0.13; // base of A-pillar (very short van hood)
+  const hoodLen = hoodFrontX - ghFrontX;
+  const hood = roundedBox(hoodLen + 0.22, 0.15, carWidth * 0.95, 0.06, bodyMat);
+  hood.position.set((hoodFrontX + ghFrontX) / 2, lowerTopY - 0.07, 0);
+  hood.rotation.z = -0.16; // nose dips steeply forward (cab-forward van)
   g.add(hood);
 
-  // Dark lower cladding / rocker panels along the sills (two-tone look).
-  const rockerH = 0.2;
-  const rocker = box(carLength * 0.9, rockerH, carWidth + 0.03, lowerTrimMat);
-  rocker.position.set(bodyCenterX, lowerY - lowerH / 2 + rockerH / 2, 0);
+  // Dark lower cladding / rocker panels along the sills.
+  const rockerH = 0.16;
+  const rocker = roundedBox(carLength * 0.88, rockerH, carWidth + 0.02, 0.06, lowerTrimMat);
+  rocker.position.set(bodyCenterX, lowerY - lowerH / 2 + rockerH / 2 + 0.02, 0);
   g.add(rocker);
 
-  // --- Greenhouse: a dark glass box, slightly narrower than the body ---
-  const greenhouse = box(greenhouseLen, greenhouseH, ghHalfW * 2, glassMat, false);
-  greenhouse.position.set(greenhouseCenterX, greenhouseY, 0);
-  g.add(greenhouse);
+  // ===========================================================================
+  // GREENHOUSE: a long low-slung cabin. We build it as a trapezoidal glass mass
+  // that runs most of the length and tapers DOWN toward the rear, with a little
+  // tumblehome (top narrower than the base). Body-colored pillars break the
+  // glass into panes: windshield, front door, sliding-door, rear quarter.
+  // ===========================================================================
+  const ghBackX = rearBumper + carLength * 0.05; // base of the near-vertical tailgate
+  const greenhouseLen = ghFrontX - ghBackX;
+  const greenhouseCenterX = (ghFrontX + ghBackX) / 2;
+  const ghBaseY = lowerTopY - 0.06; // glass starts a touch into the body (belt line)
+  const ghHalfBaseW = carWidth * 0.47;
+  const ghHalfTopW = carWidth * 0.41; // narrower at the top -> tumblehome
 
-  // Black belt-line band wrapping the base of the glass so it reads as inset.
-  const beltline = box(greenhouseLen + 0.06, 0.12, carWidth * 0.9, trimMat);
-  beltline.position.set(greenhouseCenterX, greenhouseY - greenhouseH / 2 + 0.06, 0);
-  g.add(beltline);
+  // Roofline: highest just behind the windshield, tapering down to the rear.
+  const ghFrontH = 0.66; // cabin height at the front (over the A-pillar base)
+  const ghRearH = 0.54; // lower at the rear quarter
+  const roofFrontY = ghBaseY + ghFrontH;
+  const roofRearY = ghBaseY + ghRearH;
 
-  // --- Body-colored pillars (A/B/C/D) on each side of the glass ---
-  // The glass box sits inboard of the body sides; we drop thin body-colored
-  // posts on the outer face so the windows read as separate panes between
-  // pillars. Spread along the length: A at front, D at rear, B/C between.
-  const pillarMat = bodyMat;
-  const pillarFracs = [0.04, 0.36, 0.66, 0.96]; // A, B, C, D as fraction of length
-  const pillarW = 0.12;
-  const pillarSideZ = ghHalfW + 0.01;
-  for (const frac of pillarFracs) {
-    const px = ghBackX + frac * greenhouseLen;
-    const isEnd = frac < 0.1 || frac > 0.9;
-    const thick = isEnd ? 0.16 : pillarW; // A and D a touch beefier
-    for (const sz of [pillarSideZ, -pillarSideZ]) {
-      const post = box(thick, greenhouseH, 0.05, pillarMat);
-      post.position.set(px, greenhouseY, sz);
-      g.add(post);
-    }
+  // Glass core: a tapered hexahedral mass. Build via a BufferGeometry box whose
+  // top edge slopes down to the rear and whose top is inset (tumblehome). We
+  // approximate with two stacked tapered boxes by using a custom shape: easiest
+  // is a thin tilted slab per side plus end glass. Keep it simple and readable.
+
+  // Side glass: one tilted slab per side spanning the door/quarter glass.
+  const sideGlassLen = greenhouseLen - 0.26;
+  for (const sign of [1, -1]) {
+    const glass = box(sideGlassLen, (ghFrontH + ghRearH) / 2 - 0.06, 0.05, glassMat, false);
+    glass.position.set(
+      greenhouseCenterX,
+      ghBaseY + (ghFrontH + ghRearH) / 4 + 0.05,
+      sign * (ghHalfBaseW + ghHalfTopW) / 2,
+    );
+    glass.rotation.x = sign * 0.13; // tumblehome: lean the top inward
+    g.add(glass);
   }
 
-  // Raked A-pillar / windshield frame at the front of the greenhouse.
-  const windshield = box(0.07, greenhouseH * 1.04, carWidth * 0.84, trimMat);
-  windshield.position.set(ghFrontX + 0.02, greenhouseY + 0.03, 0);
-  windshield.rotation.z = 0.34; // steep forward rake
+  // A central body-colored "core" between the two glass sides fills the cabin so
+  // we don't see through to the far windows. Body-colored so the cabin reads as
+  // a painted van rather than a black box; the glass sits just outboard of it.
+  const coreLen = greenhouseLen - 0.18;
+  const core = roundedBox(
+    coreLen,
+    (ghFrontH + ghRearH) / 2 - 0.04,
+    ghHalfTopW * 2 - 0.02,
+    0.1,
+    bodyMat,
+    false,
+  );
+  core.position.set(greenhouseCenterX, ghBaseY + (ghFrontH + ghRearH) / 4 + 0.04, 0);
+  g.add(core);
+
+  // Belt-line trim wrapping the base of the glass (so windows read as inset).
+  const beltline = box(greenhouseLen, 0.07, carWidth * 0.95, trimMat);
+  beltline.position.set(greenhouseCenterX, ghBaseY + 0.02, 0);
+  g.add(beltline);
+  // A thin bright belt strip along the base of the side windows (chrome cue).
+  for (const sign of [1, -1]) {
+    const strip = box(greenhouseLen - 0.2, 0.035, 0.03, chromeMat);
+    strip.position.set(greenhouseCenterX, ghBaseY + 0.07, sign * (ghHalfBaseW + 0.02));
+    g.add(strip);
+  }
+
+  // --- Raked windshield (front glass): a thin slab spanning from the cowl up to
+  // the roof front edge, steeply raked. Sized so it does not poke past the roof.
+  const wsRake = 0.72; // radians from vertical-ish; big forward rake
+  const wsHeight = ghFrontH * 0.94;
+  const windshield = box(0.07, wsHeight, carWidth * 0.84, glassMat, false);
+  // Center it on the line from cowl base (ghFrontX) up to the roof front.
+  windshield.position.set(
+    ghFrontX + Math.sin(wsRake) * wsHeight * 0.5,
+    ghBaseY + Math.cos(wsRake) * wsHeight * 0.5 + 0.04,
+    0,
+  );
+  windshield.rotation.z = wsRake;
   g.add(windshield);
 
-  // Near-vertical tailgate frame at the rear of the greenhouse.
-  const tailgate = box(0.07, greenhouseH * 1.02, carWidth * 0.84, trimMat);
-  tailgate.position.set(ghBackX - 0.02, greenhouseY, 0);
-  tailgate.rotation.z = -0.06; // barely raked (tall tailgate)
-  g.add(tailgate);
+  // --- Rear glass / near-vertical tailgate window ---
+  const rgLen = 0.34;
+  const rearGlass = box(rgLen, ghRearH * 0.92, carWidth * 0.82, glassMat, false);
+  rearGlass.position.set(ghBackX - rgLen * 0.1, roofRearY - ghRearH * 0.46, 0);
+  rearGlass.rotation.z = -0.18; // gently raked tailgate
+  g.add(rearGlass);
 
-  // --- Near-flat roof with a slight rearward taper ---
-  const roofLen = greenhouseLen * 1.0;
-  const roof = box(roofLen, 0.14, carWidth * 0.82, bodyMat);
-  roof.position.set(greenhouseCenterX, greenhouseTopY + 0.06, 0);
+  // ===========================================================================
+  // ROOF: a tapered skin sloping from roofFrontY down to roofRearY, slightly
+  // narrower than the cabin, with soft rounded edges.
+  // ===========================================================================
+  const roofLen = greenhouseLen + 0.22; // extend front a bit to meet the windshield top
+  const roofTilt = Math.atan2(roofFrontY - roofRearY, greenhouseLen);
+  const roofCenterX = greenhouseCenterX + 0.08;
+  const roof = roundedBox(roofLen / Math.cos(roofTilt), 0.1, ghHalfTopW * 2 - 0.02, 0.06, bodyMat);
+  roof.position.set(roofCenterX, (roofFrontY + roofRearY) / 2 + 0.05, 0);
+  roof.rotation.z = roofTilt; // front edge higher than rear
   g.add(roof);
-  // A rounded ridge cylinder crowns the roof for a softer top edge.
-  const crownGeo = new THREE.CylinderGeometry(0.11, 0.11, roofLen, 14);
-  const crown = new THREE.Mesh(crownGeo, bodyMat);
-  crown.rotation.z = Math.PI / 2; // axis along X
-  crown.position.set(greenhouseCenterX, greenhouseTopY + 0.1, 0);
-  crown.castShadow = true;
-  g.add(crown);
 
-  // Roof rails along both edges (a common minivan cue).
-  const railGeo = new THREE.BoxGeometry(roofLen * 0.86, 0.04, 0.05);
-  for (const sz of [carWidth * 0.36, -carWidth * 0.36]) {
-    const railBar = new THREE.Mesh(railGeo, trimMat);
-    railBar.position.set(greenhouseCenterX, greenhouseTopY + 0.14, sz);
+  // Roof rails along both edges (a minivan cue). Kept within the cabin length.
+  const railGeo = new THREE.BoxGeometry(greenhouseLen * 0.78, 0.035, 0.045);
+  for (const sz of [ghHalfTopW - 0.05, -(ghHalfTopW - 0.05)]) {
+    const railBar = new THREE.Mesh(railGeo, lowerTrimMat);
+    railBar.position.set(greenhouseCenterX - 0.05, (roofFrontY + roofRearY) / 2 + 0.11, sz);
+    railBar.rotation.z = roofTilt;
     g.add(railBar);
   }
 
   // Roof spoiler over the tailgate.
-  const spoiler = box(0.16, 0.07, carWidth * 0.78, trimMat);
-  spoiler.position.set(ghBackX + 0.04, greenhouseTopY + 0.06, 0);
+  const spoiler = box(0.16, 0.06, carWidth * 0.74, trimMat);
+  spoiler.position.set(ghBackX + 0.06, roofRearY + 0.06, 0);
   g.add(spoiler);
 
+  // --- Body-colored A/B/C/D pillars dividing the side glass into panes ---
+  // Each pillar is a thin body-colored post on the outer face of the glass.
+  const pillarFracs = [0.02, 0.36, 0.64, 0.99]; // A, B, C, D as fraction of cabin len
+  for (const frac of pillarFracs) {
+    const px = ghBackX + frac * greenhouseLen;
+    // Roof height at this X (linear taper front->rear).
+    const t = (px - ghBackX) / greenhouseLen;
+    const topY = roofRearY + t * (roofFrontY - roofRearY);
+    const ph = topY - ghBaseY;
+    const isEnd = frac < 0.06 || frac > 0.95;
+    const thick = isEnd ? 0.13 : 0.1;
+    for (const sign of [1, -1]) {
+      const post = box(thick, ph, 0.06, bodyMat);
+      post.position.set(px, ghBaseY + ph / 2, sign * (ghHalfBaseW + 0.015));
+      post.rotation.x = sign * 0.07;
+      g.add(post);
+    }
+  }
+
   // --- Bumpers (body color), front and rear ---
-  const bumperH = 0.34;
-  const bumperY = wheelRadius + 0.02 + bumperH / 2;
-  const frontBumper = box(0.2, bumperH, carWidth * 0.99, bodyMat);
-  frontBumper.position.set(front - 0.04, bumperY, 0);
+  const bumperH = 0.26;
+  const bumperY = wheelRadius + bumperH / 2 - 0.01;
+  const frontBumper = roundedBox(0.2, bumperH, carWidth * 0.98, 0.07, bodyMat);
+  frontBumper.position.set(front - 0.07, bumperY, 0);
   g.add(frontBumper);
-  const rearBumperMesh = box(0.2, bumperH, carWidth * 0.99, bodyMat);
-  rearBumperMesh.position.set(rearBumper + 0.04, bumperY, 0);
+  const rearBumperMesh = roundedBox(0.2, bumperH, carWidth * 0.98, 0.07, bodyMat);
+  rearBumperMesh.position.set(rearBumper + 0.07, bumperY, 0);
   g.add(rearBumperMesh);
 
   // --- Front grille (dark) with a horizontal chrome bar, plus a lower intake ---
-  const grilleY = bumperY + bumperH / 2 + 0.13;
-  const grille = box(0.06, 0.26, carWidth * 0.6, trimMat);
-  grille.position.set(front - 0.01, grilleY, 0);
+  // Grille sits high under the hood lip; chrome bar spans the headlights.
+  const grilleY = bumperY + bumperH / 2 + 0.16;
+  const grille = box(0.05, 0.18, carWidth * 0.5, trimMat);
+  grille.position.set(front - 0.03, grilleY, 0);
   g.add(grille);
-  const grilleBar = box(0.08, 0.06, carWidth * 0.62, chromeMat);
-  grilleBar.position.set(front, grilleY + 0.02, 0);
+  const grilleBar = box(0.06, 0.07, carWidth * 0.84, chromeMat);
+  grilleBar.position.set(front - 0.005, grilleY + 0.07, 0);
   g.add(grilleBar);
-  // Lower bumper intake.
-  const intake = box(0.05, 0.12, carWidth * 0.5, lowerTrimMat);
-  intake.position.set(front - 0.02, bumperY - bumperH / 2 + 0.08, 0);
+  // Lower bumper intake (dark slot).
+  const intake = box(0.05, 0.1, carWidth * 0.62, lowerTrimMat);
+  intake.position.set(front - 0.05, bumperY - bumperH / 2 + 0.06, 0);
   g.add(intake);
 
-  // --- Wheels: tire + multi-spoke-ish alloy, front axle at +W, rear at 0 ---
-  const halfTrack = halfW - wheelWidth / 2 + 0.01;
-  const tireGeo = new THREE.CylinderGeometry(wheelRadius, wheelRadius, wheelWidth, 20);
-  // Alloy hub: a lighter disc plus a few crossing spoke bars to suggest spokes.
+  // --- Wheels: tire + alloy hub with spokes; front axle at +W, rear at 0 ---
+  const halfTrack = halfW - wheelWidth / 2 + 0.02;
+  const tireGeo = new THREE.CylinderGeometry(wheelRadius, wheelRadius, wheelWidth, 24);
   const hubGeo = new THREE.CylinderGeometry(
-    wheelRadius * 0.55,
-    wheelRadius * 0.55,
-    wheelWidth + 0.03,
-    16,
+    wheelRadius * 0.6,
+    wheelRadius * 0.6,
+    wheelWidth + 0.02,
+    18,
   );
-  const spokeGeo = new THREE.BoxGeometry(wheelRadius * 1.0, 0.05, wheelWidth + 0.04);
-  const wellMat = lowerTrimMat;
+  const capGeo = new THREE.CylinderGeometry(
+    wheelRadius * 0.22,
+    wheelRadius * 0.22,
+    wheelWidth + 0.04,
+    14,
+  );
+  const spokeGeo = new THREE.BoxGeometry(wheelRadius * 1.1, 0.06, wheelWidth + 0.03);
   for (const axleX of [W, 0]) {
     for (const side of [halfTrack, -halfTrack]) {
       const tire = new THREE.Mesh(tireGeo, tireMat);
@@ -277,65 +357,68 @@ function buildCar(gs: GameState): THREE.Group {
       hub.position.set(axleX, wheelRadius, side);
       g.add(hub);
 
-      // Two crossing bars read as a multi-spoke alloy from a distance.
-      for (let s = 0; s < 3; s++) {
+      // Spoke bars over a dark hub gap read as an alloy from a distance.
+      for (let s = 0; s < 5; s++) {
         const spoke = new THREE.Mesh(spokeGeo, rimMat);
         spoke.rotation.x = WHEEL_LATERAL;
-        spoke.rotation.z = (s * Math.PI) / 3;
+        spoke.rotation.z = (s * Math.PI) / 5;
         spoke.position.set(axleX, wheelRadius, side);
         g.add(spoke);
       }
+      const cap = new THREE.Mesh(capGeo, chromeMat);
+      cap.rotation.x = WHEEL_LATERAL;
+      cap.position.set(axleX, wheelRadius, side);
+      g.add(cap);
 
-      // Black wheel-arch flare over each tire (slab-side fender cue).
-      const well = box(wheelRadius * 2.5, 0.14, wheelWidth + 0.12, wellMat);
-      well.position.set(axleX, wheelRadius * 2 + 0.02, side);
-      g.add(well);
+      // Subtle body-colored wheel-arch lip over each tire.
+      const arch = roundedBox(wheelRadius * 2.4, 0.12, wheelWidth + 0.1, 0.05, lowerTrimMat);
+      arch.position.set(axleX, wheelRadius * 1.95, side);
+      g.add(arch);
     }
   }
 
   // --- Side mirrors on the front doors ---
-  const mirrorStalkGeo = new THREE.CylinderGeometry(0.022, 0.022, 0.16, 8);
-  const mirrorX = ghFrontX - 0.05;
-  const mirrorY = lowerTopY - 0.02;
+  const mirrorStalkGeo = new THREE.CylinderGeometry(0.02, 0.02, 0.12, 8);
+  const mirrorX = ghFrontX + 0.08;
+  const mirrorY = lowerTopY - 0.08;
   for (const side of [halfW, -halfW]) {
     const stalk = new THREE.Mesh(mirrorStalkGeo, trimMat);
     stalk.rotation.x = WHEEL_LATERAL;
-    stalk.position.set(mirrorX, mirrorY, side + Math.sign(side) * 0.08);
+    stalk.position.set(mirrorX, mirrorY, side + Math.sign(side) * 0.07);
     g.add(stalk);
-    const housing = box(0.13, 0.13, 0.07, trimMat);
-    housing.position.set(mirrorX, mirrorY + 0.02, side + Math.sign(side) * 0.18);
+    const housing = roundedBox(0.14, 0.11, 0.07, 0.04, bodyMat);
+    housing.position.set(mirrorX, mirrorY + 0.03, side + Math.sign(side) * 0.16);
     g.add(housing);
   }
 
   // --- Lights ---
-  // Swept headlights wrapping the front corners.
-  const headInset = halfW - 0.22;
-  const headY = grilleY + 0.02;
+  // Swept headlights wrapping the front corners, riding the chrome bar line.
+  const headInset = halfW - 0.26;
+  const headY = grilleY + 0.07;
   for (const side of [headInset, -headInset]) {
-    const head = box(0.07, 0.18, 0.34, headMat);
-    head.position.set(front + 0.01, headY, side);
-    head.rotation.y = Math.sign(side) * 0.12; // sweep back at the corner
+    const head = roundedBox(0.08, 0.14, 0.4, 0.04, headMat);
+    head.position.set(front - 0.04, headY, side);
+    head.rotation.y = Math.sign(side) * 0.22; // sweep back at the corner
     g.add(head);
   }
-  // Tall wraparound tail lights: a vertical strip up each rear corner plus a
-  // light bar across the tailgate (modern Odyssey signature).
+  // Tall wraparound tail lights up each rear corner plus a light bar across.
   const tailY0 = bumperY + bumperH / 2;
-  for (const side of [halfW - 0.06, -(halfW - 0.06)]) {
-    const tail = box(0.06, 0.5, 0.18, tailMat);
-    tail.position.set(rearBumper - 0.01, tailY0 + 0.25, side);
+  for (const side of [halfW - 0.05, -(halfW - 0.05)]) {
+    const tail = roundedBox(0.06, 0.48, 0.16, 0.03, tailMat);
+    tail.position.set(rearBumper + 0.02, tailY0 + 0.24, side);
     g.add(tail);
   }
-  const tailBar = box(0.05, 0.1, carWidth * 0.72, tailMat);
-  tailBar.position.set(rearBumper - 0.005, tailY0 + 0.42, 0);
+  const tailBar = box(0.05, 0.09, carWidth * 0.7, tailMat);
+  tailBar.position.set(rearBumper + 0.03, tailY0 + 0.4, 0);
   g.add(tailBar);
 
   // --- License plates ---
   const plateGeo = new THREE.BoxGeometry(0.04, 0.16, 0.34);
   const frontPlate = new THREE.Mesh(plateGeo, plateMat);
-  frontPlate.position.set(front + 0.02, bumperY - 0.06, 0);
+  frontPlate.position.set(front - 0.04, bumperY - 0.06, 0);
   g.add(frontPlate);
   const rearPlate = new THREE.Mesh(plateGeo, plateMat);
-  rearPlate.position.set(rearBumper - 0.02, bumperY - 0.02, 0);
+  rearPlate.position.set(rearBumper + 0.04, bumperY - 0.02, 0);
   g.add(rearPlate);
 
   return g;

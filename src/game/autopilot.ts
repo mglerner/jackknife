@@ -30,7 +30,14 @@ export const maneuverDuration = (m: Maneuver): number => m.reduce((t, s) => t + 
  * from the parked pose is a guaranteed-solvable back-in.
  */
 export function reverseManeuver(m: Maneuver): Maneuver {
-  return [...m].reverse().map((s) => ({ gear: "reverse" as const, steer: s.steer, seconds: s.seconds }));
+  // Time-reversal negates velocity, so each segment's gear flips and the order
+  // reverses. A multi-phase forward/reverse exit thus reverses into a back-in that
+  // can legitimately include a pull-forward.
+  return [...m].reverse().map((s) => ({
+    gear: s.gear === "forward" ? ("reverse" as const) : ("forward" as const),
+    steer: s.steer,
+    seconds: s.seconds,
+  }));
 }
 
 /** The straight, parked pose with the trailer axle exactly on the target. */

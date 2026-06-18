@@ -32,6 +32,9 @@ export interface Rig {
   hardLimitGamma: number; // physical contact angle (rad, ~75°)
   loadBlocksCamera: boolean; // tall/enclosed load => backup cam unusable
   axleConfig: "single" | "dual";
+  // Optional taxonomy (for UI / scenario filtering); legacy + inline test rigs omit these:
+  vehicleType?: "minivan" | "suv" | "tractor";
+  trailerType?: "utility-single" | "utility-dual" | "ag";
 }
 
 /** Per-substep command. */
