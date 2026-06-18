@@ -132,13 +132,15 @@ body {
   /* Visual rotation mirrors the accumulated wheel rotation (u in [-1,1]).
      u>0 (bottom pushed right) is a counter-clockwise / negative CSS angle. */
   transform: rotate(calc(var(--wheel-u, 0) * -140deg));
+  /* Translucent so the backup-camera view shows through behind it. */
+  opacity: 0.82;
 }
 .wheel-face {
   position: absolute;
   inset: 0;
   border-radius: 50%;
-  background: radial-gradient(circle at 50% 38%, #313944, #20262d);
-  border: 4px solid #455160;
+  background: radial-gradient(circle at 50% 38%, rgba(49, 57, 68, 0.66), rgba(32, 38, 45, 0.66));
+  border: 4px solid rgba(69, 81, 96, 0.85);
 }
 .wheel-mark {
   position: absolute;

@@ -1,8 +1,6 @@
 import type { PhysicsDerived } from "../core/types";
 import type { Vec2 } from "../core/vec";
 import type { GameState } from "../game/state";
-import type { Camera } from "./camera";
-import { drawWorldInto } from "./drawWorld";
 
 export interface BackupCamLayout {
   x: number; // pane top-left (CSS px)
@@ -14,20 +12,41 @@ export interface BackupCamLayout {
 }
 
 const COL = {
-  bg: "#0c0f13",
+  sky: "#0a0d11",
+  groundNear: "#23282f",
+  groundFar: "#161b21",
+  grid: "rgba(255,255,255,0.06)",
   border: "#3a4250",
   label: "#9aa6b2",
   placeholder: "#ef6f6c",
+  wall: "#39424f",
+  wallTop: "#4a5663",
+  curb: "rgba(154,166,178,0.5)",
+  target: "#5ad17a",
+  trailer: "#4cc2ff",
   guideNear: "#5ad17a",
   guideMid: "#f2c14e",
   guideFar: "#ef6f6c",
 };
 
+const NEAR = 0.35; // nearest visible depth behind the bumper (m)
+const CAM_H = 1.05; // camera height above ground (m)
+const WALL_H = 1.2;
+const TRAILER_H = 1.3;
+
+/** A projected screen point plus its depth behind the camera. */
+interface PP {
+  x: number;
+  y: number;
+  behind: number;
+}
+
 /**
- * Wide rear-facing pane. ONLY usable when scenario.cameraAvailable and the rig's
- * load does not block the camera; otherwise renders a "Camera blocked by load"
- * (or "No camera on this scenario") placeholder. Optionally draws colored distance
- * guide lines that curve with the current steer.
+ * A real rear-bumper backup camera: a perspective projection of the ground plane
+ * behind the vehicle. The ground recedes to a horizon, walls and the trailer have
+ * height, and the image is mirrored (vehicle-left shows on the left) like a real
+ * reversing camera. Only usable when the scenario has a camera and the load does
+ * not block it; otherwise a placeholder is shown.
  */
 export function drawBackupCam(
   ctx: CanvasRenderingContext2D,
@@ -40,158 +59,282 @@ export function drawBackupCam(
   ctx.beginPath();
   ctx.rect(x, y, w, h);
   ctx.clip();
-  ctx.fillStyle = COL.bg;
-  ctx.fillRect(x, y, w, h);
 
-  const blocked = !gs.scenario.cameraAvailable || gs.rig.loadBlocksCamera;
-  if (blocked) {
+  if (!gs.scenario.cameraAvailable || gs.rig.loadBlocksCamera) {
+    ctx.fillStyle = COL.sky;
+    ctx.fillRect(x, y, w, h);
     ctx.restore();
     drawPlaceholder(ctx, gs, layout);
     return;
   }
 
-  const { physics } = gs;
-  const lookHeading = physics.carHeading + Math.PI; // straight rearward
-
-  // Eyepoint sits at the rear bumper, a touch high (faked by depth only).
-  const rearDist = gs.rig.carLength - gs.rig.carFrontOverhang;
+  const H = gs.physics.carHeading;
+  const cosH = Math.cos(H);
+  const sinH = Math.sin(H);
+  const rearDist = gs.rig.carLength - gs.rig.carFrontOverhang; // rear axle -> bumper
   const eye: Vec2 = {
-    x: physics.x - rearDist * Math.cos(physics.carHeading),
-    y: physics.y - rearDist * Math.sin(physics.carHeading),
+    x: gs.physics.x - rearDist * cosH,
+    y: gs.physics.y - rearDist * sinH,
   };
 
-  const viewDepth = 11; // meters of rearward world shown (wide field)
-  const center: Vec2 = {
-    x: eye.x + (viewDepth / 2) * Math.cos(lookHeading),
-    y: eye.y + (viewDepth / 2) * Math.sin(lookHeading),
+  const horizonY = y + h * 0.3;
+  const cx = x + w / 2;
+  const focalH = w * 0.66;
+  const focalV = h * 1.05;
+
+  // World point -> screen (mirrored). Returns null if at/behind the camera plane.
+  const project = (p: Vec2, z = 0): PP | null => {
+    const dx = p.x - eye.x;
+    const dy = p.y - eye.y;
+    const behind = -(dx * cosH + dy * sinH); // distance rearward
+    if (behind <= NEAR) return null;
+    const left = dx * -sinH + dy * cosH; // vehicle-left offset
+    return {
+      x: cx - focalH * (left / behind), // mirrored: left -> screen-left
+      y: horizonY + focalV * ((CAM_H - z) / behind),
+      behind,
+    };
   };
-  const pxPerMeter = h / viewDepth;
-
-  const cam: Camera = {
-    centerX: center.x,
-    centerY: center.y,
-    pxPerMeter,
-    wCss: w,
-    hCss: h,
-    dpr: layout.dpr,
+  // Camera-frame point (depth behind, vehicle-left offset, height) -> screen.
+  const camPt = (behind: number, left: number, z = 0): PP | null => {
+    if (behind <= NEAR) return null;
+    return {
+      x: cx - focalH * (left / behind),
+      y: horizonY + focalV * ((CAM_H - z) / behind),
+      behind,
+    };
   };
 
-  // Same transform as the mirrors but WITHOUT the horizontal flip: a backup
-  // camera image is presented un-mirrored (the screen shows the scene as a
-  // forward-looking camera pointed backward, conventionally un-flipped).
-  ctx.translate(x + w / 2, y + h / 2);
-  ctx.rotate(-(lookHeading - Math.PI / 2));
-  ctx.translate(-w / 2, -h / 2);
-
-  drawWorldInto(ctx, cam, gs, derived, { grid: false });
-
-  if (layout.showGuides) drawGuides(ctx, gs, derived, cam, eye, lookHeading, viewDepth);
+  drawBackground(ctx, x, y, w, h, horizonY);
+  drawGroundGrid(ctx, camPt);
+  drawTargetBox(ctx, project, gs);
+  drawObstacles(ctx, project, gs);
+  drawTrailer(ctx, project, gs, derived);
+  if (layout.showGuides !== false) drawGuides(ctx, camPt, gs);
 
   ctx.restore();
 
-  // Depth gradient + frame + label.
+  drawVignette(ctx, x, y, w, h);
+  frameAndLabel(ctx, layout, "Backup camera");
+}
+
+function drawBackground(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+  horizonY: number,
+): void {
+  ctx.fillStyle = COL.sky;
+  ctx.fillRect(x, y, w, horizonY - y);
+  const g = ctx.createLinearGradient(0, horizonY, 0, y + h);
+  g.addColorStop(0, COL.groundFar);
+  g.addColorStop(1, COL.groundNear);
+  ctx.fillStyle = g;
+  ctx.fillRect(x, horizonY, w, y + h - horizonY);
+}
+
+function polyline(ctx: CanvasRenderingContext2D, pts: Array<PP | null>): void {
+  let started = false;
+  ctx.beginPath();
+  for (const p of pts) {
+    if (!p) {
+      started = false;
+      continue;
+    }
+    if (!started) {
+      ctx.moveTo(p.x, p.y);
+      started = true;
+    } else {
+      ctx.lineTo(p.x, p.y);
+    }
+  }
+  ctx.stroke();
+}
+
+function drawGroundGrid(
+  ctx: CanvasRenderingContext2D,
+  camPt: (b: number, l: number, z?: number) => PP | null,
+): void {
+  ctx.strokeStyle = COL.grid;
+  ctx.lineWidth = 1;
+  // Depth lines (constant distance behind).
+  for (const d of [1, 2, 3, 4, 6, 8, 11, 15]) {
+    const pts: Array<PP | null> = [];
+    for (let lat = -8; lat <= 8; lat += 0.8) pts.push(camPt(d, lat));
+    polyline(ctx, pts);
+  }
+  // Lateral lines (constant vehicle-left offset).
+  for (let lat = -8; lat <= 8; lat += 2) {
+    const pts: Array<PP | null> = [];
+    for (let d = NEAR + 0.05; d <= 15; d += 0.6) pts.push(camPt(d, lat));
+    polyline(ctx, pts);
+  }
+}
+
+function fillPoly(ctx: CanvasRenderingContext2D, pts: PP[], fill: string, stroke?: string): void {
+  ctx.beginPath();
+  pts.forEach((p, i) => (i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y)));
+  ctx.closePath();
+  ctx.fillStyle = fill;
+  ctx.fill();
+  if (stroke) {
+    ctx.strokeStyle = stroke;
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+  }
+}
+
+function drawTargetBox(
+  ctx: CanvasRenderingContext2D,
+  project: (p: Vec2, z?: number) => PP | null,
+  gs: GameState,
+): void {
+  const t = gs.scenario.target;
+  const al: Vec2 = { x: Math.cos(t.heading), y: Math.sin(t.heading) };
+  const lf: Vec2 = { x: -Math.sin(t.heading), y: Math.cos(t.heading) };
+  const corner = (s: number, u: number): Vec2 => ({
+    x: t.x + s * t.halfLength * al.x + u * t.halfWidth * lf.x,
+    y: t.y + s * t.halfLength * al.y + u * t.halfWidth * lf.y,
+  });
+  const ring = [corner(1, -1), corner(1, 1), corner(-1, 1), corner(-1, -1)].map((p) => project(p));
+  if (ring.some((p) => p === null)) return;
+  ctx.save();
+  ctx.setLineDash([8, 6]);
+  ctx.strokeStyle = COL.target;
+  ctx.lineWidth = 2;
+  polyline(ctx, [...ring, ring[0]]);
+  ctx.restore();
+}
+
+function drawObstacles(
+  ctx: CanvasRenderingContext2D,
+  project: (p: Vec2, z?: number) => PP | null,
+  gs: GameState,
+): void {
+  // Draw farthest first so nearer walls overlap correctly.
+  const walls = gs.scenario.obstacles
+    .filter((o) => o.shape.type === "segment")
+    .map((o) => o.shape as { type: "segment"; a: Vec2; b: Vec2 } & { kind?: string });
+  for (const o of gs.scenario.obstacles) {
+    if (o.shape.type !== "segment") continue;
+    const a = o.shape.a;
+    const b = o.shape.b;
+    if (o.kind === "curb") {
+      const a0 = project(a);
+      const b0 = project(b);
+      if (a0 && b0) {
+        ctx.strokeStyle = COL.curb;
+        ctx.lineWidth = 2;
+        polyline(ctx, [a0, b0]);
+      }
+      continue;
+    }
+    // Wall: vertical quad from ground to WALL_H.
+    const a0 = project(a, 0);
+    const b0 = project(b, 0);
+    const a1 = project(a, WALL_H);
+    const b1 = project(b, WALL_H);
+    if (a0 && b0 && a1 && b1) {
+      fillPoly(ctx, [a0, b0, b1, a1], COL.wall, "#222831");
+      ctx.strokeStyle = COL.wallTop;
+      ctx.lineWidth = 2;
+      polyline(ctx, [a1, b1]);
+    }
+  }
+  void walls;
+}
+
+function drawTrailer(
+  ctx: CanvasRenderingContext2D,
+  project: (p: Vec2, z?: number) => PP | null,
+  gs: GameState,
+  d: PhysicsDerived,
+): void {
+  const th = d.trailerHeading;
+  const lf: Vec2 = { x: -Math.sin(th), y: Math.cos(th) };
+  const hw = gs.rig.trailerWidth / 2;
+  const front = d.hitch; // coupler end (closest to camera)
+  const back = d.trailerTail;
+  const off = (p: Vec2, s: number): Vec2 => ({ x: p.x + s * hw * lf.x, y: p.y + s * hw * lf.y });
+
+  const fL = off(front, 1);
+  const fR = off(front, -1);
+  const bL = off(back, 1);
+  const bR = off(back, -1);
+
+  // Top face (always try) then back + sides, drawing far-to-near.
+  const top = [project(fL, TRAILER_H), project(fR, TRAILER_H), project(bR, TRAILER_H), project(bL, TRAILER_H)];
+  const back0 = [project(bL, 0), project(bR, 0), project(bR, TRAILER_H), project(bL, TRAILER_H)];
+  const leftSide = [project(fL, 0), project(bL, 0), project(bL, TRAILER_H), project(fL, TRAILER_H)];
+  const rightSide = [project(fR, 0), project(bR, 0), project(bR, TRAILER_H), project(fR, TRAILER_H)];
+
+  if (leftSide.every(Boolean)) fillPoly(ctx, leftSide as PP[], shade(COL.trailer, 0.7), "#0b2734");
+  if (rightSide.every(Boolean)) fillPoly(ctx, rightSide as PP[], shade(COL.trailer, 0.55), "#0b2734");
+  if (back0.every(Boolean)) fillPoly(ctx, back0 as PP[], shade(COL.trailer, 0.85), "#0b2734");
+  if (top.every(Boolean)) fillPoly(ctx, top as PP[], shade(COL.trailer, 1), "#0b2734");
+}
+
+function drawGuides(
+  ctx: CanvasRenderingContext2D,
+  camPt: (b: number, l: number, z?: number) => PP | null,
+  gs: GameState,
+): void {
+  const halfTrack = gs.rig.carWidth / 2;
+  const invR = Math.tan(gs.delta) / gs.rig.W;
+  // In reverse, delta>0 (left) curves the rear toward the vehicle's RIGHT, i.e.
+  // toward negative vehicle-left. Quadratic small-angle approximation.
+  const leftAt = (d: number): number => -0.5 * d * d * invR;
+
+  const bands = [
+    { dist: 1.5, color: COL.guideNear },
+    { dist: 3.0, color: COL.guideMid },
+    { dist: 5.0, color: COL.guideFar },
+  ];
+
+  ctx.lineWidth = 3;
+  for (const band of bands) {
+    ctx.strokeStyle = band.color;
+    for (const side of [-1, 1]) {
+      const pts: Array<PP | null> = [];
+      for (let i = 0; i <= 14; i++) {
+        const d = (band.dist * i) / 14;
+        pts.push(camPt(Math.max(NEAR + 0.02, d), leftAt(d) + side * halfTrack));
+      }
+      polyline(ctx, pts);
+    }
+    // Cross tick at the band distance.
+    const lTick = camPt(band.dist, leftAt(band.dist) + halfTrack);
+    const rTick = camPt(band.dist, leftAt(band.dist) - halfTrack);
+    if (lTick && rTick) polyline(ctx, [lTick, rTick]);
+  }
+}
+
+function drawVignette(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+): void {
   ctx.save();
   ctx.beginPath();
   ctx.rect(x, y, w, h);
   ctx.clip();
-  const grad = ctx.createLinearGradient(0, y, 0, y + h);
-  grad.addColorStop(0, "rgba(12,15,19,0.5)");
-  grad.addColorStop(1, "rgba(12,15,19,0)");
-  ctx.fillStyle = grad;
+  const g = ctx.createRadialGradient(
+    x + w / 2,
+    y + h / 2,
+    Math.min(w, h) * 0.35,
+    x + w / 2,
+    y + h / 2,
+    Math.max(w, h) * 0.75,
+  );
+  g.addColorStop(0, "rgba(0,0,0,0)");
+  g.addColorStop(1, "rgba(0,0,0,0.45)");
+  ctx.fillStyle = g;
   ctx.fillRect(x, y, w, h);
   ctx.restore();
-
-  frameAndLabel(ctx, layout, "Backup camera");
-}
-
-/** Without the flip, world look dir -> pane up needs rotation -(lookHeading-pi/2). */
-function drawGuides(
-  ctx: CanvasRenderingContext2D,
-  gs: GameState,
-  _derived: PhysicsDerived,
-  cam: Camera,
-  eye: Vec2,
-  lookHeading: number,
-  viewDepth: number,
-): void {
-  // Distance bands at ~1.5, 4, 7 m behind the bumper, curved by current steer.
-  // In reverse, steering delta bends the rear path; positive delta (LEFT) curves
-  // the car's rear to the RIGHT of travel. We approximate the rear path as a
-  // circular arc of radius R = W / tan(delta).
-  const bands = [
-    { dist: 1.5, color: COL.guideNear },
-    { dist: 4.0, color: COL.guideMid },
-    { dist: 7.0, color: COL.guideFar },
-  ];
-  const delta = gs.delta;
-  const W = gs.rig.W;
-  const halfTrack = gs.rig.carWidth / 2;
-
-  // Lateral curvature offset as a function of distance d behind: for small angles,
-  // offset ~ d^2 / (2R) with R = W/tan(delta). Sign: delta>0 (left turn) reversing
-  // pushes the rear toward the driver's right, i.e. -lateral(world LEFT).
-  const invR = Math.tan(delta) / W;
-  const lateralAt = (d: number): number => -0.5 * d * d * invR;
-
-  for (const band of bands) {
-    if (band.dist > viewDepth) continue;
-    drawGuideLine(ctx, cam, eye, lookHeading, band.dist, halfTrack, lateralAt, band.color);
-  }
-}
-
-function drawGuideLine(
-  ctx: CanvasRenderingContext2D,
-  cam: Camera,
-  eye: Vec2,
-  lookHeading: number,
-  maxDist: number,
-  halfTrack: number,
-  lateralAt: (d: number) => number,
-  color: string,
-): void {
-  // Two rails (left/right of the rear axle track) drawn as polylines in world.
-  const fwd: Vec2 = { x: Math.cos(lookHeading), y: Math.sin(lookHeading) };
-  const left: Vec2 = { x: -Math.sin(lookHeading), y: Math.cos(lookHeading) };
-  const rail = (side: number): Vec2[] => {
-    const pts: Vec2[] = [];
-    const N = 12;
-    for (let i = 0; i <= N; i++) {
-      const d = (maxDist * i) / N;
-      const lat = lateralAt(d) + side * halfTrack;
-      pts.push({
-        x: eye.x + d * fwd.x + lat * left.x,
-        y: eye.y + d * fwd.y + lat * left.y,
-      });
-    }
-    return pts;
-  };
-  ctx.strokeStyle = color;
-  ctx.lineWidth = 2;
-  for (const side of [-1, 1]) {
-    const pts = rail(side);
-    ctx.beginPath();
-    pts.forEach((p, i) => {
-      const s = worldPt(cam, p);
-      if (i === 0) ctx.moveTo(s.x, s.y);
-      else ctx.lineTo(s.x, s.y);
-    });
-    ctx.stroke();
-  }
-  // Cross tick at the far end of this band.
-  const lA = worldPt(cam, rail(-1)[rail(-1).length - 1]);
-  const rB = worldPt(cam, rail(1)[rail(1).length - 1]);
-  ctx.beginPath();
-  ctx.moveTo(lA.x, lA.y);
-  ctx.lineTo(rB.x, rB.y);
-  ctx.stroke();
-}
-
-// Local copy of worldToScreen to avoid an import cycle of style; identical math.
-function worldPt(cam: Camera, p: Vec2): Vec2 {
-  return {
-    x: cam.wCss / 2 + (p.x - cam.centerX) * cam.pxPerMeter,
-    y: cam.hCss / 2 - (p.y - cam.centerY) * cam.pxPerMeter,
-  };
 }
 
 function drawPlaceholder(
@@ -204,7 +347,7 @@ function drawPlaceholder(
   ctx.beginPath();
   ctx.rect(x, y, w, h);
   ctx.clip();
-  ctx.fillStyle = COL.bg;
+  ctx.fillStyle = COL.sky;
   ctx.fillRect(x, y, w, h);
   ctx.fillStyle = COL.placeholder;
   ctx.font = "16px -apple-system, system-ui, sans-serif";
@@ -217,11 +360,7 @@ function drawPlaceholder(
   frameAndLabel(ctx, layout, "Backup camera");
 }
 
-function frameAndLabel(
-  ctx: CanvasRenderingContext2D,
-  layout: BackupCamLayout,
-  label: string,
-): void {
+function frameAndLabel(ctx: CanvasRenderingContext2D, layout: BackupCamLayout, label: string): void {
   const { x, y, w, h } = layout;
   ctx.save();
   ctx.strokeStyle = COL.border;
@@ -230,6 +369,16 @@ function frameAndLabel(
   ctx.fillStyle = COL.label;
   ctx.font = "11px -apple-system, system-ui, sans-serif";
   ctx.textBaseline = "bottom";
+  ctx.textAlign = "left";
   ctx.fillText(label, x + 6, y + h - 5);
   ctx.restore();
+}
+
+/** Multiply a hex color toward black by factor k (0..1). */
+function shade(hex: string, k: number): string {
+  const n = parseInt(hex.slice(1), 16);
+  const r = Math.round(((n >> 16) & 255) * k);
+  const g = Math.round(((n >> 8) & 255) * k);
+  const b = Math.round((n & 255) * k);
+  return `rgb(${r},${g},${b})`;
 }
