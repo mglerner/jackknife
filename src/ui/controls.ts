@@ -13,6 +13,8 @@ export interface ControlHandlers {
 
 export interface Controls {
   detach(): void;
+  /** Drive the wheel visual externally (u in [-1,1]); used during the Demo. */
+  setWheelVisual(u: number): void;
 }
 
 /** Build the bottom control bar: gear buttons, the bottom-of-wheel widget, toggles. */
@@ -81,6 +83,9 @@ export function createControls(parent: HTMLElement, h: ControlHandlers): Control
     detach() {
       detachWheel();
       bar.remove();
+    },
+    setWheelVisual(u: number) {
+      wheel.style.setProperty("--wheel-u", String(u < -1 ? -1 : u > 1 ? 1 : u));
     },
   };
 }

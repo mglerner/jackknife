@@ -40,7 +40,10 @@ console.log("wrote camera");
 // Back to top-down, then play the Demo and capture the parked result.
 await page.click("[data-view]");
 await page.click("[data-demo-run]");
-await page.waitForTimeout(6200); // solution is ~5.2s
+await page.waitForTimeout(2300); // mid-maneuver: wheel should be turned
+await page.screenshot({ path: `${OUT}-demo-mid.png` });
+console.log("wrote demo-mid");
+await page.waitForTimeout(4000);
 await page.screenshot({ path: `${OUT}-demo.png` });
 console.log("wrote demo");
 

@@ -70,7 +70,7 @@ function restart(): void {
   banner.hidden = true;
 }
 
-createControls(app, {
+const controls = createControls(app, {
   onSteer: (u) => {
     game = setTargetDelta(game, steerFromBottomWheel(u, game.rig.maxSteer));
   },
@@ -158,6 +158,10 @@ function frame(t: number): void {
   } else if (!won) {
     game = advance(game, dt);
   }
+
+  // During the Demo, rotate the on-screen wheel to match the autopilot's steering
+  // so you can see how much wheel the maneuver uses.
+  if (demoActive) controls.setWheelVisual(game.delta / game.rig.maxSteer);
 
   renderer3d.render(game, view, {
     mirrors,
