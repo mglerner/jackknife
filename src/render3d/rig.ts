@@ -171,7 +171,7 @@ function buildCar(gs: GameState): THREE.Group {
   const hoodLen = hoodFrontX - ghFrontX;
   const hood = roundedBox(hoodLen + 0.22, 0.15, carWidth * 0.95, 0.06, bodyMat);
   hood.position.set((hoodFrontX + ghFrontX) / 2, lowerTopY - 0.07, 0);
-  hood.rotation.z = -0.16; // nose dips steeply forward (cab-forward van)
+  hood.rotation.z = -0.06; // a gentle forward slope (the Odyssey hood is fairly flat)
   g.add(hood);
 
   // Dark lower cladding / rocker panels along the sills.
@@ -220,17 +220,12 @@ function buildCar(gs: GameState): THREE.Group {
   // A central body-colored "core" between the two glass sides fills the cabin so
   // we don't see through to the far windows. Body-colored so the cabin reads as
   // a painted van rather than a black box; the glass sits just outboard of it.
-  const coreLen = greenhouseLen - 0.18;
-  const core = roundedBox(
-    coreLen,
-    (ghFrontH + ghRearH) / 2 - 0.04,
-    ghHalfTopW * 2 - 0.02,
-    0.2,
-    bodyMat,
-    false,
-    5,
-  );
-  core.position.set(greenhouseCenterX, ghBaseY + (ghFrontH + ghRearH) / 4 + 0.04, 0);
+  // Kept short and low enough to stay hidden behind the windshield and under the
+  // roof (its rounded front used to poke out above the cowl as a silver canister).
+  const coreLen = greenhouseLen - 0.7;
+  const coreH = (ghFrontH + ghRearH) / 2 - 0.02;
+  const core = box(coreLen, coreH, ghHalfTopW * 2 - 0.02, bodyMat, false);
+  core.position.set(greenhouseCenterX - 0.27, ghBaseY + coreH / 2 + 0.02, 0);
   g.add(core);
 
   // Belt-line trim wrapping the base of the glass (so windows read as inset).
@@ -269,9 +264,11 @@ function buildCar(gs: GameState): THREE.Group {
   // grey. The crown is built by laying a wide, gently curved shell over the cabin
   // so the top-down view shows a light-to-dark shading gradient across the width.
   // ===========================================================================
-  const roofLen = greenhouseLen + 0.22; // extend front a bit to meet the windshield top
+  // Span the roof from the windshield TOP (ghFrontX - 0.62) back to the tailgate,
+  // so it does not cantilever forward over the hood like a visor.
+  const roofLen = greenhouseLen - 0.6;
   const roofTilt = Math.atan2(roofFrontY - roofRearY, greenhouseLen);
-  const roofCenterX = greenhouseCenterX + 0.08;
+  const roofCenterX = greenhouseCenterX - 0.3;
   const roofMidY = (roofFrontY + roofRearY) / 2;
   const roofW = ghHalfTopW * 2;
   const roofLenAlong = roofLen / Math.cos(roofTilt);
@@ -280,15 +277,15 @@ function buildCar(gs: GameState): THREE.Group {
   // A real crowned cross-section means the surface normal sweeps from facing the
   // sky at the ridge to facing sideways at the eaves, so under the high sun it
   // shows a bright ridge highlight fading to darker edges (the form we want).
-  const crownRadius = roofW * 0.56; // crown curvature (lower = more domed)
-  const crownDrop = 0.15; // how far the eaves sit below the ridge
+  const crownRadius = roofW * 1.05; // gentle dome (a tight radius humped up at the front)
+  const crownDrop = 0.07; // how far the eaves sit below the ridge
   const crownGeo = new THREE.CylinderGeometry(
     crownRadius,
     crownRadius,
     roofLenAlong,
     36,
     1,
-    false,
+    true, // open-ended: no flat disc caps (they read as a chrome "tube end")
     -Math.asin(roofW / 2 / crownRadius), // span just the top arc...
     2 * Math.asin(roofW / 2 / crownRadius), // ...wide enough to cover the cabin
   );
