@@ -84,8 +84,7 @@ let won = false;
 let demoActive = false;
 let demoT = 0;
 let demoAcc = 0;
-let solution: Maneuver | undefined =
-  initRig.id === "odyssey-utility" ? SOLUTIONS[game.scenario.id] : undefined;
+let solution: Maneuver | undefined = SOLUTIONS[`${game.rig.id}/${game.scenario.id}`];
 
 const renderer3d = createRenderer3d(canvas, game);
 
@@ -193,8 +192,8 @@ function applyChoice(rigId: string, diffId: string): void {
   const diff = DIFFICULTIES[diffId] ?? DEFAULT_DIFFICULTY;
   game = createGame(rig, game.scenario, diff);
   renderer3d.rebuild(game);
-  // The baked demo solution was verified for the Odyssey utility rig only.
-  solution = rig.id === "odyssey-utility" ? SOLUTIONS[game.scenario.id] : undefined;
+  // Verified demo solutions are keyed by rig + scenario; Demo enables only when one exists.
+  solution = SOLUTIONS[`${rig.id}/${game.scenario.id}`];
   controls.setDemoEnabled(solution !== undefined);
   mirrors = diff.mirrorsDefault;
   won = false;
