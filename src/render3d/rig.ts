@@ -29,6 +29,18 @@ export interface RigView {
 
 const WHEEL_LATERAL = Math.PI / 2; // rotate cylinder axis from +Y to +Z (lateral)
 
+/**
+ * Tag a FRONT-wheel mesh so rig.update yaws it about its own vertical (kingpin)
+ * axis to show the tires steering. The "YXZ" order makes the later rotation.y a
+ * clean vertical yaw applied OUTSIDE the lateral/spoke orientation; at rotation.y=0
+ * it is identical to the default order, so the static (straight) look is unchanged.
+ */
+function steerWheel<T extends THREE.Object3D>(m: T): T {
+  m.userData.steer = true;
+  m.rotation.order = "YXZ";
+  return m;
+}
+
 function box(
   length: number,
   height: number,
@@ -462,17 +474,19 @@ function buildMinivan(gs: GameState): THREE.Group {
   );
   const spokeGeo = new THREE.BoxGeometry(wheelRadius * 1.1, 0.06, wheelWidth + 0.03);
   for (const axleX of [W, 0]) {
+    // Front wheels (axleX === W) steer: tag their meshes so rig.update yaws them.
+    const t = (m: THREE.Object3D): THREE.Object3D => (axleX === W ? steerWheel(m) : m);
     for (const side of [halfTrack, -halfTrack]) {
       const tire = new THREE.Mesh(tireGeo, tireMat);
       tire.rotation.x = WHEEL_LATERAL;
       tire.position.set(axleX, wheelRadius, side);
       tire.castShadow = true;
-      g.add(tire);
+      g.add(t(tire));
 
       const hub = new THREE.Mesh(hubGeo, rimMat);
       hub.rotation.x = WHEEL_LATERAL;
       hub.position.set(axleX, wheelRadius, side);
-      g.add(hub);
+      g.add(t(hub));
 
       // Spoke bars over a dark hub gap read as an alloy from a distance.
       for (let s = 0; s < 5; s++) {
@@ -480,14 +494,14 @@ function buildMinivan(gs: GameState): THREE.Group {
         spoke.rotation.x = WHEEL_LATERAL;
         spoke.rotation.z = (s * Math.PI) / 5;
         spoke.position.set(axleX, wheelRadius, side);
-        g.add(spoke);
+        g.add(t(spoke));
       }
       const cap = new THREE.Mesh(capGeo, chromeMat);
       cap.rotation.x = WHEEL_LATERAL;
       cap.position.set(axleX, wheelRadius, side);
-      g.add(cap);
+      g.add(t(cap));
 
-      // Subtle body-colored wheel-arch lip over each tire.
+      // Subtle body-colored wheel-arch lip over each tire (stays with the body).
       const arch = roundedBox(wheelRadius * 2.4, 0.12, wheelWidth + 0.1, 0.05, lowerTrimMat);
       arch.position.set(axleX, wheelRadius * 1.95, side);
       g.add(arch);
@@ -1130,25 +1144,27 @@ function buildSuv(gs: GameState): THREE.Group {
   // Aero spokes: a ring of thin angled blades cut into the alloy face.
   const bladeGeo = new THREE.BoxGeometry(wheelRadius * 1.5, 0.07, 0.05);
   for (const axleX of [W, 0]) {
+    // Front wheels (axleX === W) steer: tag their meshes so rig.update yaws them.
+    const t = (m: THREE.Object3D): THREE.Object3D => (axleX === W ? steerWheel(m) : m);
     for (const side of [halfTrack, -halfTrack]) {
       const tire = new THREE.Mesh(tireGeo, tireMat);
       tire.rotation.x = WHEEL_LATERAL;
       tire.position.set(axleX, wheelRadius, side);
       tire.castShadow = true;
-      g.add(tire);
+      g.add(t(tire));
 
       // Dark inner dish so the bright face reads as a thin outboard alloy.
       const dish = new THREE.Mesh(dishGeo, rimDarkMat);
       dish.rotation.x = WHEEL_LATERAL;
       dish.position.set(axleX, wheelRadius, side);
-      g.add(dish);
+      g.add(t(dish));
 
       // Bright machined face, sitting just outboard of the tire centerline.
       const faceZ = side + Math.sign(side) * (wheelWidth / 2 + 0.005);
       const face = new THREE.Mesh(faceGeo, rimMat);
       face.rotation.x = WHEEL_LATERAL;
       face.position.set(axleX, wheelRadius, faceZ);
-      g.add(face);
+      g.add(t(face));
 
       // Dark turbine cut-outs across the face (clean aero-alloy look).
       for (let s = 0; s < 6; s++) {
@@ -1156,12 +1172,12 @@ function buildSuv(gs: GameState): THREE.Group {
         blade.rotation.x = WHEEL_LATERAL;
         blade.rotation.z = (s * Math.PI) / 6 + 0.18;
         blade.position.set(axleX, wheelRadius, faceZ + Math.sign(side) * 0.012);
-        g.add(blade);
+        g.add(t(blade));
       }
       const cap = new THREE.Mesh(capGeo, rimMat);
       cap.rotation.x = WHEEL_LATERAL;
       cap.position.set(axleX, wheelRadius, side);
-      g.add(cap);
+      g.add(t(cap));
 
       // Squared-off arch: build the over-tire trim from short straight cladding
       // segments arranged as a flat-topped (octagonal) arch rather than a curve.
@@ -1356,42 +1372,45 @@ function buildTractor(gs: GameState): THREE.Group {
     w: number,
     fender: boolean,
   ): void {
+    // Build the wheel into a pivot at its center so the FRONT wheels (no fender)
+    // can yaw to show steering (the lugs use their own rotation.y, so a per-mesh
+    // steer would clobber them; the pivot yaws them all together).
+    const wheel = new THREE.Group();
+    wheel.position.set(axleX, r, side);
+    if (!fender) steerWheel(wheel);
     const tireGeo = new THREE.CylinderGeometry(r, r, w, 26);
     const tire = new THREE.Mesh(tireGeo, tireMat);
     tire.rotation.x = WHEEL_LATERAL;
-    tire.position.set(axleX, r, side);
     tire.castShadow = true;
-    g.add(tire);
+    wheel.add(tire);
     // Yellow rim disc + hub.
     const rim = new THREE.Mesh(
       new THREE.CylinderGeometry(r * 0.55, r * 0.55, w + 0.02, 16),
       yellowMat,
     );
     rim.rotation.x = WHEEL_LATERAL;
-    rim.position.set(axleX, r, side);
-    g.add(rim);
+    wheel.add(rim);
     const hub = new THREE.Mesh(
       new THREE.CylinderGeometry(r * 0.16, r * 0.16, w + 0.04, 10),
       metalMat,
     );
     hub.rotation.x = WHEEL_LATERAL;
-    hub.position.set(axleX, r, side);
-    g.add(hub);
+    wheel.add(hub);
     // Chunky lug treads: short radial bars on the tire for an ag-tire look.
     const lugGeo = new THREE.BoxGeometry(0.06, r * 0.3, w + 0.02);
     for (let s = 0; s < 10; s++) {
       const lug = new THREE.Mesh(lugGeo, tireMat);
       const a = (s / 10) * Math.PI * 2;
-      lug.position.set(axleX + Math.cos(a) * r * 0.92, r + Math.sin(a) * r * 0.92, side);
+      lug.position.set(Math.cos(a) * r * 0.92, Math.sin(a) * r * 0.92, 0);
       lug.rotation.x = WHEEL_LATERAL;
       lug.rotation.y = a;
-      g.add(lug);
+      wheel.add(lug);
     }
     if (fender) {
       const fend = makeFender(r * 1.05, w + 0.06, bodyMat);
-      fend.position.set(axleX, r, side);
-      g.add(fend);
+      wheel.add(fend);
     }
+    g.add(wheel);
   }
 
   const rearTrack = halfW - rearWheelW / 2 + 0.02;
@@ -1944,10 +1963,17 @@ export function buildRig(gs: GameState): RigView {
   const trailerGroup = buildTrailer(gs);
   group.add(carGroup, trailerGroup);
 
+  // Front-wheel meshes/pivots tagged by steerWheel(), yawed to show the tires turn.
+  const steerers: THREE.Object3D[] = [];
+  carGroup.traverse((o) => {
+    if (o.userData.steer) steerers.push(o);
+  });
+
   return {
     group,
     update(gs2: GameState, derived: PhysicsDerived): void {
       placeObject(carGroup, gs2.physics, gs2.physics.carHeading);
+      for (const s of steerers) s.rotation.y = gs2.delta;
       placeObject(trailerGroup, derived.trailerAxle, derived.trailerHeading);
     },
   };
