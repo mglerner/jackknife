@@ -20,9 +20,15 @@ Started 2026-06-18 ~21:36, working until ~06:00. Stylized game-quality visuals
 - Ioniq 5 polish (two-tone clearcoat, pixel lights, sunroof, aero wheels).
 - Backup-camera reversing guide lines (distance bands behind the trailer).
 
+## Done (cont.)
+- Cinematic vignette; eased top-down camera follow; title button pulse.
+- Win-screen gold star rating + banner pop-in; best score on the HUD.
+- Ambient world life: gentle tree sway + breathing lamp glow (world.userData.tick).
+- Garage menu card pop-in.
+
 ## Remaining (rough priority, low-risk first)
 - [ ] Polish the trailer/cargo + dual/ag trailers if plain (rig.ts, isolated builders only).
-- [ ] HUD/menu visual polish; show best score on the HUD.
+- [ ] Warm evening lighting variant (careful, no wash-out).
 - [ ] Optional warm "evening" lighting variant (world.ts + renderer; verify no wash-out).
 - [ ] More scenarios (driveway-to-lawn, loading dock) with verified solutions.
       NOTE: needs world.ts per-scenario environments + a solver pass; bigger.

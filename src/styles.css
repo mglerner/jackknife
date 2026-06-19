@@ -333,6 +333,17 @@ body {
   width: 86%;
   max-width: 360px;
   box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
+  animation: card-pop 0.24s ease-out;
+}
+@keyframes card-pop {
+  from {
+    transform: scale(0.92);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
 }
 #menu .menu-title {
   font-size: 20px;
