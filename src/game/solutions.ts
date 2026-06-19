@@ -33,4 +33,16 @@ export const SOLUTIONS: Record<string, Maneuver> = {
     { gear: "reverse", steer: 0.2, seconds: 3.4 },
     { gear: "reverse", steer: 0.08, seconds: 2.4 },
   ],
+  // Found by a kinodynamic-RRT motion planner from a straight street start;
+  // reverse-only, verified to park (score ~87).
+  "odyssey-utility/driveway-straight-start": [
+    { gear: "reverse", steer: -1, seconds: 0.5 },
+    { gear: "reverse", steer: -0.55, seconds: 0.5 },
+    { gear: "reverse", steer: 1, seconds: 2.4273053505538873 },
+    { gear: "reverse", steer: 0.55, seconds: 0.8 },
+    { gear: "reverse", steer: 1, seconds: 2.4 },
+    { gear: "reverse", steer: 0.55, seconds: 1.6731570513076335 },
+    { gear: "reverse", steer: -0.9556019526626729, seconds: 1.2877949867154286 },
+    { gear: "reverse", steer: -0.42585798223376276, seconds: 0.9347265038482286 },
+  ],
 };

@@ -70,8 +70,29 @@ export const APRON_TO_LOADING_DOCK: Scenario = {
   environment: "dock",
 };
 
+/**
+ * The realistic version of the driveway back-in: the rig starts STRAIGHT in the
+ * street (like you just drove down it), facing along the road with the trailer
+ * straight behind, and must back into the same perpendicular driveway. Harder than
+ * the pre-angled start. The reverse-only maneuver was found by a kinodynamic-RRT
+ * motion planner and verified to park (see game/solutions.ts).
+ */
+export const DRIVEWAY_STRAIGHT_START: Scenario = {
+  id: "driveway-straight-start",
+  label: "Driveway (straight start)",
+  start: { x: 9, y: -2.5, carHeading: 0, trailerHeading: 0 },
+  target: STREET_TO_DRIVEWAY_90.target,
+  obstacles: STREET_TO_DRIVEWAY_90.obstacles,
+  surface: "asphalt",
+  slope: 0,
+  mirrorsAvailable: true,
+  cameraAvailable: true,
+  worldBounds: STREET_TO_DRIVEWAY_90.worldBounds,
+};
+
 export const SCENARIOS: Record<string, Scenario> = {
   [STREET_TO_DRIVEWAY_90.id]: STREET_TO_DRIVEWAY_90,
+  [DRIVEWAY_STRAIGHT_START.id]: DRIVEWAY_STRAIGHT_START,
   [APRON_TO_LOADING_DOCK.id]: APRON_TO_LOADING_DOCK,
 };
 
