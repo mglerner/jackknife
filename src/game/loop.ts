@@ -32,6 +32,7 @@ export function advance(gs: GameState, frameDt: number): GameState {
 
   const crit = computeCriticalGamma(gs.rig);
   const blockRev = gs.difficulty.blockReverseWhenJackknifed;
+  const allowFwd = gs.difficulty.allowPullForwardAlways;
 
   let acc = gs.accumulator + Math.min(frameDt, MAX_FRAME);
   let physics = gs.physics;
@@ -50,6 +51,12 @@ export function advance(gs: GameState, frameDt: number): GameState {
     if (blockRev && vSub < 0) {
       const gamma = Math.abs(physics.trailerHeading - physics.carHeading);
       if (gamma >= crit) vSub = 0;
+    }
+    // Expert rule (allowPullForwardAlways false): pulling forward is allowed only
+    // when physically necessary, i.e. once folded into the recoverable angle.
+    if (!allowFwd && vSub > 0) {
+      const gamma = Math.abs(physics.trailerHeading - physics.carHeading);
+      if (gamma < crit) vSub = 0;
     }
 
     const candidate = step(physics, gs.rig, { delta, v: vSub, dt });
