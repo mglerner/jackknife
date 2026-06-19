@@ -274,6 +274,17 @@ function applyChoice(rigId: string, diffId: string, scenarioId: string = game.sc
   updateIdealLine();
 }
 
+// Curated easy-to-hard progression: after a win, the banner suggests the next one.
+const SCENARIO_ORDER = [
+  "street-to-driveway-90",
+  "street-to-gate-narrow",
+  "lcorner-backin-90",
+  "apron-to-loading-dock",
+  "flanked-loading-dock",
+  "driveway-straight-start",
+  "parallel-park-curb",
+];
+
 type MenuTab = "vehicle" | "scenario" | "options";
 let menuTab: MenuTab = "vehicle";
 
@@ -491,6 +502,10 @@ function checkWin(): void {
       bestLine = prevBest === undefined || score > prevBest ? "New best!" : `Best ${best}`;
     }
     const stars = score >= 90 ? 3 : score >= 72 ? 2 : 1;
+    // Suggest the next scenario in the progression (real wins only).
+    const oi = SCENARIO_ORDER.indexOf(game.scenario.id);
+    const nextId = !isDemo && oi >= 0 && oi < SCENARIO_ORDER.length - 1 ? SCENARIO_ORDER[oi + 1] : undefined;
+    const nextLabel = nextId ? SCENARIOS[nextId]?.label : undefined;
     banner.innerHTML =
       `<div class="title">${isDemo ? "Demo parked" : "Parked!"}</div>` +
       `<div class="stars">${"★".repeat(stars)}${"☆".repeat(3 - stars)}</div>` +
@@ -500,7 +515,8 @@ function checkWin(): void {
       '<div class="row">' +
       '<button id="look">Keep looking</button>' +
       '<button id="again">Try again</button>' +
-      "</div>";
+      "</div>" +
+      (nextLabel ? `<button id="next-chal" class="banner-next">Next: ${nextLabel}</button>` : "");
     banner.hidden = false;
     // Use pointerdown (fires immediately on touch) so the first tap always lands;
     // a plain click was being dropped on the first press after a demo.
@@ -509,6 +525,13 @@ function checkWin(): void {
     (banner.querySelector("#look") as HTMLElement).addEventListener("pointerdown", () => {
       banner.hidden = true;
     });
+    const nextBtn = banner.querySelector("#next-chal") as HTMLElement | null;
+    if (nextBtn && nextId) {
+      nextBtn.addEventListener("pointerdown", () => {
+        banner.hidden = true;
+        applyChoice(game.rig.id, game.difficulty.id, nextId);
+      });
+    }
   }
 }
 

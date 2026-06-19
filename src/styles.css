@@ -324,6 +324,13 @@ body {
   color: var(--ink);
   border: 1px solid #3a414a;
 }
+/* "Next challenge" suggestion: full-width under the Keep looking / Try again row. */
+#banner .banner-next {
+  display: block;
+  width: 100%;
+  margin-top: 10px;
+  background: var(--good);
+}
 
 /* Disabled control button (e.g. Demo with no verified solution for this rig). */
 #controls button.is-disabled,
