@@ -224,12 +224,14 @@ function renderMenu(): void {
     `<div class="menu-row">${btns(Object.values(DIFFICULTIES), "diff", game.difficulty.id)}</div>` +
     '<button id="menu-close">Done</button>' +
     "</div>";
+  // Picking a vehicle applies it and closes the menu (the "go" action).
   menu.querySelectorAll<HTMLElement>("[data-rig]").forEach((b) =>
     b.addEventListener("pointerdown", () => {
       applyChoice(b.dataset.rig ?? "", game.difficulty.id);
-      renderMenu();
+      menu.hidden = true;
     }),
   );
+  // Difficulty is a modifier: apply live and keep the menu open.
   menu.querySelectorAll<HTMLElement>("[data-diff]").forEach((b) =>
     b.addEventListener("pointerdown", () => {
       applyChoice(game.rig.id, b.dataset.diff ?? "");
@@ -240,6 +242,10 @@ function renderMenu(): void {
     menu.hidden = true;
   });
 }
+// Tap outside the card to dismiss (so the menu can never trap input).
+menu.addEventListener("pointerdown", (e) => {
+  if (e.target === menu) menu.hidden = true;
+});
 menuBtn.addEventListener("pointerdown", () => {
   renderMenu();
   menu.hidden = false;
