@@ -27,6 +27,8 @@ export interface Renderer3D {
   rebuild(gs: GameState): void;
   /** Pop a burst of celebratory confetti at the parked trailer (called on a win). */
   celebrate(gs: GameState): void;
+  /** Draw the verified solution's trailer path as a "follow this" lane (null hides). */
+  setIdealLine(points: { x: number; y: number }[] | null): void;
 }
 
 interface MirrorSpec {
@@ -164,6 +166,63 @@ export function createRenderer3d(canvas: HTMLCanvasElement, gs: GameState): Rend
   ghost.frustumCulled = false;
   scene.add(ghost);
 
+  // Ideal line: the verified solution's trailer path as a bright lane on the ground,
+  // so the player can trace the exact line that parks the rig (a strong teaching aid).
+  // main supplies the world points when the scenario/rig changes and the aid is on.
+  const idealGeom = new THREE.BufferGeometry();
+  const idealLine = new THREE.Mesh(
+    idealGeom,
+    new THREE.MeshBasicMaterial({
+      color: 0xffcf33,
+      transparent: true,
+      opacity: 0.55,
+      depthWrite: false,
+      side: THREE.DoubleSide,
+    }),
+  );
+  idealLine.frustumCulled = false;
+  idealLine.visible = false;
+  scene.add(idealLine);
+  function setIdealLine(points: { x: number; y: number }[] | null): void {
+    if (!points || points.length < 2) {
+      idealLine.visible = false;
+      return;
+    }
+    const hw = 0.13; // a thin lane marker (the trailer-axle path to trace)
+    const n = points.length;
+    const verts = new Float32Array(n * 2 * 3);
+    for (let i = 0; i < n; i++) {
+      const a = points[Math.max(0, i - 1)];
+      const c = points[Math.min(n - 1, i + 1)];
+      let dx = c.x - a.x;
+      let dy = c.y - a.y;
+      const len = Math.hypot(dx, dy) || 1;
+      dx /= len;
+      dy /= len;
+      const px = -dy * hw;
+      const py = dx * hw;
+      const left = worldToThree({ x: points[i].x + px, y: points[i].y + py }, 0.05);
+      const right = worldToThree({ x: points[i].x - px, y: points[i].y - py }, 0.05);
+      verts[i * 6] = left.x;
+      verts[i * 6 + 1] = left.y;
+      verts[i * 6 + 2] = left.z;
+      verts[i * 6 + 3] = right.x;
+      verts[i * 6 + 4] = right.y;
+      verts[i * 6 + 5] = right.z;
+    }
+    const idx: number[] = [];
+    for (let i = 0; i < n - 1; i++) {
+      const l0 = i * 2;
+      const r0 = i * 2 + 1;
+      const l1 = (i + 1) * 2;
+      const r1 = (i + 1) * 2 + 1;
+      idx.push(l0, r0, l1, r0, r1, l1);
+    }
+    idealGeom.setAttribute("position", new THREE.BufferAttribute(verts, 3));
+    idealGeom.setIndex(idx);
+    idealGeom.computeBoundingSphere();
+    idealLine.visible = true;
+  }
 
   const topCam = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 500);
   const backCam = new THREE.PerspectiveCamera(86, 1, 0.05, 220);
@@ -447,5 +506,6 @@ export function createRenderer3d(canvas: HTMLCanvasElement, gs: GameState): Rend
     },
     rebuild,
     celebrate,
+    setIdealLine,
   };
 }

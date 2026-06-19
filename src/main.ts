@@ -27,6 +27,7 @@ import {
   clearBestScores,
   setRealisticWheel,
   setMirrorsOnly,
+  setIdealLineOn,
 } from "./game/persistence";
 
 const app = document.querySelector<HTMLDivElement>("#app")!;
@@ -96,6 +97,8 @@ let realisticWheel = loadProgress().settings.realisticWheel ?? true;
 // "Mirrors only" = back up using just the camera + mirrors (no top-down), like real
 // life. When on, the view is forced to the backup-cam and the top-down toggle hides.
 let mirrorsOnly = loadProgress().settings.mirrorsOnly ?? false;
+// Ideal line: trace the verified solution's trailer path. A teaching aid, default on.
+let idealLineOn = loadProgress().settings.idealLine ?? true;
 let demoAcc = 0;
 let demoWheelU = 0; // eased on-screen wheel position during the demo (visual only)
 let demoFrames: (typeof game)[] = []; // recorded verified trajectory, replayed pose-by-pose
@@ -150,6 +153,7 @@ const controls = createControls(app, {
 controls.setDemoEnabled(solution !== undefined);
 controls.setWheelRatio(wheelDegPerU(game));
 applyMirrorsOnly();
+updateIdealLine();
 
 /** Degrees the on-screen wheel rotates at full lock (u=1): the rig's real steering
  *  ratio in realistic modes, a compact sweep for the super-beginner mode. */
@@ -168,6 +172,20 @@ function applyMirrorsOnly(): void {
     view = "topdown";
   }
   controls.setViewToggleVisible(!mirrorsOnly);
+}
+
+/** Recompute the ideal-line aid: the verified solution's trailer-axle path (or hide
+ *  it). Downsampled; recomputed on each rig/scenario change and when toggled. */
+function updateIdealLine(): void {
+  if (!idealLineOn || !solution) {
+    renderer3d.setIdealLine(null);
+    return;
+  }
+  const frames = simulateManeuverFrames(game.rig, game.scenario, BEGINNER, solution);
+  const pts = frames
+    .filter((_, i) => i % 3 === 0)
+    .map((f) => derive(f.physics, game.rig, { v: 0, delta: 0 }).trailerAxle);
+  renderer3d.setIdealLine(pts);
 }
 
 // Audio. iOS only starts the AudioContext from a user gesture, so resume on the
@@ -246,6 +264,8 @@ function applyChoice(rigId: string, diffId: string, scenarioId: string = game.sc
   demoActive = false;
   isDemo = false;
   banner.hidden = true;
+  applyMirrorsOnly(); // re-assert the view lock (applyChoice reset `mirrors` above)
+  updateIdealLine();
 }
 
 type MenuTab = "vehicle" | "scenario" | "options";
@@ -310,6 +330,11 @@ function renderMenu(animate = false): void {
       `<button data-vmode="topdown" class="${!mirrorsOnly ? "sel" : ""}">Top-down</button>` +
       `<button data-vmode="mirrors" class="${mirrorsOnly ? "sel" : ""}">Mirrors only</button>` +
       "</div>" +
+      '<div class="menu-label">Ideal line</div>' +
+      '<div class="menu-row">' +
+      `<button data-ideal="on" class="${idealLineOn ? "sel" : ""}">On</button>` +
+      `<button data-ideal="off" class="${!idealLineOn ? "sel" : ""}">Off</button>` +
+      "</div>" +
       '<button id="reset-best" class="menu-danger">Reset high scores</button>';
   }
 
@@ -369,6 +394,15 @@ function renderMenu(animate = false): void {
       mirrorsOnly = b.dataset.vmode === "mirrors";
       setMirrorsOnly(mirrorsOnly);
       applyMirrorsOnly();
+      renderMenu();
+    }),
+  );
+  // Ideal line: trace the verified solution path (teaching aid). Persisted; live.
+  menu.querySelectorAll<HTMLElement>("[data-ideal]").forEach((b) =>
+    b.addEventListener("pointerdown", () => {
+      idealLineOn = b.dataset.ideal === "on";
+      setIdealLineOn(idealLineOn);
+      updateIdealLine();
       renderMenu();
     }),
   );

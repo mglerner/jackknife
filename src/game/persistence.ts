@@ -8,6 +8,7 @@ export interface Progress {
     mirrors?: boolean;
     realisticWheel?: boolean; // on-screen wheel turns at the real steering ratio
     mirrorsOnly?: boolean; // back up using only the camera + mirrors (no top-down)
+    idealLine?: boolean; // draw the verified solution path as a lane to trace
   };
 }
 
@@ -63,5 +64,12 @@ export function setRealisticWheel(on: boolean): void {
 export function setMirrorsOnly(on: boolean): void {
   const p = loadProgress();
   p.settings.mirrorsOnly = on;
+  saveProgress(p);
+}
+
+/** Persist the ideal-line (solution path) aid preference. */
+export function setIdealLineOn(on: boolean): void {
+  const p = loadProgress();
+  p.settings.idealLine = on;
   saveProgress(p);
 }
