@@ -135,9 +135,19 @@ export function createRenderer3d(canvas: HTMLCanvasElement, gs: GameState): Rend
     mats.forEach((m) => (m.side = THREE.DoubleSide));
   });
 
-  // Ghost path (trailer-tail prediction) as a line just above the ground.
+  // Ghost path: a translucent ribbon on the ground (the trailer's predicted route),
+  // so it reads as an intentional guide corridor rather than a stray thin line.
   const ghostGeom = new THREE.BufferGeometry();
-  const ghost = new THREE.Line(ghostGeom, new THREE.LineBasicMaterial({ color: 0x4cc2ff }));
+  const ghost = new THREE.Mesh(
+    ghostGeom,
+    new THREE.MeshBasicMaterial({
+      color: 0x5fd0ff,
+      transparent: true,
+      opacity: 0.3,
+      depthWrite: false,
+      side: THREE.DoubleSide,
+    }),
+  );
   ghost.frustumCulled = false;
   scene.add(ghost);
 
@@ -172,15 +182,44 @@ export function createRenderer3d(canvas: HTMLCanvasElement, gs: GameState): Rend
       ? { v: live, delta: g.delta }
       : { v: -g.difficulty.maxReverseSpeed, delta: g.targetDelta };
     const pts = predictTailPath(g.physics, g.rig, cmd, g.difficulty.ghostHorizon);
-    const arr = new Float32Array(pts.length * 3);
-    pts.forEach((p, i) => {
-      const v = worldToThree(p, 0.08);
-      arr[i * 3] = v.x;
-      arr[i * 3 + 1] = v.y;
-      arr[i * 3 + 2] = v.z;
-    });
-    ghostGeom.setAttribute("position", new THREE.BufferAttribute(arr, 3));
-    ghost.visible = pts.length > 1;
+    if (pts.length < 2) {
+      ghost.visible = false;
+      return;
+    }
+    // Build a ribbon of the trailer's width following the predicted path.
+    const hw = g.rig.trailerWidth / 2;
+    const n = pts.length;
+    const verts = new Float32Array(n * 2 * 3);
+    for (let i = 0; i < n; i++) {
+      const a = pts[Math.max(0, i - 1)];
+      const c = pts[Math.min(n - 1, i + 1)];
+      let dx = c.x - a.x;
+      let dy = c.y - a.y;
+      const len = Math.hypot(dx, dy) || 1;
+      dx /= len;
+      dy /= len;
+      const px = -dy * hw; // perpendicular offset by half the trailer width
+      const py = dx * hw;
+      const left = worldToThree({ x: pts[i].x + px, y: pts[i].y + py }, 0.08);
+      const right = worldToThree({ x: pts[i].x - px, y: pts[i].y - py }, 0.08);
+      verts[i * 6] = left.x;
+      verts[i * 6 + 1] = left.y;
+      verts[i * 6 + 2] = left.z;
+      verts[i * 6 + 3] = right.x;
+      verts[i * 6 + 4] = right.y;
+      verts[i * 6 + 5] = right.z;
+    }
+    const idx: number[] = [];
+    for (let i = 0; i < n - 1; i++) {
+      const l0 = i * 2;
+      const r0 = i * 2 + 1;
+      const l1 = (i + 1) * 2;
+      const r1 = (i + 1) * 2 + 1;
+      idx.push(l0, r0, l1, r0, r1, l1);
+    }
+    ghostGeom.setAttribute("position", new THREE.BufferAttribute(verts, 3));
+    ghostGeom.setIndex(idx);
+    ghost.visible = true;
   }
 
   // Meters shown along the screen's LONG axis. Follows the action rather than
