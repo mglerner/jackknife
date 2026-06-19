@@ -767,9 +767,9 @@ function buildSuv(gs: GameState): THREE.Group {
   // Glossy clearcoat paint like the minivan, but a cool pale grey-green so the
   // Ioniq reads as a fresh modern EV. Clearcoat gives a crisp top-down highlight.
   const bodyMat = new THREE.MeshPhysicalMaterial({
-    color: 0xd4d9d0, // pale cool grey-green ("Bio Mineral" / shy mint)
-    roughness: 0.14,
-    metalness: 0.52,
+    color: 0x6c8168, // muted sage / forest green (matches the reference Ioniq 5)
+    roughness: 0.16,
+    metalness: 0.5,
     envMapIntensity: 1.4,
     clearcoat: 1.0,
     clearcoatRoughness: 0.05,
@@ -777,9 +777,9 @@ function buildSuv(gs: GameState): THREE.Group {
   // Matte dark anthracite for the lower cladding and wheel arches (clear contrast
   // against the pale body, so the two-tone reads from straight overhead).
   const claddingMat = new THREE.MeshStandardMaterial({
-    color: 0x26282c, // dark anthracite lower body cladding
-    roughness: 0.82,
-    metalness: 0.12,
+    color: 0x9ba0a4, // satin silver-grey lower cladding (as on the reference green Ioniq 5)
+    roughness: 0.6,
+    metalness: 0.2,
   });
   // Near-black gloss for the contrast roof / floating-roof cap (a strong, clean
   // two-tone read in the primary top-down camera).
