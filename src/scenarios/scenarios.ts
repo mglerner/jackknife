@@ -191,6 +191,52 @@ export const LCORNER_BACKIN_90: Scenario = {
   environment: "generic",
 };
 
+/** Downhill driveway back-in: STREET_TO_DRIVEWAY_90 geometry on an 8% downhill grade
+ *  (the gravity roll runs the rig away as you back in). Search-found, verified. */
+export const DRIVEWAY_DOWNHILL: Scenario = {
+  id: "driveway-downhill",
+  label: "Downhill driveway",
+  start: { x: 3.565, y: -2.386, carHeading: -0.842, trailerHeading: -1.028 },
+  target: { x: 0, y: 9, heading: -1.5707963267948966, halfWidth: 1.4, halfLength: 2.2 },
+  obstacles: [
+    { kind: "curb", shape: seg(-18, -5, 18, -5), penalty: 50 },
+    { kind: "curb", shape: seg(-18, 3, -3, 3), penalty: 50 },
+    { kind: "curb", shape: seg(3, 3, 18, 3), penalty: 50 },
+    { kind: "wall", shape: seg(-3, 3, -3, 15), penalty: 120 },
+    { kind: "wall", shape: seg(3, 3, 3, 15), penalty: 120 },
+    { kind: "wall", shape: seg(-3, 15, 3, 15), penalty: 200 },
+  ],
+  surface: "asphalt",
+  slope: 0.08,
+  slopeDir: 1.5707963267948966,
+  mirrorsAvailable: true,
+  cameraAvailable: true,
+  worldBounds: { minX: -18, minY: -8, maxX: 18, maxY: 17 },
+};
+
+/** Blind-side back-in: the trailer must be backed to the driver's blind (right) side
+ *  into a bay, the harder direction to judge. Search-found, verified. */
+export const BLINDSIDE_BACKIN: Scenario = {
+  id: "blindside-backin",
+  label: "Blind-side back-in",
+  start: { x: 3.3572960843175066, y: 8.795968710605143, carHeading: 0.874125648614332, trailerHeading: 1.0554295774070954 },
+  target: { x: 0, y: -3.2, heading: 1.5707963267948966, halfWidth: 1.4, halfLength: 2.2 },
+  obstacles: [
+    { kind: "wall", shape: seg(-1.7, -1.5, -1.7, -8), penalty: 120 },
+    { kind: "wall", shape: seg(1.7, -1.5, 1.7, -8), penalty: 120 },
+    { kind: "wall", shape: seg(-1.7, -8, 1.7, -8), penalty: 200 },
+    { kind: "curb", shape: seg(-22, -1.5, -1.7, -1.5), penalty: 50 },
+    { kind: "curb", shape: seg(1.7, -1.5, 22, -1.5), penalty: 50 },
+    { kind: "curb", shape: seg(-22, 14, 22, 14), penalty: 50 },
+  ],
+  surface: "asphalt",
+  slope: 0,
+  mirrorsAvailable: true,
+  cameraAvailable: true,
+  worldBounds: { minX: -22, minY: -10, maxX: 22, maxY: 16 },
+  environment: "generic",
+};
+
 export const SCENARIOS: Record<string, Scenario> = {
   [STREET_TO_DRIVEWAY_90.id]: STREET_TO_DRIVEWAY_90,
   [DRIVEWAY_STRAIGHT_START.id]: DRIVEWAY_STRAIGHT_START,
@@ -199,6 +245,8 @@ export const SCENARIOS: Record<string, Scenario> = {
   [FLANKED_LOADING_DOCK.id]: FLANKED_LOADING_DOCK,
   [PARALLEL_PARK_CURB.id]: PARALLEL_PARK_CURB,
   [LCORNER_BACKIN_90.id]: LCORNER_BACKIN_90,
+  [DRIVEWAY_DOWNHILL.id]: DRIVEWAY_DOWNHILL,
+  [BLINDSIDE_BACKIN.id]: BLINDSIDE_BACKIN,
 };
 
 export const DEFAULT_SCENARIO = STREET_TO_DRIVEWAY_90;

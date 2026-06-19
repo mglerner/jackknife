@@ -67,4 +67,15 @@ export const SOLUTIONS: Record<string, Maneuver> = {
     { gear: "reverse", steer: 0.916154, seconds: 2.391716 },
     { gear: "reverse", steer: 0.566398, seconds: 2.249586 },
   ],
+  // Solved WITH the gravity-roll active (the old flat maneuver no longer parks here).
+  "odyssey-utility/driveway-downhill": [
+    { gear: "reverse", steer: 0.3372630379162728, seconds: 4.596609081085771 },
+    { gear: "reverse", steer: 1, seconds: 0.483036484522745 },
+    { gear: "reverse", steer: 0.37888668235391376, seconds: 0.925833912882954 },
+  ],
+  "odyssey-utility/blindside-backin": [
+    { gear: "reverse", steer: -0.3089021208083951, seconds: 2.1242711953021627 },
+    { gear: "reverse", steer: -0.43663049239002205, seconds: 3.2279808000209864 },
+    { gear: "reverse", steer: -0.2215, seconds: 1.7375000000000003 },
+  ],
 };

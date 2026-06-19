@@ -279,9 +279,11 @@ const SCENARIO_ORDER = [
   "street-to-driveway-90",
   "street-to-gate-narrow",
   "lcorner-backin-90",
+  "blindside-backin",
   "apron-to-loading-dock",
   "flanked-loading-dock",
   "driveway-straight-start",
+  "driveway-downhill",
   "parallel-park-curb",
 ];
 
