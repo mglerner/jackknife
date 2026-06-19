@@ -83,6 +83,7 @@ let mirrors = initDiff.mirrorsDefault;
 let debug = false;
 let won = false;
 let demoActive = false;
+let isDemo = false; // the current attempt is a Demo playback (does not count toward best)
 let demoT = 0;
 let demoAcc = 0;
 let solution: Maneuver | undefined = SOLUTIONS[`${game.rig.id}/${game.scenario.id}`];
@@ -96,6 +97,7 @@ function restart(): void {
   game = resetGame(game);
   won = false;
   demoActive = false;
+  isDemo = false;
   banner.hidden = true;
 }
 
@@ -121,6 +123,7 @@ const controls = createControls(app, {
     if (!solution) return;
     restart();
     demoActive = true;
+    isDemo = true; // a Demo win is illustrative; it must not set the high score
     demoT = 0;
     demoAcc = 0;
   },
@@ -210,6 +213,7 @@ function applyChoice(rigId: string, diffId: string, scenarioId: string = game.sc
   mirrors = diff.mirrorsDefault;
   won = false;
   demoActive = false;
+  isDemo = false;
   banner.hidden = true;
 }
 
@@ -304,16 +308,23 @@ function checkWin(): void {
     won = true;
     const result = defaultScorer.scoreAttempt(game);
     const score = Math.round(result.score);
-    const prevBest = loadProgress().bestScores[game.scenario.id];
-    const best = recordBest(game.scenario.id, score).bestScores[game.scenario.id];
-    const isNewBest = prevBest === undefined || score > prevBest;
-    hud.setBest(best);
+    // Demo playbacks are illustrative and must NOT count toward the high score.
+    let bestLine: string;
+    if (isDemo) {
+      const best = loadProgress().bestScores[game.scenario.id];
+      bestLine = best === undefined ? "Demo run (not counted)" : `Demo run · your best ${best} stands`;
+    } else {
+      const prevBest = loadProgress().bestScores[game.scenario.id];
+      const best = recordBest(game.scenario.id, score).bestScores[game.scenario.id];
+      hud.setBest(best);
+      bestLine = prevBest === undefined || score > prevBest ? "New best!" : `Best ${best}`;
+    }
     const stars = score >= 90 ? 3 : score >= 72 ? 2 : 1;
     banner.innerHTML =
-      '<div class="title">Parked!</div>' +
+      `<div class="title">${isDemo ? "Demo parked" : "Parked!"}</div>` +
       `<div class="stars">${"★".repeat(stars)}${"☆".repeat(3 - stars)}</div>` +
       `<div class="score">Score ${score}</div>` +
-      `<div class="best">${isNewBest ? "New best!" : `Best ${best}`}</div>` +
+      `<div class="best">${bestLine}</div>` +
       `<div class="sub">${result.summary}</div>` +
       '<div class="row">' +
       '<button id="look">Keep looking</button>' +
