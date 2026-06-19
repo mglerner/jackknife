@@ -4,7 +4,7 @@ import { derive } from "../core/physics";
 import { predictTailPath } from "../core/predict";
 import { commandedSpeed } from "../game/loop";
 import type { GameState } from "../game/state";
-import { worldToThree } from "./coords";
+import { worldToThree, placeObject } from "./coords";
 import { buildWorld } from "./world";
 import { createParticles } from "./particles";
 import { buildRig, type RigView, type CarStyle } from "./rig";
@@ -39,6 +39,35 @@ interface MirrorSpec {
 const MIRROR_H = 110; // CSS px
 const MIRROR_MARGIN = 8;
 
+/**
+ * Reversing guide lines (distance bands) projected on the ground behind the
+ * trailer, like a real backup camera. Built in the trailer's local frame: local
+ * -X runs backward (the way the tail goes in reverse).
+ */
+function buildBackupGuides(gs: GameState): THREE.Group {
+  const grp = new THREE.Group();
+  const hw = gs.rig.trailerWidth / 2 + 0.08;
+  const rail = (z: number): THREE.Mesh => {
+    const m = new THREE.Mesh(
+      new THREE.BoxGeometry(5, 0.03, 0.07),
+      new THREE.MeshBasicMaterial({ color: 0xeaeef2 }),
+    );
+    m.position.set(-2.6, 0, z);
+    return m;
+  };
+  grp.add(rail(hw), rail(-hw));
+  const band = (x: number, color: number): THREE.Mesh => {
+    const m = new THREE.Mesh(
+      new THREE.BoxGeometry(0.1, 0.03, hw * 2),
+      new THREE.MeshBasicMaterial({ color }),
+    );
+    m.position.set(x, 0, 0);
+    return m;
+  };
+  grp.add(band(-1.2, 0xff4d4d), band(-2.8, 0xffd23f), band(-4.4, 0x57d977));
+  return grp;
+}
+
 export function createRenderer3d(canvas: HTMLCanvasElement, gs: GameState): Renderer3D {
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
   renderer.shadowMap.enabled = true;
@@ -63,6 +92,9 @@ export function createRenderer3d(canvas: HTMLCanvasElement, gs: GameState): Rend
   scene.add(world);
   let rig: RigView = buildRig(gs);
   scene.add(rig.group);
+  let guides = buildBackupGuides(gs);
+  guides.visible = false;
+  scene.add(guides);
 
   // Swap the world + rig for a new game (rig / scenario change). Old groups are
   // disposed to free GPU memory.
@@ -81,6 +113,10 @@ export function createRenderer3d(canvas: HTMLCanvasElement, gs: GameState): Rend
     disposeGroup(rig.group);
     rig = buildRig(g);
     scene.add(rig.group);
+    scene.remove(guides);
+    disposeGroup(guides);
+    guides = buildBackupGuides(g);
+    scene.add(guides);
   }
 
   // Particle juice: dust at the wheels when moving, exhaust at the tailpipe.
@@ -251,6 +287,8 @@ export function createRenderer3d(canvas: HTMLCanvasElement, gs: GameState): Rend
   function render(g: GameState, view: ViewMode, opts: RenderOptions): void {
     const der = derive(g.physics, g.rig, { v: commandedSpeed(g), delta: g.delta });
     rig.update(g, der);
+    placeObject(guides, der.trailerAxle, der.trailerHeading, 0.03);
+    guides.visible = view === "backupcam";
     updateGhost(g, opts);
 
     // Particles: kick up dust at the trailer and tow-vehicle wheels while moving,
