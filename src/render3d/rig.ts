@@ -87,11 +87,15 @@ function buildCar(gs: GameState): THREE.Group {
   // --- Materials (shared across this car) ---
   // Light silver (Honda Polished Metal Metallic). Lighter than nominal so it
   // reads as light silver paint rather than charcoal under this lighting.
-  const bodyMat = new THREE.MeshStandardMaterial({
-    color: 0x9aa0a6, // Honda "Polished Metal Metallic": a cool grey-silver
-    roughness: 0.13, // very glossy so the sun glints and the env reflects sharply
-    metalness: 0.82,
-    envMapIntensity: 1.7, // per-material, so only the CAR gets the bright reflections
+  const bodyMat = new THREE.MeshPhysicalMaterial({
+    color: 0xb4babf, // Honda "Polished Metal Metallic": a light cool grey-silver
+    roughness: 0.12,
+    // Lower metalness so the light base color shows from EVERY angle (at 0.9 it
+    // went mirror-dark from the side); the clearcoat still gives a glossy glint.
+    metalness: 0.62,
+    envMapIntensity: 1.35,
+    clearcoat: 1.0,
+    clearcoatRoughness: 0.05,
   });
   const lowerTrimMat = new THREE.MeshStandardMaterial({
     color: 0x35383c, // dark rocker / cladding (lighter than before so it isn't a black void)
@@ -260,39 +264,93 @@ function buildCar(gs: GameState): THREE.Group {
   g.add(rearGlass);
 
   // ===========================================================================
-  // ROOF: a tapered skin sloping from roofFrontY down to roofRearY, slightly
-  // narrower than the cabin, with soft rounded edges.
+  // ROOF: the dominant top-down surface. We want a SLICK, CROWNED silver lid that
+  // catches a bright sun-highlight streak and reads as glossy metal, not flat
+  // grey. The crown is built by laying a wide, gently curved shell over the cabin
+  // so the top-down view shows a light-to-dark shading gradient across the width.
   // ===========================================================================
   const roofLen = greenhouseLen + 0.22; // extend front a bit to meet the windshield top
   const roofTilt = Math.atan2(roofFrontY - roofRearY, greenhouseLen);
   const roofCenterX = greenhouseCenterX + 0.08;
-  // A tall radius gives the roof a domed (crowned) cross-section instead of a flat
-  // slab lid, which reads much less boxy from above and the side.
-  const roof = roundedBox(roofLen / Math.cos(roofTilt), 0.2, ghHalfTopW * 2, 0.1, bodyMat, true, 6);
-  roof.position.set(roofCenterX, (roofFrontY + roofRearY) / 2 - 0.0, 0);
-  roof.rotation.z = roofTilt; // front edge higher than rear
+  const roofMidY = (roofFrontY + roofRearY) / 2;
+  const roofW = ghHalfTopW * 2;
+  const roofLenAlong = roofLen / Math.cos(roofTilt);
+
+  // CROWNED SHELL: a half-cylinder (axis = local X / fore-aft) laid over the cabin.
+  // A real crowned cross-section means the surface normal sweeps from facing the
+  // sky at the ridge to facing sideways at the eaves, so under the high sun it
+  // shows a bright ridge highlight fading to darker edges (the form we want).
+  const crownRadius = roofW * 0.56; // crown curvature (lower = more domed)
+  const crownDrop = 0.15; // how far the eaves sit below the ridge
+  const crownGeo = new THREE.CylinderGeometry(
+    crownRadius,
+    crownRadius,
+    roofLenAlong,
+    36,
+    1,
+    false,
+    -Math.asin(roofW / 2 / crownRadius), // span just the top arc...
+    2 * Math.asin(roofW / 2 / crownRadius), // ...wide enough to cover the cabin
+  );
+  const roof = new THREE.Mesh(crownGeo, bodyMat);
+  // Orient the cylinder axis (+Y) to local +X (fore-aft), then add the fore-aft
+  // tilt so the front edge rides higher than the rear. Composing both as a single
+  // Z rotation works because both are rotations about the lateral (local Z) axis.
+  roof.rotation.z = Math.PI / 2 + roofTilt;
+  // Sit the arc so its chord (eaves) is at the cabin top and the ridge crowns above.
+  roof.position.set(roofCenterX, roofMidY - crownRadius + crownDrop + 0.02, 0);
+  roof.castShadow = true;
   g.add(roof);
 
-  // Roof rails along both edges (a minivan cue). Kept within the cabin length.
-  const railGeo = new THREE.BoxGeometry(greenhouseLen * 0.78, 0.035, 0.045);
-  for (const sz of [ghHalfTopW - 0.05, -(ghHalfTopW - 0.05)]) {
-    const railBar = new THREE.Mesh(railGeo, lowerTrimMat);
-    railBar.position.set(greenhouseCenterX - 0.05, (roofFrontY + roofRearY) / 2 + 0.11, sz);
-    railBar.rotation.z = roofTilt;
-    g.add(railBar);
+  // A thin body-colored fore-aft CHARACTER LINE / ridge cap down the crown center,
+  // and two faint panel SEAMS either side, to break up the big roof panel.
+  const ridgeY = roofMidY + crownDrop + 0.06;
+  const ridge = box(roofLenAlong * 0.94, 0.02, 0.05, bodyMat, false);
+  ridge.position.set(roofCenterX, ridgeY + 0.012, 0);
+  ridge.rotation.z = roofTilt;
+  g.add(ridge);
+  for (const sz of [roofW * 0.24, -roofW * 0.24]) {
+    const seam = box(roofLenAlong * 0.86, 0.012, 0.02, trimMat, false);
+    seam.position.set(roofCenterX, ridgeY - 0.02, sz);
+    seam.rotation.z = roofTilt;
+    g.add(seam);
   }
+
+  // ROOF RAILS: thin dark bars riding the eaves along both roof edges (a clear
+  // minivan cue and a strong dark frame around the bright crown from above).
+  const railGeo = new THREE.BoxGeometry(greenhouseLen * 0.82, 0.05, 0.06);
+  for (const sz of [roofW * 0.46, -roofW * 0.46]) {
+    const railBar = new THREE.Mesh(railGeo, lowerTrimMat);
+    railBar.position.set(roofCenterX - 0.04, roofMidY + 0.07, sz);
+    railBar.rotation.z = roofTilt;
+    railBar.castShadow = true;
+    g.add(railBar);
+    // Small feet tying each rail down to the roof, fore and aft.
+    for (const fx of [0.4, -0.4]) {
+      const foot = box(0.06, 0.06, 0.05, lowerTrimMat, false);
+      foot.position.set(roofCenterX + fx * greenhouseLen * 0.4, roofMidY + 0.04, sz);
+      foot.rotation.z = roofTilt;
+      g.add(foot);
+    }
+  }
+
+  // MOONROOF: a clear dark-glass panel recessed into the FRONT of the crown, with
+  // a bright chrome surround so it frames cleanly from the top-down view.
+  const moonX = greenhouseCenterX + greenhouseLen * 0.17;
+  const moonY = roofMidY + crownDrop + 0.05;
+  const moonSurround = box(0.7, 0.02, roofW * 0.5, chromeMat, false);
+  moonSurround.position.set(moonX, moonY + 0.002, 0);
+  moonSurround.rotation.z = roofTilt;
+  g.add(moonSurround);
+  const moonroof = box(0.6, 0.03, roofW * 0.42, glassMat, false);
+  moonroof.position.set(moonX, moonY + 0.02, 0);
+  moonroof.rotation.z = roofTilt;
+  g.add(moonroof);
 
   // Roof spoiler over the tailgate.
   const spoiler = box(0.16, 0.06, carWidth * 0.74, trimMat);
   spoiler.position.set(ghBackX + 0.06, roofRearY + 0.06, 0);
   g.add(spoiler);
-
-  // Moonroof: a dark glass panel set into the front of the roof (a clear cue from
-  // the top-down view).
-  const moonroof = box(0.62, 0.03, carWidth * 0.42, glassMat, false);
-  moonroof.position.set(greenhouseCenterX + greenhouseLen * 0.16, roofFrontY + 0.02, 0);
-  moonroof.rotation.z = roofTilt;
-  g.add(moonroof);
 
   // Bright chrome window surround along the TOP of the side glass (an Odyssey cue
   // that, with the lower belt strip, frames the glass).
@@ -300,7 +358,7 @@ function buildCar(gs: GameState): THREE.Group {
     const topStrip = box(greenhouseLen * 0.8, 0.03, 0.025, chromeMat);
     topStrip.position.set(
       greenhouseCenterX - 0.06,
-      (roofFrontY + roofRearY) / 2 - 0.02,
+      roofMidY - 0.02,
       sign * (ghHalfTopW + 0.012),
     );
     topStrip.rotation.z = roofTilt;
