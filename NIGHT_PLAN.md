@@ -26,9 +26,16 @@ Started 2026-06-18 ~21:36, working until ~06:00. Stylized game-quality visuals
 - Ambient world life: gentle tree sway + breathing lamp glow (world.userData.tick).
 - Garage menu card pop-in.
 
-## Remaining (rough priority, low-risk first)
-- [ ] Polish the trailer/cargo + dual/ag trailers if plain (rig.ts, isolated builders only).
-- [ ] Warm evening lighting variant (careful, no wash-out).
+## Done (cont. 2)
+- Help / how-to-play overlay (? button).
+- Tactile button press feedback; frosted-glass backdrop blur on overlays.
+- QA: all 4 rigs verified in-game; garage + help overlays render great; demo banner + stars good.
+
+## Remaining (optional, low-risk; game is in great shape)
+- [ ] Cargo variety / careful trailer stylization (isolated rig.ts builders only).
+- [ ] Warm evening lighting variant (ONLY if guaranteed no wash-out).
+- [ ] Possibly retire or gate the "Model: real" glTF toggle (shows a generic van for
+      every rig now that the procedural models are good) - leave for the user to decide.
 - [ ] Optional warm "evening" lighting variant (world.ts + renderer; verify no wash-out).
 - [ ] More scenarios (driveway-to-lawn, loading dock) with verified solutions.
       NOTE: needs world.ts per-scenario environments + a solver pass; bigger.
