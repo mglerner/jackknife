@@ -52,6 +52,20 @@ contact.id = "contact";
 contact.hidden = true;
 app.appendChild(contact);
 
+// Title splash (also the first user gesture that unlocks audio). Tap to start.
+const title = document.createElement("div");
+title.id = "title";
+title.innerHTML =
+  '<div class="title-card">' +
+  '<div class="title-word">JACKKNIFE</div>' +
+  '<div class="title-tag">Learn to back up a trailer.</div>' +
+  '<button class="title-go">Drive</button>' +
+  "</div>";
+app.appendChild(title);
+title.addEventListener("pointerdown", () => {
+  title.hidden = true;
+});
+
 const params = new URLSearchParams(location.search);
 const initRig = RIGS[params.get("rig") ?? ""] ?? DEFAULT_RIG;
 const initDiff = DIFFICULTIES[params.get("difficulty") ?? ""] ?? DEFAULT_DIFFICULTY;

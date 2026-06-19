@@ -26,7 +26,13 @@ page.on("console", (m) => console.log("PAGE:", m.type(), m.text()));
 page.on("pageerror", (e) => console.log("PAGEERROR:", e.message));
 
 await page.goto(url, { waitUntil: "networkidle" });
-await page.waitForTimeout(1500);
+await page.waitForTimeout(500);
+// Dismiss the title splash so the game is visible.
+await page.evaluate(() => {
+  const t = document.getElementById("title");
+  if (t) t.hidden = true;
+});
+await page.waitForTimeout(1200);
 
 await page.screenshot({ path: `${OUT}-topdown.png` });
 console.log("wrote topdown");
