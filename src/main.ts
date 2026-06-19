@@ -45,6 +45,12 @@ const coach = document.createElement("div");
 coach.id = "coach";
 app.appendChild(coach);
 
+// Grade badge: shows the downhill grade on a sloped scenario (hidden when flat).
+const slopeBadge = document.createElement("div");
+slopeBadge.id = "slope-badge";
+slopeBadge.hidden = true;
+app.appendChild(slopeBadge);
+
 const banner = document.createElement("div");
 banner.id = "banner";
 banner.hidden = true;
@@ -560,6 +566,9 @@ function frame(t: number): void {
       ? "Demo: easing back and steering toward the driveway. Watch the trailer follow the wheel."
       : coachingMessage(game, d);
   }
+  const grade = game.scenario.slope;
+  slopeBadge.hidden = grade <= 0;
+  if (grade > 0) slopeBadge.textContent = `Downhill grade ${Math.round(Math.tan(grade) * 100)}%`;
   pull.hidden = !(d.jackknifeState === "recoverable" || d.jackknifeState === "contact");
   contact.hidden = !game.session.collidingNow;
 

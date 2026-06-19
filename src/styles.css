@@ -66,6 +66,22 @@ body {
   pointer-events: none;
 }
 
+/* Grade badge, top-left under the mirror strip; shown only on sloped scenarios. */
+#slope-badge {
+  position: absolute;
+  top: calc(env(safe-area-inset-top, 0px) + 96px);
+  left: 10px;
+  z-index: 20;
+  background: rgba(176, 112, 36, 0.88);
+  color: #fff;
+  border: 1px solid rgba(255, 206, 130, 0.55);
+  border-radius: 8px;
+  padding: 5px 10px;
+  font-size: 13px;
+  font-weight: 700;
+  pointer-events: none;
+}
+
 /* HUD, bottom-left above the control bar. */
 #hud {
   position: absolute;

@@ -12,6 +12,15 @@ import { rigCollision } from "./collision";
  */
 const MAX_FRAME = 0.25;
 
+/**
+ * Quasi-static gravity-roll speed (m/s) at full grade (sin = 1). A graded scenario
+ * adds SLOPE_ROLL * sin(grade) * cos(heading - downhill) to the wheel speed, so the
+ * rig drifts toward downhill. This is a simplified steady-state roll, not full
+ * vehicle dynamics, but it captures the teaching point: backing DOWNHILL, the
+ * trailer wants to run away, so you feather speed and counter-steer earlier.
+ */
+const SLOPE_ROLL = 2.4;
+
 /** Signed commanded speed from gear + throttle + difficulty caps. */
 export function commandedSpeed(gs: GameState): number {
   const d = gs.difficulty;
@@ -33,6 +42,8 @@ export function advance(gs: GameState, frameDt: number): GameState {
   const crit = computeCriticalGamma(gs.rig);
   const blockRev = gs.difficulty.blockReverseWhenJackknifed;
   const allowFwd = gs.difficulty.allowPullForwardAlways;
+  const slope = gs.scenario.slope;
+  const slopeDir = gs.scenario.slopeDir ?? 0;
 
   let acc = gs.accumulator + Math.min(frameDt, MAX_FRAME);
   let physics = gs.physics;
@@ -57,6 +68,13 @@ export function advance(gs: GameState, frameDt: number): GameState {
     if (!allowFwd && vSub > 0) {
       const gamma = Math.abs(physics.trailerHeading - physics.carHeading);
       if (gamma < crit) vSub = 0;
+    }
+    // Gravity roll on a graded scenario: while you are moving (throttle engaged),
+    // the rig drifts toward downhill on top of the commanded speed, strongest when
+    // the heading aligns with the slope, so backing downhill runs away. At rest
+    // (throttle released) the brake holds, so you can still come to a stop and park.
+    if (slope > 0 && Math.abs(v) > 1e-4) {
+      vSub += SLOPE_ROLL * Math.sin(slope) * Math.cos(physics.carHeading - slopeDir);
     }
 
     const candidate = step(physics, gs.rig, { delta, v: vSub, dt });
