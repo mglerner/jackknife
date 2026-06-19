@@ -219,6 +219,15 @@ body {
   border: 1px solid #3a414a;
 }
 
+/* Cinematic vignette over the 3D view. */
+#vignette {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+  background: radial-gradient(ellipse 78% 78% at 50% 44%, transparent 58%, rgba(8, 12, 18, 0.26) 100%);
+}
+
 /* Title splash. */
 #title {
   position: absolute;

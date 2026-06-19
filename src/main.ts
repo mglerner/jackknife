@@ -30,6 +30,11 @@ app.innerHTML = "";
 const canvas = document.createElement("canvas");
 canvas.id = "view";
 app.appendChild(canvas);
+
+// Subtle cinematic vignette over the 3D view (pure CSS, no WebGL cost).
+const vignette = document.createElement("div");
+vignette.id = "vignette";
+app.appendChild(vignette);
 const coach = document.createElement("div");
 coach.id = "coach";
 app.appendChild(coach);
