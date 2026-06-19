@@ -15,13 +15,17 @@ Started 2026-06-18 ~21:36, working until ~06:00. Stylized game-quality visuals
   utility trailer. Odyssey unchanged.
 - Rounder nose (stylized). More contextual coaching copy.
 - ?rig= / ?difficulty= deep-link startup params.
+- Title / intro splash (JACKKNIFE, tap to start; also unlocks audio).
+- Collision camera shake.
+- Ioniq 5 polish (two-tone clearcoat, pixel lights, sunroof, aero wheels).
+- Backup-camera reversing guide lines (distance bands behind the trailer).
 
-## Remaining (rough priority)
-- [ ] Title / intro splash (game feel).
-- [ ] More juice: camera ease on speed, tiny shake on contact.
-- [ ] Polish the Ioniq model (a bit plain).
+## Remaining (rough priority, low-risk first)
+- [ ] Polish the trailer/cargo + dual/ag trailers if plain (rig.ts, isolated builders only).
+- [ ] HUD/menu visual polish; show best score on the HUD.
+- [ ] Optional warm "evening" lighting variant (world.ts + renderer; verify no wash-out).
 - [ ] More scenarios (driveway-to-lawn, loading dock) with verified solutions.
-      NOTE: needs world.ts to render per-scenario environments + a solver pass; bigger.
+      NOTE: needs world.ts per-scenario environments + a solver pass; bigger.
 - [ ] Realistic straight-start scenario (closed-loop demo). Hard; defer to with-user.
 
 ## Guardrails
