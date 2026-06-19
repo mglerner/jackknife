@@ -243,6 +243,24 @@ body {
   border: 1px solid #3a414a;
 }
 
+/* Tactile press feedback on UI buttons (not the animated title button). */
+#controls button,
+#menu button,
+#help button,
+#banner button,
+#garage-btn,
+#help-btn {
+  transition: transform 0.08s ease;
+}
+#controls button:active,
+#menu button:active,
+#help button:active,
+#banner button:active,
+#garage-btn:active,
+#help-btn:active {
+  transform: scale(0.95);
+}
+
 /* Cinematic vignette over the 3D view. */
 #vignette {
   position: absolute;
