@@ -39,7 +39,7 @@ export function createRenderer3d(canvas: HTMLCanvasElement, gs: GameState): Rend
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
-  renderer.toneMappingExposure = 1.5;
+  renderer.toneMappingExposure = 1.05;
 
   const scene = new THREE.Scene();
   scene.background = new THREE.Color("#aebfce");
@@ -48,6 +48,9 @@ export function createRenderer3d(canvas: HTMLCanvasElement, gs: GameState): Rend
   // the silver read as actual car paint in-game, not a grey box.
   const pmrem = new THREE.PMREMGenerator(renderer);
   scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+  // Dial the env contribution so it adds reflections without washing out every
+  // (mostly matte) world material.
+  scene.environmentIntensity = 0.5;
   // No scene fog: it ruins the top-down (camera is ~40 m up). The backup-cam reads
   // fine without it. A subtle ground-level haze can come back per-camera later.
 

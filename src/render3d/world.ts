@@ -115,18 +115,18 @@ export function buildWorld(gs: GameState): THREE.Group {
 
 function addLighting(group: THREE.Group, bounds: WorldBounds): void {
   // Sky/ground hemisphere fill: warm bluish sky, soft green-tinted ground bounce.
-  const hemi = new THREE.HemisphereLight(0xd2e4ff, 0x9aa982, 1.25);
+  const hemi = new THREE.HemisphereLight(0xd2e4ff, 0x9aa982, 0.55);
   hemi.position.set(0, 30, 0);
   group.add(hemi);
 
-  // Strong flat ambient so shadows and back-facing surfaces (what the backup cam
-  // and rear mirror look at) stay clearly visible. This is a learning tool, not a
-  // mood piece, so favor visibility over contrast.
-  const ambient = new THREE.AmbientLight(0xffffff, 0.55);
+  // Light ambient fill so the backup cam and rear mirror stay visible. The env map
+  // now provides most of the soft fill, so this is much lower than before (it was
+  // washing the scene out when stacked on the environment).
+  const ambient = new THREE.AmbientLight(0xffffff, 0.18);
   group.add(ambient);
 
-  // Bright, slightly warm midday sun.
-  const sun = new THREE.DirectionalLight(0xfff4e2, 1.25);
+  // Bright, slightly warm midday sun: the main source of contrast and shadows.
+  const sun = new THREE.DirectionalLight(0xfff4e2, 1.6);
   sun.position.set(12, 22, 8);
   sun.castShadow = true;
 
