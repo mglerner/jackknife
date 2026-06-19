@@ -300,7 +300,9 @@ function buildMinivan(gs: GameState): THREE.Group {
     36,
     1,
     true, // open-ended: no flat disc caps (they read as a chrome "tube end")
-    -Math.asin(roofW / 2 / crownRadius), // span just the top arc...
+    // Center the arc on +X so that after the +Z/2 axis rotation it faces UP (theta=0
+    // is +Z, which the rotation leaves sideways; +pi/2 puts it overhead as intended).
+    Math.PI / 2 - Math.asin(roofW / 2 / crownRadius),
     2 * Math.asin(roofW / 2 / crownRadius), // ...wide enough to cover the cabin
   );
   const roof = new THREE.Mesh(crownGeo, bodyMat);
