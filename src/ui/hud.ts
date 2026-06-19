@@ -32,7 +32,7 @@ export function createHud(parent: HTMLElement): Hud {
     '<div class="chip" data-jk></div>' +
     '<div class="readout" data-err></div>' +
     '<div class="readout" data-steer></div>' +
-    '<div class="hud-best" data-best hidden></div>' +
+    '<div class="hud-best" data-best></div>' +
     '<div class="debug" data-debug hidden></div>';
   parent.appendChild(el);
 
@@ -44,8 +44,8 @@ export function createHud(parent: HTMLElement): Hud {
 
   return {
     setBest(score) {
-      bestEl.hidden = score === undefined;
-      bestEl.textContent = score === undefined ? "" : `Best ${score}`;
+      // Always present (placeholder when none) so the panel height stays constant.
+      bestEl.textContent = score === undefined ? "No best yet" : `Best ${score}`;
     },
     update(gs, debug) {
       const d = derive(gs.physics, gs.rig, { v: commandedSpeed(gs), delta: gs.delta });

@@ -68,12 +68,21 @@ body {
   position: absolute;
   left: 10px;
   bottom: 124px;
-  max-width: 46%;
+  /* Fixed width + non-wrapping lines so the panel never changes size as the
+     readouts change (it used to jump a line taller when a value got longer). */
+  width: 200px;
   font-size: 13px;
   background: rgba(0, 0, 0, 0.4);
   padding: 6px 10px;
   border-radius: 10px;
   pointer-events: none;
+}
+#hud .chip,
+#hud .readout,
+#hud .hud-best {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 #hud .chip {
   font-weight: 700;
