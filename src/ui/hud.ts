@@ -5,6 +5,8 @@ import { trailerTargetError } from "../scoring/types";
 
 export interface Hud {
   update(gs: GameState, debug: boolean): void;
+  /** Set the best-score readout (undefined hides it). Called when it changes. */
+  setBest(score: number | undefined): void;
 }
 
 const deg = (r: number): number => (r * 180) / Math.PI;
@@ -29,14 +31,20 @@ export function createHud(parent: HTMLElement): Hud {
   el.innerHTML =
     '<div class="chip" data-jk></div>' +
     '<div class="readout" data-err></div>' +
+    '<div class="hud-best" data-best hidden></div>' +
     '<div class="debug" data-debug hidden></div>';
   parent.appendChild(el);
 
   const jk = el.querySelector("[data-jk]") as HTMLElement;
   const err = el.querySelector("[data-err]") as HTMLElement;
+  const bestEl = el.querySelector("[data-best]") as HTMLElement;
   const dbg = el.querySelector("[data-debug]") as HTMLElement;
 
   return {
+    setBest(score) {
+      bestEl.hidden = score === undefined;
+      bestEl.textContent = score === undefined ? "" : `Best ${score}`;
+    },
     update(gs, debug) {
       const d = derive(gs.physics, gs.rig, { v: commandedSpeed(gs), delta: gs.delta });
       jk.textContent = `Trailer: ${JK_LABEL[d.jackknifeState]}`;

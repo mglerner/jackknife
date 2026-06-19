@@ -89,6 +89,7 @@ let solution: Maneuver | undefined =
 const renderer3d = createRenderer3d(canvas, game);
 
 const hud = createHud(app);
+hud.setBest(loadProgress().bestScores[game.scenario.id]);
 
 function restart(): void {
   game = resetGame(game);
@@ -250,6 +251,7 @@ function checkWin(): void {
     const prevBest = loadProgress().bestScores[game.scenario.id];
     const best = recordBest(game.scenario.id, score).bestScores[game.scenario.id];
     const isNewBest = prevBest === undefined || score > prevBest;
+    hud.setBest(best);
     const stars = score >= 90 ? 3 : score >= 72 ? 2 : 1;
     banner.innerHTML =
       '<div class="title">Parked!</div>' +
