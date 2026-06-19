@@ -8,9 +8,9 @@ import {
   setThrottle,
 } from "./game/state";
 import { advance, commandedSpeed } from "./game/loop";
-import { DEFAULT_RIG } from "./rigs/rigs";
+import { DEFAULT_RIG, RIGS } from "./rigs/rigs";
 import { DEFAULT_SCENARIO } from "./scenarios/scenarios";
-import { DEFAULT_DIFFICULTY } from "./difficulty/difficulty";
+import { DEFAULT_DIFFICULTY, DIFFICULTIES } from "./difficulty/difficulty";
 import { steerFromBottomWheel } from "./input/bottomWheel";
 import { createRenderer3d, type ViewMode } from "./render3d/renderer";
 import type { CarStyle } from "./render3d/rig";
@@ -19,7 +19,7 @@ import { defaultScorer } from "./scoring/defaultScorer";
 import { createHud } from "./ui/hud";
 import { createControls } from "./ui/controls";
 import { coachingMessage } from "./ui/coach";
-import { applyManeuverAt, maneuverDuration } from "./game/autopilot";
+import { applyManeuverAt, maneuverDuration, type Maneuver } from "./game/autopilot";
 import { SOLUTIONS } from "./game/solutions";
 import { createSfx } from "./audio/sfx";
 import { recordBest, loadProgress } from "./game/persistence";
@@ -61,7 +61,7 @@ let demoActive = false;
 let demoT = 0;
 let demoAcc = 0;
 let carStyle: CarStyle = "procedural";
-const solution = SOLUTIONS[game.scenario.id];
+let solution: Maneuver | undefined = SOLUTIONS[game.scenario.id];
 
 const renderer3d = createRenderer3d(canvas, game);
 
@@ -155,6 +155,68 @@ const endPinch = (e: PointerEvent): void => {
 };
 canvas.addEventListener("pointerup", endPinch);
 canvas.addEventListener("pointercancel", endPinch);
+
+// Garage menu: pick the vehicle/trailer and difficulty; rebuilds the rig live.
+const menuBtn = document.createElement("button");
+menuBtn.id = "garage-btn";
+menuBtn.textContent = "Garage";
+app.appendChild(menuBtn);
+const menu = document.createElement("div");
+menu.id = "menu";
+menu.hidden = true;
+app.appendChild(menu);
+
+function applyChoice(rigId: string, diffId: string): void {
+  const rig = RIGS[rigId] ?? DEFAULT_RIG;
+  const diff = DIFFICULTIES[diffId] ?? DEFAULT_DIFFICULTY;
+  game = createGame(rig, game.scenario, diff);
+  renderer3d.rebuild(game);
+  renderer3d.setCarStyle(carStyle);
+  // The baked demo solution was verified for the Odyssey utility rig only.
+  solution = rig.id === "odyssey-utility" ? SOLUTIONS[game.scenario.id] : undefined;
+  mirrors = diff.mirrorsDefault;
+  won = false;
+  demoActive = false;
+  banner.hidden = true;
+}
+
+function renderMenu(): void {
+  const btns = (items: { id: string; label: string }[], attr: string, curId: string): string =>
+    items
+      .map(
+        (it) =>
+          `<button data-${attr}="${it.id}" class="${it.id === curId ? "sel" : ""}">${it.label}</button>`,
+      )
+      .join("");
+  menu.innerHTML =
+    '<div class="menu-card">' +
+    '<div class="menu-title">Garage</div>' +
+    '<div class="menu-label">Vehicle and trailer</div>' +
+    `<div class="menu-row">${btns(Object.values(RIGS), "rig", game.rig.id)}</div>` +
+    '<div class="menu-label">Difficulty</div>' +
+    `<div class="menu-row">${btns(Object.values(DIFFICULTIES), "diff", game.difficulty.id)}</div>` +
+    '<button id="menu-close">Done</button>' +
+    "</div>";
+  menu.querySelectorAll<HTMLElement>("[data-rig]").forEach((b) =>
+    b.addEventListener("pointerdown", () => {
+      applyChoice(b.dataset.rig ?? "", game.difficulty.id);
+      renderMenu();
+    }),
+  );
+  menu.querySelectorAll<HTMLElement>("[data-diff]").forEach((b) =>
+    b.addEventListener("pointerdown", () => {
+      applyChoice(game.rig.id, b.dataset.diff ?? "");
+      renderMenu();
+    }),
+  );
+  (menu.querySelector("#menu-close") as HTMLElement).addEventListener("pointerdown", () => {
+    menu.hidden = true;
+  });
+}
+menuBtn.addEventListener("pointerdown", () => {
+  renderMenu();
+  menu.hidden = false;
+});
 
 function checkWin(): void {
   if (won) return;
