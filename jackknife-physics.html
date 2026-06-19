@@ -171,6 +171,31 @@
         line-height: 1.35;
         color: #2b333a;
       }
+      figure.plot {
+        margin: 18px 0;
+        border: 1px solid var(--rule);
+        border-radius: 10px;
+        padding: 14px 16px 10px;
+        background: #fff;
+      }
+      figure.plot .canvas-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 14px;
+        justify-content: center;
+      }
+      figure.plot canvas {
+        display: block;
+        margin: 0 auto;
+      }
+      figure.plot figcaption {
+        color: var(--muted);
+        font-size: 13.5px;
+        line-height: 1.5;
+        margin-top: 10px;
+        border-top: 1px solid var(--rule);
+        padding-top: 9px;
+      }
     </style>
   </head>
   <body>
@@ -275,6 +300,20 @@
         exactly why backing a trailer is hard and driving forward is trivial.
       </p>
 
+      <figure class="plot">
+        <div class="canvas-row">
+          <canvas id="fig-traj-fwd" width="720" height="440" style="width: 360px; height: 220px"></canvas>
+          <canvas id="fig-traj-rev" width="720" height="440" style="width: 360px; height: 220px"></canvas>
+        </div>
+        <figcaption>
+          <strong>Stability trajectories \(\gamma(t)\)</strong> (supports section 4 and P2), integrating
+          the full ODE with \(\delta=0\) for the default rig (\(D=1.8\,\)m) from several initial angles.
+          Left, forward (\(v=+1\,\)m/s): every kink decays back to \(\gamma=0\), the trailer
+          self-centers. Right, reverse (\(v=-1\,\)m/s): the same kinks grow away from \(0\) (capped here
+          at \(90^\circ\)), the runaway fold. The decay/growth clock is \(\tau=D/|v|\).
+        </figcaption>
+      </figure>
+
       <h2>5. The critical angle: when steering can no longer save you</h2>
       <p>
         While reversing you fight the instability with the steering term. Ask: for a given \(\gamma\),
@@ -327,6 +366,33 @@
         Shorten the trailer (smaller \(D\)) and \(\gamma_c\) shrinks &mdash; short trailers jackknife
         sooner, which is exactly why a small utility trailer is harder to back than a long camper.
       </p>
+
+      <figure class="plot">
+        <canvas id="fig-root" width="720" height="440" style="width: 360px; height: 220px"></canvas>
+        <figcaption>
+          <strong>Graphical root finding for \(\gamma_c\)</strong> (supports section 5 and P3). The two
+          sides of the boxed condition plotted against \(\gamma\) for the default rig:
+          \(\mathrm{LHS}=\sin\gamma/D\) and \(\mathrm{RHS}=(\tan\delta_{\max}/W)(1+(L/D)\cos\gamma)\).
+          Their single intersection on \((0,\pi/2)\) is the critical angle \(\gamma_c\approx 35^\circ\).
+          Below it the countersteer can hold the fold; above it it cannot.
+        </figcaption>
+      </figure>
+
+      <figure class="plot">
+        <div class="canvas-row">
+          <canvas id="fig-geom-dmax" width="720" height="440" style="width: 360px; height: 220px"></canvas>
+          <canvas id="fig-geom-D" width="720" height="440" style="width: 360px; height: 220px"></canvas>
+        </div>
+        <figcaption>
+          <strong>How geometry sets the safe envelope</strong> (supports P3), with \(\gamma_c\) solved by
+          bisection on the boxed condition. Left, \(\gamma_c\) versus the steering lock \(\delta_{\max}\)
+          (default \(D=1.8\,\)m). Right, \(\gamma_c\) versus the trailer wheelbase \(D\) (default
+          \(\delta_{\max}=33^\circ\)). The dot marks the default rig (\(\gamma_c\approx 35^\circ\)).
+          Both curves rise, so a tighter steering lock or a shorter trailer (moving left on either axis)
+          shrinks \(\gamma_c\): \(\partial\gamma_c/\partial\delta_{\max}>0\) and
+          \(\partial\gamma_c/\partial D>0\).
+        </figcaption>
+      </figure>
 
       <h2>6. Problem set</h2>
       <div class="pset">
@@ -582,6 +648,18 @@
             </p>
           </div>
         </details>
+        <figure class="plot">
+          <canvas id="fig-phase" width="720" height="440" style="width: 360px; height: 220px"></canvas>
+          <figcaption>
+            <strong>Phase line \(\dot\gamma\) versus \(\gamma\)</strong> (supports P4 and section 5), the
+            key picture of why \(\gamma_c\) exists. Reversing at full opposite lock
+            (\(v<0,\ \delta=-\delta_{\max}\)) for the default rig. At small \(\gamma\) the countersteer
+            wins (\(\dot\gamma<0\), shaded blue, flow toward \(0\)); past the zero crossing it loses
+            (\(\dot\gamma>0\), shaded amber, flow away). The straight configuration \(\gamma=0\) is a
+            stable equilibrium under this lock; the upper crossing is the unstable equilibrium
+            \(\gamma_c\), the watershed beyond which the fold runs away.
+          </figcaption>
+        </figure>
       </div>
       <div class="pset">
         <h3><span class="tag">P5</span>A <abbr class="term" title="A method that proves stability by finding an energy-like quantity that only decreases over time, so the system must settle down.">Lyapunov</abbr> view</h3>
@@ -694,6 +772,17 @@
             </p>
           </div>
         </details>
+        <figure class="plot">
+          <canvas id="fig-offtrack" width="720" height="440" style="width: 360px; height: 220px"></canvas>
+          <figcaption>
+            <strong>Off-tracking versus turn radius</strong> (supports P6), for the default rig
+            (\(D=1.8\,\)m, on-axle \(L=0\)). The radial gap \(\Delta R=R_c-\sqrt{R_c^2-D^2}\) by which the
+            trailer axle cuts inside the tow vehicle's path, with the small-angle estimate
+            \(D^2/2R_c\) dashed. Tighter turns (small \(R_c\)) off-track sharply; the dot marks the
+            P6 example, \(R_c=8.24\,\)m giving \(\Delta R\approx0.20\,\)m. This is why you swing wide
+            when towing.
+          </figcaption>
+        </figure>
       </div>
       <div class="pset">
         <h3><span class="tag">P7</span><abbr class="term" title="A trailer with two axles placed close together, one just behind the other, rather than a single axle.">Tandem axle</abbr> (extension)</h3>
@@ -768,5 +857,327 @@
         one-trailer extension; low-speed no-slip assumptions throughout.
       </footer>
     </div>
+
+    <script>
+      // Plain-canvas plots of the page's own kinematic model. No libraries, no network.
+      (function () {
+        // Default rig (section 5, "the game's default rig").
+        var W = 3.0, L = 1.1, D = 1.8;
+        var dmaxDeg = 33, dmax = (dmaxDeg * Math.PI) / 180;
+        var tanDmax = Math.tan(dmax);
+
+        // Colors pulled from the page's CSS variables.
+        var ACCENT = "#1f6feb", INK = "#1b1f24", MUTED = "#5b6770", RULE = "#e3e7ec";
+        var AMBER = "#9a6a00", STABLE_FILL = "rgba(31,111,235,0.10)", UNSTABLE_FILL = "rgba(154,106,0,0.12)";
+
+        var DPR = 2; // canvases are sized 2x the CSS box for retina crispness
+
+        // gamma_dot from the boxed articulation ODE.
+        function gammaDot(g, v, delta) {
+          return -(v / D) * Math.sin(g) - (v / W) * (1 + (L / D) * Math.cos(g)) * Math.tan(delta);
+        }
+
+        // Set up a plot: returns a context plus data->pixel mappers for the plot box.
+        function setup(id, xmin, xmax, ymin, ymax, opts) {
+          opts = opts || {};
+          var cv = document.getElementById(id);
+          if (!cv) return null;
+          var ctx = cv.getContext("2d");
+          ctx.setTransform(DPR, 0, 0, DPR, 0, 0); // logical units = CSS px
+          var Wpx = cv.width / DPR, Hpx = cv.height / DPR;
+          ctx.clearRect(0, 0, Wpx, Hpx);
+          var m = { l: opts.l || 44, r: opts.r || 12, t: opts.t || 22, b: opts.b || 34 };
+          var x0 = m.l, x1 = Wpx - m.r, y0 = Hpx - m.b, y1 = m.t;
+          function X(x) { return x0 + ((x - xmin) / (xmax - xmin)) * (x1 - x0); }
+          function Y(y) { return y0 + ((y - ymin) / (ymax - ymin)) * (y1 - y0); }
+          return {
+            ctx: ctx, X: X, Y: Y, Wpx: Wpx, Hpx: Hpx,
+            box: { x0: x0, x1: x1, y0: y0, y1: y1 },
+            xmin: xmin, xmax: xmax, ymin: ymin, ymax: ymax,
+          };
+        }
+
+        function grid(p, nx, ny) {
+          var ctx = p.ctx, b = p.box;
+          ctx.strokeStyle = RULE;
+          ctx.lineWidth = 1;
+          ctx.font = "10px -apple-system, Helvetica, Arial, sans-serif";
+          ctx.fillStyle = MUTED;
+          var i;
+          for (i = 0; i <= nx; i++) {
+            var xv = p.xmin + ((p.xmax - p.xmin) * i) / nx;
+            var px = p.X(xv);
+            ctx.beginPath(); ctx.moveTo(px, b.y0); ctx.lineTo(px, b.y1); ctx.stroke();
+          }
+          for (i = 0; i <= ny; i++) {
+            var yv = p.ymin + ((p.ymax - p.ymin) * i) / ny;
+            var py = p.Y(yv);
+            ctx.beginPath(); ctx.moveTo(b.x0, py); ctx.lineTo(b.x1, py); ctx.stroke();
+          }
+        }
+
+        function axes(p, xlabel, ylabel, xticks, yticks) {
+          var ctx = p.ctx, b = p.box;
+          ctx.strokeStyle = MUTED; ctx.lineWidth = 1.2;
+          ctx.beginPath(); ctx.moveTo(b.x0, b.y0); ctx.lineTo(b.x1, b.y0); ctx.stroke();
+          ctx.beginPath(); ctx.moveTo(b.x0, b.y0); ctx.lineTo(b.x0, b.y1); ctx.stroke();
+          ctx.fillStyle = MUTED;
+          ctx.font = "10px -apple-system, Helvetica, Arial, sans-serif";
+          var i;
+          ctx.textAlign = "center"; ctx.textBaseline = "top";
+          if (xticks) for (i = 0; i < xticks.length; i++) {
+            ctx.fillText(xticks[i].label, p.X(xticks[i].v), b.y0 + 4);
+          }
+          ctx.textAlign = "right"; ctx.textBaseline = "middle";
+          if (yticks) for (i = 0; i < yticks.length; i++) {
+            ctx.fillText(yticks[i].label, b.x0 - 5, p.Y(yticks[i].v));
+          }
+          ctx.fillStyle = INK;
+          ctx.font = "11px -apple-system, Helvetica, Arial, sans-serif";
+          ctx.textAlign = "center"; ctx.textBaseline = "bottom";
+          ctx.fillText(xlabel, (b.x0 + b.x1) / 2, p.Hpx - 1);
+          ctx.save();
+          ctx.translate(9, (b.y0 + b.y1) / 2);
+          ctx.rotate(-Math.PI / 2);
+          ctx.textBaseline = "top";
+          ctx.fillText(ylabel, 0, 0);
+          ctx.restore();
+        }
+
+        function curve(p, fn, x0, x1, color, width, dash) {
+          var ctx = p.ctx;
+          ctx.save();
+          ctx.beginPath();
+          ctx.strokeStyle = color; ctx.lineWidth = width || 2;
+          if (dash) ctx.setLineDash(dash);
+          var N = 220, started = false;
+          for (var i = 0; i <= N; i++) {
+            var x = x0 + ((x1 - x0) * i) / N;
+            var y = fn(x);
+            if (!isFinite(y)) { started = false; continue; }
+            var px = p.X(x), py = p.Y(y);
+            if (!started) { ctx.moveTo(px, py); started = true; } else ctx.lineTo(px, py);
+          }
+          ctx.stroke();
+          ctx.restore();
+        }
+
+        function legend(p, items, corner) {
+          var ctx = p.ctx, b = p.box;
+          ctx.font = "10.5px -apple-system, Helvetica, Arial, sans-serif";
+          var pad = 6, lh = 14, sw = 16;
+          var w = 0;
+          for (var i = 0; i < items.length; i++) w = Math.max(w, ctx.measureText(items[i].label).width);
+          w += sw + pad * 2 + 6;
+          var h = items.length * lh + pad;
+          var x = corner === "tr" ? b.x1 - w - 4 : b.x0 + 6;
+          var y = b.y1 + 4;
+          ctx.fillStyle = "rgba(255,255,255,0.85)";
+          ctx.strokeStyle = RULE; ctx.lineWidth = 1;
+          ctx.fillRect(x, y, w, h); ctx.strokeRect(x, y, w, h);
+          ctx.textAlign = "left"; ctx.textBaseline = "middle";
+          for (var j = 0; j < items.length; j++) {
+            var cy = y + pad / 2 + lh / 2 + j * lh;
+            ctx.strokeStyle = items[j].color; ctx.lineWidth = 2.4;
+            if (items[j].dash) ctx.setLineDash(items[j].dash); else ctx.setLineDash([]);
+            ctx.beginPath(); ctx.moveTo(x + pad, cy); ctx.lineTo(x + pad + sw, cy); ctx.stroke();
+            ctx.setLineDash([]);
+            ctx.fillStyle = INK; ctx.fillText(items[j].label, x + pad + sw + 5, cy);
+          }
+        }
+
+        function dot(p, x, y, color, label) {
+          var ctx = p.ctx;
+          ctx.fillStyle = color;
+          ctx.beginPath(); ctx.arc(p.X(x), p.Y(y), 3.2, 0, 2 * Math.PI); ctx.fill();
+          if (label) {
+            ctx.fillStyle = INK;
+            ctx.font = "10px -apple-system, Helvetica, Arial, sans-serif";
+            ctx.textAlign = "left"; ctx.textBaseline = "bottom";
+            ctx.fillText(label, p.X(x) + 5, p.Y(y) - 3);
+          }
+        }
+
+        // Bisection on the boxed critical-angle condition for given params.
+        function criticalAngle(Wv, Lv, Dv, dmaxV) {
+          var td = Math.tan(dmaxV);
+          function f(g) {
+            return Math.sin(g) / Dv - (td / Wv) * (1 + (Lv / Dv) * Math.cos(g));
+          }
+          var lo = 0.0001, hi = Math.PI / 2 - 0.0001;
+          if (f(lo) * f(hi) > 0) return NaN; // no crossing in (0, pi/2)
+          for (var k = 0; k < 60; k++) {
+            var mid = 0.5 * (lo + hi);
+            if (f(lo) * f(mid) <= 0) hi = mid; else lo = mid;
+          }
+          return 0.5 * (lo + hi);
+        }
+
+        var RAD = Math.PI / 180, DEG = 180 / Math.PI;
+
+        // ---- Figure: stability trajectories (forward vs reverse), delta = 0 ----
+        function trajPanel(id, v, diverging) {
+          var Tmax = 6; // seconds
+          var p = setup(id, 0, Tmax, diverging ? 0 : -5, 90, { l: 40 });
+          if (!p) return;
+          grid(p, 6, 5);
+          var yticks = [];
+          for (var yy = 0; yy <= 90; yy += 30) yticks.push({ v: yy, label: yy });
+          axes(p, "t (s)", "gamma (deg)",
+            [{ v: 0, label: "0" }, { v: 3, label: "3" }, { v: 6, label: "6" }], yticks);
+          // zero line
+          p.ctx.strokeStyle = RULE; p.ctx.setLineDash([3, 3]);
+          p.ctx.beginPath(); p.ctx.moveTo(p.box.x0, p.Y(0)); p.ctx.lineTo(p.box.x1, p.Y(0)); p.ctx.stroke();
+          p.ctx.setLineDash([]);
+          var starts = [5, 15, 30, 50, 70];
+          var dt = 0.005;
+          for (var s = 0; s < starts.length; s++) {
+            var g = starts[s] * RAD;
+            var ctx = p.ctx;
+            ctx.beginPath();
+            ctx.strokeStyle = diverging ? AMBER : ACCENT;
+            ctx.lineWidth = 1.8;
+            ctx.moveTo(p.X(0), p.Y(starts[s]));
+            for (var t = dt; t <= Tmax; t += dt) {
+              g += gammaDot(g, v, 0) * dt;
+              if (g > (90 * RAD)) g = 90 * RAD;
+              if (g < -10 * RAD) g = -10 * RAD;
+              ctx.lineTo(p.X(t), p.Y(g * DEG));
+            }
+            ctx.stroke();
+          }
+          // panel title
+          p.ctx.fillStyle = INK;
+          p.ctx.font = "11px -apple-system, Helvetica, Arial, sans-serif";
+          p.ctx.textAlign = "center"; p.ctx.textBaseline = "top";
+          p.ctx.fillText(diverging ? "reverse (v = -1 m/s): jackknife" : "forward (v = +1 m/s): self-centers",
+            (p.box.x0 + p.box.x1) / 2, 4);
+        }
+        trajPanel("fig-traj-fwd", 1, false);
+        trajPanel("fig-traj-rev", -1, true);
+
+        // ---- Figure: graphical root finding for gamma_c ----
+        (function () {
+          var p = setup("fig-root", 0, 90, 0, null, { l: 46 });
+          if (!p) return;
+          // recompute ymax from data
+          var lhs = function (gd) { return Math.sin(gd * RAD) / D; };
+          var rhs = function (gd) { return (tanDmax / W) * (1 + (L / D) * Math.cos(gd * RAD)); };
+          var ymaxV = 0;
+          for (var gd = 0; gd <= 90; gd++) ymaxV = Math.max(ymaxV, lhs(gd), rhs(gd));
+          ymaxV *= 1.12;
+          p = setup("fig-root", 0, 90, 0, ymaxV, { l: 46 });
+          grid(p, 6, 5);
+          axes(p, "gamma (deg)", "value (1/m)",
+            [{ v: 0, label: "0" }, { v: 30, label: "30" }, { v: 60, label: "60" }, { v: 90, label: "90" }],
+            [{ v: 0, label: "0" }, { v: ymaxV / 2, label: (ymaxV / 2).toFixed(2) }, { v: ymaxV, label: ymaxV.toFixed(2) }]);
+          curve(p, lhs, 0, 90, ACCENT, 2.2);
+          curve(p, rhs, 0, 90, AMBER, 2.2);
+          var gc = criticalAngle(W, L, D, dmax);
+          var gcd = gc * DEG, gcv = Math.sin(gc) / D;
+          // vertical marker to gamma_c
+          p.ctx.strokeStyle = MUTED; p.ctx.setLineDash([4, 3]); p.ctx.lineWidth = 1;
+          p.ctx.beginPath(); p.ctx.moveTo(p.X(gcd), p.box.y0); p.ctx.lineTo(p.X(gcd), p.Y(gcv)); p.ctx.stroke();
+          p.ctx.setLineDash([]);
+          dot(p, gcd, gcv, INK, "gamma_c = " + gcd.toFixed(0) + " deg");
+          legend(p, [
+            { label: "LHS = sin(gamma)/D", color: ACCENT },
+            { label: "RHS = (tan d_max/W)(1+(L/D)cos g)", color: AMBER },
+          ], "tl");
+        })();
+
+        // ---- Figure: gamma_c vs delta_max, and gamma_c vs D ----
+        (function () {
+          var gcDefault = criticalAngle(W, L, D, dmax) * DEG;
+          // vs delta_max
+          var p1 = setup("fig-geom-dmax", 10, 50, 0, 70, { l: 42 });
+          if (p1) {
+            grid(p1, 4, 7);
+            axes(p1, "delta_max (deg)", "gamma_c (deg)",
+              [{ v: 10, label: "10" }, { v: 30, label: "30" }, { v: 50, label: "50" }],
+              [{ v: 0, label: "0" }, { v: 35, label: "35" }, { v: 70, label: "70" }]);
+            curve(p1, function (dd) {
+              var g = criticalAngle(W, L, D, dd * RAD);
+              return isFinite(g) ? g * DEG : NaN;
+            }, 10, 50, ACCENT, 2.2);
+            dot(p1, dmaxDeg, gcDefault, INK, "rig");
+          }
+          // vs D
+          var p2 = setup("fig-geom-D", 0.6, 4.0, 0, 70, { l: 42 });
+          if (p2) {
+            grid(p2, 4, 7);
+            axes(p2, "D (m)", "gamma_c (deg)",
+              [{ v: 0.6, label: "0.6" }, { v: 2.0, label: "2.0" }, { v: 4.0, label: "4.0" }],
+              [{ v: 0, label: "0" }, { v: 35, label: "35" }, { v: 70, label: "70" }]);
+            curve(p2, function (Dd) {
+              var g = criticalAngle(W, L, Dd, dmax);
+              return isFinite(g) ? g * DEG : NaN;
+            }, 0.6, 4.0, ACCENT, 2.2);
+            dot(p2, D, gcDefault, INK, "rig");
+          }
+        })();
+
+        // ---- Figure: phase line dgamma/dt vs gamma, reverse + opposite lock ----
+        (function () {
+          var v = -1, delta = -dmax; // full opposite lock against the fold
+          var gmaxDeg = 90;
+          var f = function (gd) { return gammaDot(gd * RAD, v, delta); };
+          // y-range from data
+          var ymin = 1e9, ymax = -1e9;
+          for (var gd = 0; gd <= gmaxDeg; gd++) { var y = f(gd); ymin = Math.min(ymin, y); ymax = Math.max(ymax, y); }
+          var pad = 0.1 * (ymax - ymin);
+          var p = setup("fig-phase", 0, gmaxDeg, ymin - pad, ymax + pad, { l: 48 });
+          if (!p) return;
+          var gc = criticalAngle(W, L, D, dmax) * DEG;
+          // shade stable (g<gc, dgamma<0) and unstable (g>gc) regions
+          var ctx = p.ctx;
+          ctx.fillStyle = STABLE_FILL;
+          ctx.fillRect(p.X(0), p.box.y1, p.X(gc) - p.X(0), p.box.y0 - p.box.y1);
+          ctx.fillStyle = UNSTABLE_FILL;
+          ctx.fillRect(p.X(gc), p.box.y1, p.box.x1 - p.X(gc), p.box.y0 - p.box.y1);
+          grid(p, 6, 5);
+          axes(p, "gamma (deg)", "dgamma/dt (rad/s)",
+            [{ v: 0, label: "0" }, { v: 30, label: "30" }, { v: 60, label: "60" }, { v: 90, label: "90" }],
+            [{ v: ymin, label: ymin.toFixed(1) }, { v: 0, label: "0" }, { v: ymax, label: ymax.toFixed(1) }]);
+          // zero line
+          ctx.strokeStyle = MUTED; ctx.setLineDash([3, 3]); ctx.lineWidth = 1;
+          ctx.beginPath(); ctx.moveTo(p.box.x0, p.Y(0)); ctx.lineTo(p.box.x1, p.Y(0)); ctx.stroke();
+          ctx.setLineDash([]);
+          curve(p, f, 0, gmaxDeg, ACCENT, 2.3);
+          // equilibria: gamma = 0 (stable here) and gamma_c (unstable)
+          dot(p, 0, 0, ACCENT, "stable (gamma=0)");
+          dot(p, gc, 0, AMBER, "gamma_c (unstable)");
+          // flow arrows on the gamma axis
+          ctx.fillStyle = MUTED;
+          ctx.font = "11px -apple-system, Helvetica, Arial, sans-serif";
+          ctx.textAlign = "center"; ctx.textBaseline = "middle";
+          ctx.fillText("← toward 0", p.X(gc / 2), p.Y(0) + 12);
+          ctx.fillText("away →", p.X((gc + gmaxDeg) / 2), p.Y(0) - 12);
+        })();
+
+        // ---- Figure: off-tracking offset vs turn radius (L = 0 on-axle) ----
+        (function () {
+          var Rmin = D + 0.05, Rmax = 20;
+          var exact = function (Rc) { return Rc - Math.sqrt(Rc * Rc - D * D); };
+          var approx = function (Rc) { return (D * D) / (2 * Rc); };
+          var ymaxV = exact(Rmin) * 1.05;
+          var p = setup("fig-offtrack", 0, Rmax, 0, ymaxV, { l: 46 });
+          if (!p) return;
+          grid(p, 5, 5);
+          axes(p, "R_c (m)", "off-track dR (m)",
+            [{ v: 0, label: "0" }, { v: 10, label: "10" }, { v: 20, label: "20" }],
+            [{ v: 0, label: "0" }, { v: ymaxV / 2, label: (ymaxV / 2).toFixed(1) }, { v: ymaxV, label: ymaxV.toFixed(1) }]);
+          curve(p, approx, D + 0.2, Rmax, MUTED, 1.6, [5, 4]);
+          curve(p, exact, Rmin, Rmax, ACCENT, 2.3);
+          // P6 example: Rc = 8.24 m
+          var Rc = 8.24;
+          dot(p, Rc, exact(Rc), INK, "P6: " + exact(Rc).toFixed(2) + " m");
+          legend(p, [
+            { label: "exact: Rc - sqrt(Rc^2 - D^2)", color: ACCENT },
+            { label: "approx: D^2 / 2Rc", color: MUTED, dash: [5, 4] },
+          ], "tr");
+        })();
+      })();
+    </script>
   </body>
 </html>
