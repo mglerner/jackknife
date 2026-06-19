@@ -44,6 +44,9 @@ body {
   height: 100%;
   display: block;
   touch-action: none;
+  /* Gentle color grade: a little extra saturation for a vivid, toy-diorama pop.
+     Saturation only (no brightness change) so it can't wash the scene out. */
+  filter: saturate(1.12);
 }
 
 /* Coaching line, top-center, clear of the mirror strip. */

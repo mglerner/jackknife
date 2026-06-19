@@ -79,6 +79,9 @@ export function createRenderer3d(canvas: HTMLCanvasElement, gs: GameState): Rend
 
   const scene = new THREE.Scene();
   scene.background = new THREE.Color("#aebfce");
+  // Sky-matched depth fog, applied only to the perspective views (backup-cam /
+  // mirrors) per-frame so distant scenery fades into the sky there.
+  const depthFog = new THREE.Fog(0xaebfce, 6, 48);
   // Environment map: real reflections for metallic paint and glass. Without it,
   // metal reflects the (near-black) background and looks dark; this is what makes
   // the silver read as actual car paint in-game, not a grey box.
@@ -415,13 +418,19 @@ export function createRenderer3d(canvas: HTMLCanvasElement, gs: GameState): Rend
     renderer.setScissorTest(false);
     renderer.setViewport(0, 0, W, Hc);
     if (view === "topdown") {
+      scene.fog = null; // fog would uniformly wash the far-up ortho top-down
       aimTopCam(g);
       renderer.render(scene, topCam);
     } else {
+      scene.fog = depthFog; // perspective FPV: fade distant scene into the sky for depth
       aimBackCam(g);
       renderer.render(scene, backCam);
     }
-    if (opts.mirrors) renderMirrors(g);
+    if (opts.mirrors) {
+      scene.fog = depthFog; // mirrors are perspective too
+      renderMirrors(g);
+    }
+    scene.fog = null;
   }
 
   function celebrate(g: GameState): void {
