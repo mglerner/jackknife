@@ -106,6 +106,25 @@ export function buildWorld(gs: GameState): THREE.Group {
   addObstacles(group, gs);
   addTarget(group, gs);
 
+  // Gentle ambient life: trees sway, the lamp glow breathes. The renderer calls
+  // group.userData.tick(seconds) each frame. Collect the animated objects once.
+  const swayers: THREE.Object3D[] = [];
+  const glowers: THREE.Mesh[] = [];
+  group.traverse((o) => {
+    if (o.userData.swayPhase !== undefined) swayers.push(o);
+    if (o.userData.glow !== undefined) glowers.push(o as THREE.Mesh);
+  });
+  group.userData.tick = (t: number): void => {
+    for (const s of swayers) {
+      s.rotation.z = Math.sin(t * 0.7 + (s.userData.swayPhase as number)) * 0.035;
+    }
+    for (const m of glowers) {
+      const base = m.userData.glow as number;
+      const mat = m.material as THREE.MeshStandardMaterial;
+      mat.emissiveIntensity = base * (0.78 + 0.22 * Math.sin(t * 1.7));
+    }
+  };
+
   return group;
 }
 
@@ -542,6 +561,7 @@ function addTrees(group: THREE.Group): void {
 
     tree.scale.setScalar(treeScale);
     tree.position.copy(worldToThree({ x, y }, 0));
+    tree.userData.swayPhase = x * 0.9 + y * 1.7; // deterministic per-tree phase
     group.add(tree);
   }
 }
@@ -704,6 +724,7 @@ function addLampPost(group: THREE.Group): void {
     lampMat,
   );
   head.position.y = 2.55;
+  head.userData.glow = 0.7; // base emissive intensity, gently pulsed by the tick
   lamp.add(head);
   const cap = new THREE.Mesh(
     new THREE.ConeGeometry(0.26, 0.2, 12),

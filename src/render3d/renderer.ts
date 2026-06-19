@@ -309,6 +309,8 @@ export function createRenderer3d(canvas: HTMLCanvasElement, gs: GameState): Rend
     if (g.session.wallContacts > prevContacts) shake = 0.3;
     prevContacts = g.session.wallContacts;
     shake = Math.max(0, shake - dt * 1.6);
+    const worldTick = world.userData.tick as ((t: number) => void) | undefined;
+    if (worldTick) worldTick(now / 1000);
     const asp = Math.abs(commandedSpeed(g));
     if (asp > 0.12) {
       const inten = Math.min(1, asp / 1.5);
