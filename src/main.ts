@@ -52,16 +52,20 @@ contact.id = "contact";
 contact.hidden = true;
 app.appendChild(contact);
 
-let game = createGame(DEFAULT_RIG, DEFAULT_SCENARIO, DEFAULT_DIFFICULTY);
+const params = new URLSearchParams(location.search);
+const initRig = RIGS[params.get("rig") ?? ""] ?? DEFAULT_RIG;
+const initDiff = DIFFICULTIES[params.get("difficulty") ?? ""] ?? DEFAULT_DIFFICULTY;
+let game = createGame(initRig, DEFAULT_SCENARIO, initDiff);
 let view: ViewMode = "topdown";
-let mirrors = DEFAULT_DIFFICULTY.mirrorsDefault;
+let mirrors = initDiff.mirrorsDefault;
 let debug = false;
 let won = false;
 let demoActive = false;
 let demoT = 0;
 let demoAcc = 0;
 let carStyle: CarStyle = "procedural";
-let solution: Maneuver | undefined = SOLUTIONS[game.scenario.id];
+let solution: Maneuver | undefined =
+  initRig.id === "odyssey-utility" ? SOLUTIONS[game.scenario.id] : undefined;
 
 const renderer3d = createRenderer3d(canvas, game);
 
