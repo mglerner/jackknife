@@ -88,10 +88,10 @@ function buildCar(gs: GameState): THREE.Group {
   // Light silver (Honda Polished Metal Metallic). Lighter than nominal so it
   // reads as light silver paint rather than charcoal under this lighting.
   const bodyMat = new THREE.MeshStandardMaterial({
-    color: 0x969ca1, // Honda "Polished Metal Metallic": a medium cool grey-silver
-    roughness: 0.28, // glossy: env map reflections read as fresh car paint
-    metalness: 0.72,
-    envMapIntensity: 1.0,
+    color: 0x9aa0a6, // Honda "Polished Metal Metallic": a cool grey-silver
+    roughness: 0.13, // very glossy so the sun glints and the env reflects sharply
+    metalness: 0.82,
+    envMapIntensity: 1.7, // per-material, so only the CAR gets the bright reflections
   });
   const lowerTrimMat = new THREE.MeshStandardMaterial({
     color: 0x35383c, // dark rocker / cladding (lighter than before so it isn't a black void)

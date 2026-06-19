@@ -14,20 +14,22 @@ const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 1.3;
+renderer.toneMappingExposure = 1.05; // match the game renderer
 const dpr = Math.min(window.devicePixelRatio || 1, 3);
 
 const scene = new THREE.Scene();
-scene.background = new THREE.Color("#c7d0d7");
+scene.background = new THREE.Color("#aebfce"); // match the game sky
 
-// Environment map: gives metallic paint and glass real reflections (the single
-// biggest lever for a "slick" car look; without it metal renders flat grey).
+// Environment map + lighting MATCHED to the game renderer/world, so what looks
+// good here looks good in-game (the top-down game view is the real target).
 const pmrem = new THREE.PMREMGenerator(renderer);
 scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+scene.environmentIntensity = 0.5;
 
-scene.add(new THREE.HemisphereLight(0xdfeaff, 0x9aa17f, 1.1));
+scene.add(new THREE.HemisphereLight(0xd2e4ff, 0x9aa982, 0.55));
+scene.add(new THREE.AmbientLight(0xffffff, 0.18));
 const sun = new THREE.DirectionalLight(0xfff4e2, 1.6);
-sun.position.set(7, 11, 5);
+sun.position.set(12, 22, 8);
 sun.castShadow = true;
 sun.shadow.mapSize.set(2048, 2048);
 Object.assign(sun.shadow.camera, { left: -8, right: 8, top: 8, bottom: -8, near: 0.5, far: 40 });
@@ -73,7 +75,9 @@ const center = bbox.getCenter(new THREE.Vector3());
 const size = bbox.getSize(new THREE.Vector3());
 const radius = 0.5 * Math.hypot(size.x, size.y, size.z);
 const fitDist = (radius / Math.sin((cam.fov * Math.PI) / 360)) * 1.25;
-const dir = new THREE.Vector3(1.0, 0.5, 0.82).normalize(); // front-3/4, slightly above
+// ?elev raises the camera for a higher, more top-down (game-like) angle.
+const elev = parseFloat(new URLSearchParams(location.search).get("elev") || "0.5");
+const dir = new THREE.Vector3(1.0, elev, 0.82).normalize(); // front-3/4, slightly above
 const baseAng = Math.atan2(dir.z, dir.x);
 const horiz = Math.hypot(dir.x, dir.z) * fitDist;
 const vert = dir.y * fitDist;
