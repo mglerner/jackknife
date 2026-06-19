@@ -190,10 +190,11 @@ function addLighting(group: THREE.Group, bounds: WorldBounds): void {
   const ambient = new THREE.AmbientLight(0xffffff, 0.16);
   group.add(ambient);
 
-  // Bright, slightly warm late-morning sun: the main source of contrast and
-  // shadows. Lifted higher and angled for short, soft, pleasant shadows.
+  // Bright, near-overhead midday sun. Kept high so the tall greenhouse's shadow
+  // stays tucked under the rig instead of trailing off as a separate curved strip
+  // beside it (the low-angle sun split the body and roof shadows apart).
   const sun = new THREE.DirectionalLight(0xfff2d8, 1.55);
-  sun.position.set(14, 28, 12);
+  sun.position.set(5, 50, 7);
   sun.castShadow = true;
 
   // Size the orthographic shadow camera to cover the world bounds (Three's XZ
