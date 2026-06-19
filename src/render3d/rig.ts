@@ -836,20 +836,23 @@ function buildSuv(gs: GameState): THREE.Group {
     roughness: 0.22,
   });
 
-  const wheelRadius = 0.42; // big 20" wheels relative to a low body
-  const wheelWidth = 0.27;
+  const wheelRadius = 0.45; // big 20" aero wheels relative to a low, wide body
+  const wheelWidth = 0.28;
 
-  // The Ioniq 5 sits lower than a truck but has a tall-ish, very flat body. A
-  // single clean lower mass, then a low flat greenhouse, then a flat roof.
-  const lowerH = 0.72;
-  const lowerY = wheelRadius + 0.05 + lowerH / 2;
+  // The Ioniq 5 is LOW, WIDE and PLANTED: a single tall, full-width lower mass
+  // that fills the track (wheels tuck under flush, not poking out), then a low
+  // flat greenhouse sitting just inboard, then a near-flat floating dark roof.
+  // Overall height ~1.6 m. The body is the dominant mass; the cabin is short.
+  const lowerH = 0.66; // tall main body so the beltline sits high and the cabin is shallow
+  const lowerY = wheelRadius + 0.02 + lowerH / 2;
   const lowerTopY = lowerY + lowerH / 2;
 
-  // --- Lower body: a clean rounded slab, nearly full length, short overhangs.
-  // A touch more corner radius than before so it never reads as a hard box from
-  // straight overhead (the Ioniq is angular yet smooth).
-  const bodyLen = carLength - 0.08;
-  const body = roundedBox(bodyLen, lowerH, carWidth, 0.3, bodyMat, true, 6);
+  // --- Lower body: a clean full-width rounded slab, nearly full length, short
+  // overhangs. It is as wide as the track so the SUV reads planted from above;
+  // a modest corner radius keeps it angular-yet-smooth like the real car.
+  const bodyLen = carLength - 0.06;
+  const bodyW = carWidth; // full width so the wheels sit flush under the flanks
+  const body = roundedBox(bodyLen, lowerH, bodyW, 0.22, bodyMat, true, 6);
   body.position.set(bodyCenterX, lowerY, 0);
   g.add(body);
 
@@ -893,31 +896,43 @@ function buildSuv(gs: GameState): THREE.Group {
     seam.rotation.z = -0.03;
     g.add(seam);
   }
+  // Clamshell hood shut-line across the front edge + a small Hyundai logo cue
+  // centered on the hood front (a bright slim badge on the clean flat face).
+  const hoodFrontSeam = box(0.02, 0.02, carWidth * 0.78, trimMat, false);
+  hoodFrontSeam.position.set(front - 0.09, lowerTopY - 0.01, 0);
+  g.add(hoodFrontSeam);
+  const logo = box(0.04, 0.04, 0.14, rimMat, false);
+  logo.position.set(front - 0.02, lowerTopY - 0.05, 0);
+  g.add(logo);
 
   // ===========================================================================
-  // GREENHOUSE: a low, long, nearly-flat cabin. Flat roof; A-pillar raked, the
-  // rest of the glass roughly upright. Built as a glassy mass with a body core.
+  // GREENHOUSE: a SHALLOW, long, nearly-flat cabin that sits LOW on the tall body
+  // and tucks inboard, so the whole vehicle reads wide and planted rather than
+  // top-heavy. The glass forms a thin dark band; a low near-black floating roof
+  // caps it and tapers gently back to a small kicked-up spoiler over the hatch.
   // ===========================================================================
-  const ghBackX = rearBumper + carLength * 0.06; // near-vertical tailgate base
+  const ghBackX = rearBumper + carLength * 0.07; // near-vertical tailgate base
   const greenhouseLen = ghFrontX - ghBackX;
   const greenhouseCenterX = (ghFrontX + ghBackX) / 2;
-  const ghBaseY = lowerTopY - 0.04;
-  const ghH = 0.52; // a low, flat cabin
+  const ghBaseY = lowerTopY - 0.05;
+  const ghH = 0.36; // shallow cabin: a low glass band, not a tall box
   const roofY = ghBaseY + ghH;
-  const ghHalfW = carWidth * 0.42;
+  // Cabin sits clearly INBOARD of the wide flanks (tumblehome + floating roof).
+  const ghHalfW = carWidth * 0.38;
 
-  // Side glass: a flat upright slab per side (slight tumblehome).
-  const sideGlassLen = greenhouseLen - 0.5;
+  // Side glass: a flat, mostly upright slab per side with a little tumblehome.
+  const sideGlassLen = greenhouseLen - 0.46;
   for (const sign of [1, -1]) {
-    const glass = box(sideGlassLen, ghH - 0.08, 0.05, glassMat, false);
+    const glass = box(sideGlassLen, ghH - 0.05, 0.05, glassMat, false);
     glass.position.set(greenhouseCenterX - 0.02, ghBaseY + ghH / 2, sign * ghHalfW);
-    glass.rotation.x = sign * 0.06;
+    glass.rotation.x = sign * 0.08;
     g.add(glass);
   }
 
-  // Body-colored core so we don't see through to the far glass.
-  const core = box(greenhouseLen - 0.6, ghH - 0.04, ghHalfW * 2 - 0.04, bodyMat, false);
-  core.position.set(greenhouseCenterX - 0.05, ghBaseY + ghH / 2, 0);
+  // Body-colored core so we don't see through to the far glass. Kept just under
+  // the glass-band height so it stays hidden behind the dark glazing.
+  const core = box(greenhouseLen - 0.55, ghH - 0.03, ghHalfW * 2 - 0.04, bodyMat, false);
+  core.position.set(greenhouseCenterX - 0.04, ghBaseY + ghH / 2, 0);
   g.add(core);
 
   // --- Raked windshield from cowl to flat roof front edge ---
@@ -925,36 +940,35 @@ function buildSuv(gs: GameState): THREE.Group {
   const wsDx = wsTopX - ghFrontX;
   const wsDy = roofY - ghBaseY;
   const wsLen = Math.hypot(wsDx, wsDy);
-  const windshield = box(0.06, wsLen, carWidth * 0.86, glassMat, false);
+  const windshield = box(0.06, wsLen, carWidth * 0.84, glassMat, false);
   windshield.position.set(ghFrontX + wsDx / 2, ghBaseY + wsDy / 2, 0);
   windshield.rotation.z = Math.atan2(-wsDx, wsDy);
   g.add(windshield);
 
   // --- Near-vertical tailgate glass ---
-  const rearGlass = box(0.3, ghH * 0.9, carWidth * 0.84, glassMat, false);
-  rearGlass.position.set(ghBackX + 0.04, ghBaseY + ghH * 0.46, 0);
-  rearGlass.rotation.z = -0.12;
+  const rearGlass = box(0.28, ghH * 0.9, carWidth * 0.82, glassMat, false);
+  rearGlass.position.set(ghBackX + 0.03, ghBaseY + ghH * 0.46, 0);
+  rearGlass.rotation.z = -0.1;
   g.add(rearGlass);
 
-  // --- FLAT ROOF: a wide, gently rounded clamshell lid in contrast near-black,
-  // giving the strong two-tone "floating roof" read from straight overhead. ---
-  const roofLen = wsTopX - (ghBackX + 0.06);
+  // --- FLOATING ROOF: a low, wide, gently rounded clamshell lid in near-black.
+  // It runs flat then tapers a touch toward the rear, giving the strong two-tone
+  // "floating roof" read from straight overhead while staying low and integrated.
+  const roofLen = wsTopX - (ghBackX + 0.05);
   const roofX = (wsTopX + ghBackX) / 2;
-  const roof = roundedBox(roofLen, 0.11, carWidth * 0.84, 0.08, roofMat, true, 5);
+  const roof = roundedBox(roofLen, 0.1, ghHalfW * 2 + 0.08, 0.07, roofMat, true, 5);
   roof.position.set(roofX, roofY - 0.02, 0);
+  roof.rotation.z = 0.012; // a whisper of rear taper
   g.add(roof);
+  // Small kicked-up spoiler at the top of the near-vertical hatch.
+  const spoiler = box(0.13, 0.05, ghHalfW * 2 - 0.02, roofMat);
+  spoiler.position.set(ghBackX + 0.02, roofY + 0.02, 0);
+  g.add(spoiler);
   // A long glass sunroof panel inset down the center of the roof: a clean dark
   // glossy strip that breaks up the lid and reads as the Ioniq's big glass roof.
-  const sunroof = box(roofLen * 0.78, 0.02, carWidth * 0.5, glassMat, false);
-  sunroof.position.set(roofX, roofY + 0.05, 0);
+  const sunroof = box(roofLen * 0.78, 0.02, ghHalfW * 1.1, glassMat, false);
+  sunroof.position.set(roofX, roofY + 0.04, 0);
   g.add(sunroof);
-  // Two bright machined roof-edge rails framing the dark lid from above (the pale
-  // rails against the near-black lid give a crisp two-tone outline overhead).
-  for (const sign of [1, -1]) {
-    const rail = box(roofLen * 0.98, 0.05, 0.06, rimMat, false);
-    rail.position.set(roofX, roofY + 0.035, sign * carWidth * 0.4);
-    g.add(rail);
-  }
 
   // --- Black gloss B/C pillars + bright window surround (clean modern frame) ---
   const surroundMat = new THREE.MeshStandardMaterial({
@@ -965,9 +979,9 @@ function buildSuv(gs: GameState): THREE.Group {
   for (const frac of [0.34, 0.66]) {
     const px = ghBackX + frac * greenhouseLen;
     for (const sign of [1, -1]) {
-      const post = box(0.09, ghH - 0.04, 0.06, surroundMat);
+      const post = box(0.09, ghH - 0.03, 0.06, surroundMat);
       post.position.set(px, ghBaseY + ghH / 2, sign * (ghHalfW + 0.012));
-      post.rotation.x = sign * 0.06;
+      post.rotation.x = sign * 0.08;
       g.add(post);
     }
   }
@@ -977,16 +991,16 @@ function buildSuv(gs: GameState): THREE.Group {
   for (const frac of [0.04, 0.96]) {
     const px = ghBackX + frac * greenhouseLen;
     for (const sign of [1, -1]) {
-      const post = box(0.11, ghH - 0.1, 0.055, surroundMat);
-      post.position.set(px, ghBaseY + (ghH - 0.1) / 2, sign * (ghHalfW + 0.012));
-      post.rotation.x = sign * 0.06;
+      const post = box(0.11, ghH - 0.08, 0.055, surroundMat);
+      post.position.set(px, ghBaseY + (ghH - 0.08) / 2, sign * (ghHalfW + 0.012));
+      post.rotation.x = sign * 0.08;
       g.add(post);
     }
   }
   // Bright belt strip along the base of the side windows.
   for (const sign of [1, -1]) {
     const strip = box(sideGlassLen, 0.03, 0.03, rimMat);
-    strip.position.set(greenhouseCenterX - 0.02, ghBaseY + 0.04, sign * (ghHalfW + 0.02));
+    strip.position.set(greenhouseCenterX - 0.02, ghBaseY + 0.03, sign * (ghHalfW + 0.02));
     g.add(strip);
   }
 
@@ -1001,74 +1015,79 @@ function buildSuv(gs: GameState): THREE.Group {
   g.add(rearBumperMesh);
 
   // ===========================================================================
-  // PARAMETRIC PIXEL LIGHTS: clusters of small square emissive blocks. They sit
-  // in dark recessed housings so the bright pixels pop, and they wrap up onto the
-  // top face of the nose/tail so they also read in the top-down primary camera.
+  // PARAMETRIC PIXEL LIGHTS: small SQUARE pixel clusters set into dark recessed
+  // housings. The front clusters sit LOW at the outer front corners (not floating
+  // mid-face); the rear is the iconic FULL-WIDTH pixel light bar. Both wrap a
+  // touch onto the top face so they also read in the primary top-down camera.
   // ===========================================================================
-  const pixGeo = new THREE.BoxGeometry(0.06, 0.09, 0.09);
-  const pixStep = 0.12;
+  const pixGeo = new THREE.BoxGeometry(0.05, 0.07, 0.07);
+  const pixStep = 0.09;
 
-  // Front: a dark housing across the upper nose, with two 2x3 pixel clusters at
-  // the corners (cool white). They sit a hair proud of a recessed dark band.
-  const headY = lowerTopY - 0.04;
-  const headHousing = box(0.06, 0.22, carWidth * 0.92, trimMat);
-  headHousing.position.set(front - 0.01, headY - 0.06, 0);
-  g.add(headHousing);
-  for (const sideC of [halfW - 0.26, -(halfW - 0.26)]) {
+  // Front: a clean flat face. A dark recessed pocket low at each outer corner
+  // holds a tight 2x2 square pixel cluster (cool white). A thin V-shaped DRL
+  // line links the pockets up across the nose (the Ioniq's V positioning lamp).
+  const headY = bumperY + bumperH / 2 + 0.18; // low on the nose, by the corners
+  for (const sideC of [halfW - 0.2, -(halfW - 0.2)]) {
+    const pocket = box(0.05, 0.22, 0.26, trimMat);
+    pocket.position.set(front - 0.02, headY, sideC);
+    g.add(pocket);
     for (let r = 0; r < 2; r++) {
-      for (let c = 0; c < 3; c++) {
+      for (let c = 0; c < 2; c++) {
         const px = new THREE.Mesh(pixGeo, pixelMat);
-        px.position.set(front + 0.02, headY - r * pixStep, sideC + (c - 1) * pixStep);
+        px.position.set(
+          front + 0.01,
+          headY + 0.05 - r * pixStep,
+          sideC - 0.045 + c * pixStep,
+        );
         g.add(px);
       }
     }
   }
-  // Front pixel cue echoed onto the TOP of the nose (the clamshell hood front
-  // edge) so the corners glow in the primary top-down camera too. Sit them proud
-  // of the hood surface at each front top corner.
-  const hoodTopY = lowerTopY - 0.06 + 0.07; // top face of the hood slab
-  for (const sideC of [halfW - 0.22, -(halfW - 0.22)]) {
-    for (let c = 0; c < 3; c++) {
+  // Thin V-shaped DRL bars climbing inboard-up from each corner pocket.
+  for (const sign of [1, -1]) {
+    const drl = box(0.05, 0.03, carWidth * 0.34, pixelMat, false);
+    drl.position.set(front - 0.01, headY + 0.16, sign * carWidth * 0.18);
+    drl.rotation.x = sign * 0.18;
+    g.add(drl);
+  }
+  // Top-of-corner echo so the front corners glow in the top-down camera: a tight
+  // pixel pair laid into the hood-front lip right at each front top corner.
+  for (const sideC of [halfW - 0.16, -(halfW - 0.16)]) {
+    for (let c = 0; c < 2; c++) {
       const px = new THREE.Mesh(pixGeo, pixelMat);
-      px.position.set(front - 0.14, hoodTopY + 0.04, sideC + (c - 1) * pixStep);
+      px.position.set(front - 0.07, lowerTopY - 0.01, sideC - 0.045 + c * pixStep);
       g.add(px);
     }
   }
 
-  // Rear: a continuous full-width pixel light bar across the tailgate, set into a
-  // dark recessed housing band so the red pixels read as a sharp light strip.
-  const tailY = bumperY + bumperH / 2 + 0.2;
-  const rearBand = box(0.05, 0.18, carWidth * 0.92, trimMat);
+  // Rear: the iconic FULL-WIDTH parametric pixel light bar spanning the tailgate,
+  // set into a dark recessed band so the red pixels read as one sharp strip.
+  const tailY = bumperY + bumperH / 2 + 0.16;
+  const rearBand = box(0.05, 0.2, carWidth * 0.96, trimMat);
   rearBand.position.set(rearBumper + 0.0, tailY, 0);
   g.add(rearBand);
-  const nRear = 15;
-  for (let i = 0; i < nRear; i++) {
-    const px = new THREE.Mesh(pixGeo, tailPixelMat);
-    const z = -carWidth * 0.42 + (i / (nRear - 1)) * carWidth * 0.84;
-    px.position.set(rearBumper + 0.02, tailY, z);
-    g.add(px);
-  }
-  // Two stacked red rows for a chunkier "pixel bar" read.
-  for (const dy of [0.1, -0.1]) {
-    for (let i = 0; i < nRear; i += 2) {
+  const nRear = 21;
+  const rearSpan = carWidth * 0.88;
+  for (const dy of [0.06, -0.06]) {
+    for (let i = 0; i < nRear; i++) {
       const px = new THREE.Mesh(pixGeo, tailPixelMat);
-      const z = -carWidth * 0.42 + (i / (nRear - 1)) * carWidth * 0.84;
+      const z = -rearSpan / 2 + (i / (nRear - 1)) * rearSpan;
       px.position.set(rearBumper + 0.02, tailY + dy, z);
       g.add(px);
     }
   }
-  // Rear pixel cue echoed onto the TOP of the tail (top of the tailgate) so the
-  // full-width red bar also glows in the top-down camera.
+  // Rear bar echoed onto the TOP of the tail so the full-width red band also
+  // glows in the top-down camera (laid into the tailgate top lip).
   for (let i = 0; i < nRear; i++) {
     const px = new THREE.Mesh(pixGeo, tailPixelMat);
-    const z = -carWidth * 0.42 + (i / (nRear - 1)) * carWidth * 0.84;
-    px.position.set(rearBumper + 0.12, lowerTopY + 0.05, z);
+    const z = -rearSpan / 2 + (i / (nRear - 1)) * rearSpan;
+    px.position.set(rearBumper + 0.07, lowerTopY - 0.01, z);
     g.add(px);
   }
 
   // --- Closed grille-less nose panel with a subtle sensor strip ---
-  const nosePanel = box(0.05, 0.16, carWidth * 0.5, trimMat);
-  nosePanel.position.set(front - 0.02, bumperY + 0.02, 0);
+  const nosePanel = box(0.05, 0.14, carWidth * 0.5, trimMat);
+  nosePanel.position.set(front - 0.02, bumperY - 0.02, 0);
   g.add(nosePanel);
 
   // --- Side mirrors ---
