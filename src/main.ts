@@ -250,8 +250,10 @@ function checkWin(): void {
     const prevBest = loadProgress().bestScores[game.scenario.id];
     const best = recordBest(game.scenario.id, score).bestScores[game.scenario.id];
     const isNewBest = prevBest === undefined || score > prevBest;
+    const stars = score >= 90 ? 3 : score >= 72 ? 2 : 1;
     banner.innerHTML =
       '<div class="title">Parked!</div>' +
+      `<div class="stars">${"★".repeat(stars)}${"☆".repeat(3 - stars)}</div>` +
       `<div class="score">Score ${score}</div>` +
       `<div class="best">${isNewBest ? "New best!" : `Best ${best}`}</div>` +
       `<div class="sub">${result.summary}</div>` +
