@@ -130,6 +130,7 @@ export function createRenderer3d(canvas: HTMLCanvasElement, gs: GameState): Rend
     disposeGroup(guides);
     guides = buildBackupGuides(g);
     scene.add(guides);
+    makeDoubleSided(scene); // the new rig/world meshes need it too
     trails.reset();
     lastStampPos = null;
   }
@@ -142,13 +143,17 @@ export function createRenderer3d(canvas: HTMLCanvasElement, gs: GameState): Rend
   let prevContacts = 0;
 
   // Mirrored cameras flip winding; make every material double-sided so nothing
-  // disappears in the backup-cam / mirror views.
-  scene.traverse((o) => {
-    const mesh = o as THREE.Mesh;
-    if (!mesh.material) return;
-    const mats = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
-    mats.forEach((m) => (m.side = THREE.DoubleSide));
-  });
+  // disappears (or shows see-through "missing" walls) in the backup-cam / mirror
+  // views. Applied at init AND on every rebuild, since a rig switch builds new meshes.
+  function makeDoubleSided(root: THREE.Object3D): void {
+    root.traverse((o) => {
+      const mesh = o as THREE.Mesh;
+      if (!mesh.material) return;
+      const mats = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
+      mats.forEach((m) => (m.side = THREE.DoubleSide));
+    });
+  }
+  makeDoubleSided(scene);
 
   // Ghost path: a translucent ribbon on the ground (the trailer's predicted route),
   // so it reads as an intentional guide corridor rather than a stray thin line.
@@ -433,8 +438,10 @@ export function createRenderer3d(canvas: HTMLCanvasElement, gs: GameState): Rend
       [margin, sideY, sideW, sideH, 0], // left side mirror
       [margin + sideW + margin, sideY, sideW, sideH, 2], // right side mirror
     ];
+    const blockRear = g.rig.loadBlocksCamera; // tall load blocks the rear-view (center) panel
     renderer.setScissorTest(true);
     panels.forEach(([vx, vy, w, h, si]) => {
+      if (si === 1 && blockRear) return; // rear-view blocked by the load; panel stays dark
       renderer.setViewport(vx, vy, w, h);
       renderer.setScissor(vx, vy, w, h);
       aimMirrorCam(mirrorCams[si], g, specs[si], w / h);
@@ -523,6 +530,11 @@ export function createRenderer3d(canvas: HTMLCanvasElement, gs: GameState): Rend
         scene.fog = null; // fog would uniformly wash the far-up ortho top-down
         aimTopCam(g);
         renderer.render(scene, topCam);
+      } else if (g.rig.loadBlocksCamera) {
+        // A tall/enclosed load blocks the backup camera: show a clean dark panel (the
+        // on-screen notice explains it). The side-mirror strip below still sees past it.
+        renderer.setClearColor(0x0e0f12, 1);
+        renderer.clear();
       } else {
         scene.fog = depthFog; // perspective FPV: fade distant scene into the sky for depth
         aimBackCam(g);

@@ -585,7 +585,9 @@ function buildCargoTrailer(gs: GameState): THREE.Group {
   const cx = (deckFront + deckBack) / 2;
   const halfW = trailerWidth / 2;
   const floorY = 0.3 + 0.1 + 0.14 + 0.04; // matches the utility deck top (wheelR + frame + planks)
-  const boxH = 1.95; // taller than the ~1.75 m backup camera, so it reads as blocked
+  // Tall enough that the roof clears BOTH the ~1.75 m backup camera and the high
+  // 2.7 m rear-view mirror, so neither can see past the load (only the side mirrors can).
+  const boxH = 2.3;
 
   const bodyMat = new THREE.MeshStandardMaterial({ color: 0xe9ebec, roughness: 0.5, metalness: 0.25 });
   const trimMat = new THREE.MeshStandardMaterial({ color: 0x3f4348, roughness: 0.5, metalness: 0.6 });
