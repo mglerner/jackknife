@@ -242,6 +242,38 @@ menuBtn.addEventListener("pointerdown", () => {
   menu.hidden = false;
 });
 
+// Help / how-to-play overlay.
+const helpBtn = document.createElement("button");
+helpBtn.id = "help-btn";
+helpBtn.textContent = "?";
+app.appendChild(helpBtn);
+const help = document.createElement("div");
+help.id = "help";
+help.hidden = true;
+help.innerHTML =
+  '<div class="help-card">' +
+  '<div class="help-title">How to play</div>' +
+  '<ul class="help-list">' +
+  "<li><b>Steering wheel</b>: grab it anywhere and turn. The bottom of the wheel leads, so move it the way you want the trailer to go.</li>" +
+  "<li><b>Reverse / Forward</b>: hold to drive. Back in slowly and make small inputs.</li>" +
+  "<li><b>View</b>: switch top-down or backup camera. <b>Mirrors</b> toggles the mirror strip.</li>" +
+  "<li><b>Demo</b>: watch a proven solution park it (then try it yourself).</li>" +
+  "<li><b>Garage</b>: pick a vehicle and a difficulty.</li>" +
+  "<li>Pinch to zoom the top-down view.</li>" +
+  "</ul>" +
+  '<button id="help-close">Got it</button>' +
+  "</div>";
+app.appendChild(help);
+helpBtn.addEventListener("pointerdown", () => {
+  help.hidden = false;
+});
+help.addEventListener("pointerdown", (e) => {
+  if (e.target === help) help.hidden = true;
+});
+(help.querySelector("#help-close") as HTMLElement).addEventListener("pointerdown", () => {
+  help.hidden = true;
+});
+
 function checkWin(): void {
   if (won) return;
   if (isTrailerInTarget(game) && Math.abs(commandedSpeed(game)) < 1e-3) {

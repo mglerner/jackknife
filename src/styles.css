@@ -389,6 +389,70 @@ body {
   font-weight: 700;
 }
 
+/* Help overlay. */
+#help-btn {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 30;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: rgba(22, 26, 32, 0.82);
+  color: var(--ink);
+  border: 1px solid #3a414a;
+  font-size: 18px;
+  font-weight: 800;
+}
+#help {
+  position: absolute;
+  inset: 0;
+  z-index: 1100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.45);
+}
+#help .help-card {
+  background: var(--panel);
+  border: 1px solid #3a414a;
+  border-radius: 16px;
+  padding: 20px 22px;
+  width: 88%;
+  max-width: 380px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
+  animation: card-pop 0.24s ease-out;
+}
+#help .help-title {
+  font-size: 20px;
+  font-weight: 800;
+  margin-bottom: 10px;
+}
+#help .help-list {
+  margin: 0;
+  padding-left: 18px;
+  color: var(--ink);
+  font-size: 14px;
+  line-height: 1.5;
+}
+#help .help-list li {
+  margin-bottom: 8px;
+}
+#help .help-list b {
+  color: var(--accent);
+}
+#help #help-close {
+  width: 100%;
+  margin-top: 16px;
+  background: var(--accent);
+  color: #06222e;
+  border: none;
+  border-radius: 10px;
+  padding: 11px;
+  font-size: 15px;
+  font-weight: 700;
+}
+
 #pullforward {
   position: absolute;
   inset: 0;
