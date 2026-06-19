@@ -64,6 +64,11 @@
         border-radius: 4px;
         font-size: 0.92em;
       }
+      .term {
+        text-decoration: underline dotted var(--muted);
+        text-underline-offset: 2px;
+        cursor: help;
+      }
       .note {
         background: var(--card);
         border-left: 3px solid var(--accent);
@@ -90,6 +95,47 @@
         border-radius: 4px;
         padding: 1px 7px;
         margin-right: 8px;
+      }
+      details.sol {
+        margin: 10px 0 4px;
+      }
+      details.sol > summary {
+        display: inline-block;
+        cursor: pointer;
+        list-style: none;
+        font-size: 13px;
+        font-weight: 700;
+        color: var(--accent);
+        background: #eaf1fc;
+        border: 1px solid #cfe0fa;
+        border-radius: 6px;
+        padding: 4px 11px;
+        user-select: none;
+      }
+      details.sol > summary::-webkit-details-marker {
+        display: none;
+      }
+      details.sol > summary::before {
+        content: "\25B6\00a0\00a0";
+        font-size: 10px;
+      }
+      details.sol[open] > summary::before {
+        content: "\25BC\00a0\00a0";
+      }
+      details.sol > summary:hover {
+        background: #dde9fb;
+      }
+      details.sol[open] > summary {
+        margin-bottom: 10px;
+      }
+      .soln {
+        background: var(--card);
+        border-left: 3px solid var(--accent);
+        border-radius: 0 8px 8px 0;
+        padding: 4px 16px 10px;
+      }
+      .soln p:first-child {
+        margin-top: 8px;
       }
       table {
         border-collapse: collapse;
@@ -138,15 +184,15 @@
       <div class="note">
         <strong>The punchline.</strong> Backing a trailer is unstable: the straight configuration is
         a saddle when reversing. You stabilize it by steering, but only up to a point. Beyond a purely
-        <em>geometric</em> critical articulation angle, no amount of counter-steer can arrest the
-        fold &mdash; the trailer jackknifes, and the only escape is to drive forward.
+        <em>geometric</em> critical <abbr class="term" title="The angle between the trailer and the tow vehicle, measured at the hitch; zero when they are lined up straight.">articulation angle</abbr>, no amount of counter-steer can arrest the
+        fold &mdash; the trailer <abbr class="term" title="When the trailer folds so far against the tow vehicle that it can no longer be straightened by steering; the rig bends like a folding pocket knife.">jackknifes</abbr>, and the only escape is to drive forward.
       </div>
 
       <h2>1. Model and assumptions</h2>
       <p>
         We work in the low-speed regime where tires roll without slipping, so each axle is a
-        <em>nonholonomic</em> rolling constraint: its velocity is parallel to its own heading. No
-        tire forces, no mass, no momentum &mdash; this is pure kinematics, and it is an excellent
+        <em><abbr class="term" title="A motion constraint on velocities (here: a wheel can roll forward but not slide sideways) that cannot be reduced to a restriction on positions alone.">nonholonomic</abbr></em> rolling constraint: its velocity is parallel to its own heading. No
+        tire forces, no mass, no momentum &mdash; this is pure <abbr class="term" title="The study of motion (positions, velocities, geometry) without reference to the forces or masses that cause it.">kinematics</abbr>, and it is an excellent
         match to parking-lot speeds.
       </p>
       <p>Geometry (all lengths fixed by the hardware):</p>
@@ -155,8 +201,8 @@
           <th>Symbol</th>
           <th>Meaning</th>
         </tr>
-        <tr><td>\(W\)</td><td>tow vehicle wheelbase (front axle to rear axle)</td></tr>
-        <tr><td>\(L\)</td><td>hitch offset: rear axle to the hitch ball (the "off-axle" overhang)</td></tr>
+        <tr><td>\(W\)</td><td>tow vehicle <abbr class="term" title="The distance between a vehicle's front and rear axles.">wheelbase</abbr> (front axle to rear axle)</td></tr>
+        <tr><td>\(L\)</td><td><abbr class="term" title="The distance from the tow vehicle's rear axle back to the hitch ball, so the hitch sits behind (not over) the axle.">hitch offset</abbr>: rear axle to the hitch ball (the "<abbr class="term" title="Describes a hitch mounted behind the rear axle rather than directly over it, so the hitch swings sideways when the car turns.">off-axle</abbr>" overhang)</td></tr>
         <tr><td>\(D\)</td><td>trailer wheelbase: hitch ball to trailer axle</td></tr>
         <tr><td>\(\delta\)</td><td>front-wheel steer angle (control input), \(|\delta|\le\delta_{\max}\)</td></tr>
         <tr><td>\(v\)</td><td>signed speed of the tow vehicle's rear axle (reverse \(\Rightarrow v<0\))</td></tr>
@@ -173,10 +219,10 @@
         (x, y)                  o                          heading th_t
                                          gamma = th_t - th_c</div>
 
-      <h2>2. The tow vehicle: kinematic bicycle model</h2>
+      <h2>2. The tow vehicle: kinematic <abbr class="term" title="A simplified model that collapses each axle's pair of wheels into one central wheel, so the vehicle is treated like a two-wheeled bicycle.">bicycle model</abbr></h2>
       <p>
         Collapse each axle to a single central wheel. The rear axle rolls along \(\theta_c\); the
-        front wheel rolls along \(\theta_c+\delta\). Eliminating the instantaneous center of rotation
+        front wheel rolls along \(\theta_c+\delta\). Eliminating the <abbr class="term" title="The single point that, at a given instant, the whole vehicle is momentarily turning around.">instantaneous center of rotation</abbr>
         gives the standard result
       </p>
       \[
@@ -218,13 +264,13 @@
       </div>
 
       <h2>4. Stability of the straight configuration</h2>
-      <p>Linearize about \(\gamma=0\) with \(\delta=0\):</p>
+      <p><abbr class="term" title="Approximating the equations near a point of interest by keeping only terms proportional to small deviations, replacing curves with straight lines.">Linearize</abbr> about \(\gamma=0\) with \(\delta=0\):</p>
       \[
         \dot\gamma \approx -\frac{v}{D}\,\gamma
         \;\Rightarrow\; \gamma(t)=\gamma_0\,e^{-(v/D)\,t}.
       \]
       <p>
-        Forward (\(v>0\)): exponential decay, \(\gamma=0\) is asymptotically stable, time constant
+        Forward (\(v>0\)): exponential decay, \(\gamma=0\) is <abbr class="term" title="A state the system not only stays near but actively returns to over time after a small disturbance.">asymptotically stable</abbr>, <abbr class="term" title="The characteristic time over which a quantity shrinks (or grows) by a factor of about 2.7; smaller means faster.">time constant</abbr>
         \(D/|v|\). Reverse (\(v<0\)): exponential growth, \(\gamma=0\) is unstable. This sign flip is
         exactly why backing a trailer is hard and driving forward is trivial.
       </p>
@@ -291,6 +337,68 @@
           Identify precisely where the off-axle term \((L/D)\cos\gamma\) enters and show it vanishes
           for an on-axle hitch (\(L=0\)).
         </p>
+        <details class="sol">
+          <summary>Show solution</summary>
+          <div class="soln">
+            <p>
+              <strong>Tow vehicle.</strong> Both axles roll without slipping, so each axle velocity is
+              parallel to its own heading. With the rear axle at \((x,y)\) moving at speed \(v\) along
+              \(\theta_c\), and the front axle a distance \(W\) ahead along \(\theta_c\) but rolling
+              along \(\theta_c+\delta\), the two no-slip conditions share one instantaneous center of
+              rotation. Eliminating it gives the bicycle result
+            </p>
+            \[
+              \dot x = v\cos\theta_c,\quad \dot y = v\sin\theta_c,\quad
+              \dot\theta_c=\frac{v}{W}\tan\delta .
+            \]
+            <p>
+              <strong>Hitch velocity.</strong> The hitch ball sits a distance \(L\) behind the rear
+              axle, \(\mathbf p_h=(x,y)-L(\cos\theta_c,\sin\theta_c)\). Differentiating,
+            </p>
+            \[
+              \dot{\mathbf p}_h
+              = v(\cos\theta_c,\sin\theta_c)
+              - L\dot\theta_c(-\sin\theta_c,\cos\theta_c).
+            \]
+            <p>
+              <strong>Trailer constraint.</strong> The trailer axle, a distance \(D\) behind the hitch
+              along \(\theta_t\), may not slide sideways: the component of \(\dot{\mathbf p}_h\)
+              <em>perpendicular</em> to \(\theta_t\) is what rotates the trailer, and it does so with
+              moment arm \(D\). The unit lateral direction of the trailer is
+              \((-\sin\theta_t,\cos\theta_t)\). Projecting,
+            </p>
+            \[
+              \dot{\mathbf p}_h\cdot(-\sin\theta_t,\cos\theta_t)
+              = -v\sin(\theta_t-\theta_c)\;-\;L\dot\theta_c\cos(\theta_t-\theta_c),
+            \]
+            <p>
+              where the cross terms collapse via \(\sin\theta_c\sin\theta_t+\cos\theta_c\cos\theta_t
+              =\cos\gamma\) and \(\cos\theta_c\sin\theta_t-\sin\theta_c\cos\theta_t=\sin\gamma\), with
+              \(\gamma=\theta_t-\theta_c\). Dividing the lateral speed by \(D\),
+            </p>
+            \[
+              \dot\theta_t=-\frac{v}{D}\sin\gamma-\frac{L}{D}\cos\gamma\,\dot\theta_c .
+            \]
+            <p>
+              <strong>Articulation ODE.</strong> Subtract \(\dot\theta_c\) and substitute
+              \(\dot\theta_c=(v/W)\tan\delta\):
+            </p>
+            \[
+              \dot\gamma=\dot\theta_t-\dot\theta_c
+              =-\frac{v}{D}\sin\gamma-\frac{v}{W}\!\left(1+\frac{L}{D}\cos\gamma\right)\tan\delta .
+            \]
+            <p>
+              <strong>Where the off-axle term enters.</strong> The \((L/D)\cos\gamma\) factor is the
+              fingerprint of the hitch overhang: it is exactly the \(-\tfrac{L}{D}\cos\gamma\,
+              \dot\theta_c\) coupling, the trailer being yawed by the <em>lateral swing</em> of an
+              off-axle hitch as the car turns. Setting \(L=0\) (hitch over the rear axle) kills this
+              swing, the hitch velocity is then purely \(v(\cos\theta_c,\sin\theta_c)\), and
+            </p>
+            \[
+              \dot\gamma\big|_{L=0}=-\frac{v}{D}\sin\gamma-\frac{v}{W}\tan\delta .
+            \]
+          </div>
+        </details>
       </div>
       <div class="pset">
         <h3><span class="tag">P2</span>Linear stability</h3>
@@ -299,6 +407,47 @@
           configuration is asymptotically stable in forward motion and unstable in reverse. Give the
           growth/decay time constant. Interpret physically.
         </p>
+        <details class="sol">
+          <summary>Show solution</summary>
+          <div class="soln">
+            <p>
+              Set \(\delta=0\). The ODE reduces to \(\dot\gamma=-\frac{v}{D}\sin\gamma\), so
+              \(\gamma=0\) is an <abbr class="term" title="A state where the system stops changing (here the rate of change is zero), so it stays put unless disturbed.">equilibrium</abbr>. Linearize with \(\sin\gamma\approx\gamma\):
+            </p>
+            \[
+              \dot\gamma\approx-\frac{v}{D}\,\gamma
+              \;\Rightarrow\;
+              \gamma(t)=\gamma_0\,e^{-(v/D)\,t}.
+            \]
+            <p>
+              The single <abbr class="term" title="The growth or decay rate of the linearized system; a negative value means disturbances die out, a positive value means they blow up.">eigenvalue</abbr> is \(\lambda=-v/D\).
+            </p>
+            <ul>
+              <li>
+                <strong>Forward, \(v>0\):</strong> \(\lambda<0\), so \(\gamma\) decays exponentially.
+                The straight configuration is asymptotically stable; small kinks heal themselves.
+              </li>
+              <li>
+                <strong>Reverse, \(v<0\):</strong> \(\lambda>0\), so \(\gamma\) grows exponentially.
+                The straight configuration is unstable; any kink runs away.
+              </li>
+            </ul>
+            <p>
+              The magnitude of the time constant is
+            </p>
+            \[
+              \tau=\frac{1}{|\lambda|}=\frac{D}{|v|},
+            \]
+            <p>
+              i.e. \(\gamma\) changes by a factor \(e\) over a path length \(|v|\tau=D\), one trailer
+              length of travel. Physically, a trailer rolling forward is dragged straight by its hitch
+              (like an arrow with its feathers behind the tip), while in reverse the same geometry
+              pushes the trailer, an inverted pendulum that tips over: stability is the sign of \(v\),
+              and the relevant clock ticks per trailer-length traveled, not per second, since speed
+              cancels into \(\tau\propto 1/|v|\).
+            </p>
+          </div>
+        </details>
       </div>
       <div class="pset">
         <h3><span class="tag">P3</span>The critical angle</h3>
@@ -307,40 +456,302 @@
           \(\partial\gamma_c/\partial D\) and \(\partial\gamma_c/\partial \delta_{\max}\) and state
           their signs; explain why a shorter trailer or a smaller steering lock is more dangerous.
         </p>
+        <details class="sol">
+          <summary>Show solution</summary>
+          <div class="soln">
+            <p>
+              <strong>The condition.</strong> While reversing (\(v<0\)) the driver wants
+              \(\dot\gamma\le0\) for \(\gamma>0\). Setting \(\dot\gamma=0\) and solving for the steer,
+            </p>
+            \[
+              \tan\delta=-\frac{W}{D}\frac{\sin\gamma}{1+\frac{L}{D}\cos\gamma}.
+            \]
+            <p>
+              For \(\gamma>0\) this calls for \(\delta<0\) (opposite lock). Its magnitude grows with
+              \(\gamma\) but the steer saturates at \(|\delta|=\delta_{\max}\). The largest holdable
+              angle is where the required steer just reaches the lock, \(\tan\delta=-\tan\delta_{\max}\):
+            </p>
+            \[
+              \frac{\sin\gamma_c}{D}=\frac{\tan\delta_{\max}}{W}\!\left(1+\frac{L}{D}\cos\gamma_c\right).
+            \]
+            <p>
+              <strong>Independence of \(v\).</strong> The factor \(\dot\gamma\) is linear in \(v\):
+              \(\dot\gamma=v\,g(\gamma,\delta)\) with
+              \(g=-\frac{\sin\gamma}{D}-\frac{1}{W}(1+\frac{L}{D}\cos\gamma)\tan\delta\). For \(v\ne0\),
+              \(\dot\gamma=0\iff g=0\), and \(g\) contains no \(v\). So the equilibrium condition, and
+              hence \(\gamma_c\), is set by geometry and \(\delta_{\max}\) alone. Crawling does not
+              enlarge the safe envelope; it only slows the clock \(\tau=D/|v|\) at which you approach it.
+            </p>
+            <p>
+              <strong>Sensitivities.</strong> Write the defining relation as
+              \(F(\gamma_c,p)=\sin\gamma_c-\frac{D}{W}\tan\delta_{\max}-\frac{L}{W}\tan\delta_{\max}
+              \cos\gamma_c=0\) and use implicit differentiation,
+              \(\partial\gamma_c/\partial p=-F_p/F_{\gamma_c}\), with
+            </p>
+            \[
+              F_{\gamma_c}=\cos\gamma_c+\frac{L}{W}\tan\delta_{\max}\sin\gamma_c>0
+              \quad(\text{for } 0<\gamma_c<\tfrac{\pi}{2}).
+            \]
+            <p>For \(D\):</p>
+            \[
+              F_D=-\frac{\tan\delta_{\max}}{W}<0
+              \;\Rightarrow\;
+              \frac{\partial\gamma_c}{\partial D}=-\frac{F_D}{F_{\gamma_c}}>0 .
+            \]
+            <p>For \(\delta_{\max}\), with \(\frac{d}{d\delta_{\max}}\tan\delta_{\max}=\sec^2\delta_{\max}>0\):</p>
+            \[
+              F_{\delta_{\max}}=-\frac{D+L\cos\gamma_c}{W}\sec^2\delta_{\max}<0
+              \;\Rightarrow\;
+              \frac{\partial\gamma_c}{\partial\delta_{\max}}>0 .
+            \]
+            <p>
+              <strong>Interpretation.</strong> Both derivatives are positive. A <em>shorter</em>
+              trailer (smaller \(D\)) lowers \(\gamma_c\): the short lever folds fast, so the
+              countersteer must win at a smaller angle, and the safe envelope shrinks (the page's
+              utility-trailer-is-harder remark). A <em>smaller</em> steering lock (smaller
+              \(\delta_{\max}\)) also lowers \(\gamma_c\): with less authority to bend the car the
+              other way, you can hold less articulation before the fold escapes. Both make the rig
+              more dangerous to back.
+            </p>
+          </div>
+        </details>
       </div>
       <div class="pset">
-        <h3><span class="tag">P4</span>Phase line</h3>
+        <h3><span class="tag">P4</span><abbr class="term" title="A one-dimensional diagram of the rate of change versus the variable itself, used to read off where the system is pushed and where it settles.">Phase line</abbr></h3>
         <p>
           Fix \(\delta=\delta_{\max}\) and \(v<0\). Sketch \(\dot\gamma\) versus \(\gamma\) on
           \([0,\pi/2]\). Locate the equilibria, classify their stability, and connect the unstable one
           to \(\gamma_c\). Add the \(\delta=0\) curve and discuss what the driver is doing by steering.
         </p>
+        <details class="sol">
+          <summary>Show solution</summary>
+          <div class="soln">
+            <p>
+              Write \(v=-|v|\) and \(\delta=\delta_{\max}>0\) (full lock <em>against</em> the fold).
+              Then
+            </p>
+            \[
+              \dot\gamma=\frac{|v|}{D}\sin\gamma+\frac{|v|}{W}\!\left(1+\frac{L}{D}\cos\gamma\right)
+              \tan\delta_{\max}
+              \;\overset{?}{=}\;0 .
+            \]
+            <p>
+              That sign pattern never vanishes for \(\gamma\in[0,\pi/2]\): both terms are positive, so
+              this choice <em>adds</em> to the fold. The arresting steer is the opposite lock,
+              \(\delta=-\delta_{\max}\), giving
+            </p>
+            \[
+              \dot\gamma(\gamma)=\frac{|v|}{D}\sin\gamma
+              -\frac{|v|}{W}\!\left(1+\frac{L}{D}\cos\gamma\right)\tan\delta_{\max}.
+            \]
+            <p>
+              <strong>Shape.</strong> At \(\gamma=0\), \(\dot\gamma(0)=-\frac{|v|}{W}(1+L/D)
+              \tan\delta_{\max}<0\): full opposite lock actively straightens the rig, even pushing
+              \(\gamma\) slightly negative. As \(\gamma\) grows the positive \(\frac{|v|}{D}\sin\gamma\)
+              term wins, and \(\dot\gamma\) rises through zero. There is exactly one root in
+              \((0,\pi/2)\), call it \(\gamma^\ast\); it satisfies
+              \(\frac{\sin\gamma^\ast}{D}=\frac{\tan\delta_{\max}}{W}(1+\frac{L}{D}\cos\gamma^\ast)\),
+              which is precisely the boxed critical-angle condition, so \(\gamma^\ast=\gamma_c\).
+            </p>
+            <div class="fig">  dgamma/dt
+       |               (delta = +delta_max, full WRONG lock: all positive)
+       |          .-''
+       |       .-'
+   ----+----o------------*----------------  gamma
+       |   /          gamma_c
+       | _/   (delta = -delta_max, full opposite lock)
+       |/
+     gamma=0</div>
+            <p>
+              <strong>Equilibria and stability.</strong> For \(\delta=-\delta_{\max}\) the only root on
+              \([0,\pi/2]\) is \(\gamma_c\), where \(\dot\gamma'(\gamma_c)=\frac{|v|}{D}\cos\gamma_c
+              +\frac{|v|}{W}\frac{L}{D}\sin\gamma_c\tan\delta_{\max}>0\): the slope is positive, so
+              \(\gamma_c\) is <strong>unstable</strong>. Below \(\gamma_c\) (\(\dot\gamma<0\)) the
+              countersteer wins and the kink shrinks; above \(\gamma_c\) (\(\dot\gamma>0\)) it loses
+              and \(\gamma\) runs to the contact angle. \(\gamma_c\) is the watershed.
+            </p>
+            <p>
+              <strong>The \(\delta=0\) curve.</strong> Without steering,
+              \(\dot\gamma=\frac{|v|}{D}\sin\gamma\ge0\) on \([0,\pi/2]\), with its only equilibrium at
+              \(\gamma=0\) and that equilibrium unstable (positive slope). Steering does two things at
+              once: it shifts the whole curve <em>downward</em> by the steering term, turning a region
+              of \(\dot\gamma>0\) into \(\dot\gamma<0\), and it pushes the dangerous crossing out from
+              \(\gamma=0\) to \(\gamma=\gamma_c\). The driver is not removing the instability, they are
+              <em>buying angle</em>, enlarging the basin of straightening from the single point
+              \(\gamma=0\) to the interval \([0,\gamma_c)\).
+            </p>
+          </div>
+        </details>
       </div>
       <div class="pset">
-        <h3><span class="tag">P5</span>A Lyapunov view</h3>
+        <h3><span class="tag">P5</span>A <abbr class="term" title="A method that proves stability by finding an energy-like quantity that only decreases over time, so the system must settle down.">Lyapunov</abbr> view</h3>
         <p>
           Consider \(V(\gamma)=1-\cos\gamma\ge 0\). Compute \(\dot V\) along trajectories for forward
           motion with \(\delta=0\) and show \(\dot V\le 0\), giving a Lyapunov proof that the trailer
           self-centers going forward. What goes wrong in reverse?
         </p>
+        <details class="sol">
+          <summary>Show solution</summary>
+          <div class="soln">
+            <p>
+              Take \(V(\gamma)=1-\cos\gamma\). It is positive definite on \((-\pi,\pi)\): \(V(0)=0\)
+              and \(V(\gamma)>0\) otherwise, a valid energy-like function with its well at the straight
+              configuration. Along trajectories with \(\delta=0\),
+              \(\dot\gamma=-\frac{v}{D}\sin\gamma\), so
+            </p>
+            \[
+              \dot V=\frac{dV}{d\gamma}\,\dot\gamma
+              =\sin\gamma\cdot\left(-\frac{v}{D}\sin\gamma\right)
+              =-\frac{v}{D}\sin^2\gamma .
+            \]
+            <p>
+              <strong>Forward (\(v>0\)).</strong> Then \(\dot V=-\frac{v}{D}\sin^2\gamma\le0\), with
+              equality only at \(\gamma=0\) (and the boundary \(\gamma=\pi\)). \(V\) is positive
+              definite and decreasing, so by Lyapunov's theorem \(\gamma=0\) is stable; since
+              \(\dot V=0\) only on the equilibrium set, <abbr class="term" title="LaSalle's invariance principle: a refinement of the Lyapunov method that gives full settling-down (asymptotic stability) even when the energy stops decreasing only on a set the system cannot stay on.">LaSalle</abbr> gives asymptotic stability on
+              \((-\pi,\pi)\). The trailer self-centers from <em>any</em> non-folded start, not merely
+              from small angles, which is the global version of the linear P2 result.
+            </p>
+            <p>
+              <strong>Reverse (\(v<0\)).</strong> The sign flips: \(\dot V=+\frac{|v|}{D}\sin^2\gamma
+              \ge0\). The would-be Lyapunov function now <em>increases</em> along trajectories
+              everywhere except at \(\gamma=0\). \(V\) is a <abbr class="term" title="Chetaev's theorem: the mirror image of the Lyapunov method, proving instability by exhibiting an energy-like quantity that grows away from a state.">Chetaev</abbr>-type function certifying
+              instability: any perturbation off \(\gamma=0\) climbs the well outward, so the straight
+              configuration is unstable and \(|\gamma|\) grows toward the contact angle. The same
+              \(1-\cos\gamma\) that proves forward stability proves reverse instability simply by
+              changing the sign of \(v\).
+            </p>
+          </div>
+        </details>
       </div>
       <div class="pset">
-        <h3><span class="tag">P6</span>Off-tracking (steady turn)</h3>
+        <h3><span class="tag">P6</span><abbr class="term" title="In a turn, the trailer's wheels follow a tighter, inside path than the tow vehicle's, so they cut the corner; the gap between the two paths is the off-track.">Off-tracking</abbr> (steady turn)</h3>
         <p>
           In a constant-radius turn the articulation angle settles to \(\dot\gamma=0\). Find the
           steady \(\gamma\) and the trailer-axle turn radius as functions of \(\delta\). Show the
           trailer cuts inside the tow vehicle's path (off-tracking) and quantify the offset for a
           \(90^\circ\) turn.
         </p>
+        <details class="sol">
+          <summary>Show solution</summary>
+          <div class="soln">
+            <p>
+              <strong>Steady articulation.</strong> Hold \(\delta\) fixed and forward (\(v>0\)). Set
+              \(\dot\gamma=0\):
+            </p>
+            \[
+              \frac{\sin\gamma}{D}=-\frac{\tan\delta}{W}\!\left(1+\frac{L}{D}\cos\gamma\right).
+            \]
+            <p>
+              (For \(\delta>0\) the steady \(\gamma\) is negative, the trailer trails to the inside;
+              the sign just records that the trailer lags the turn.) For the common on-axle case
+              \(L=0\) this collapses to the clean closed form
+            </p>
+            \[
+              \sin\gamma_{\mathrm{ss}}=-\frac{D}{W}\tan\delta .
+            \]
+            <p>
+              <strong>Turn radii.</strong> The rear axle traces radius \(R_c=W/\tan\delta\). In steady
+              state the trailer axle traces a concentric circle about the same center. Its radius is the
+              distance from that center to the trailer axle. With the hitch at \(L=0\) the hitch rides
+              on \(R_c\), and the trailer axle (distance \(D\) behind, perpendicular offset set by
+              \(\gamma_{\mathrm{ss}}\)) traces
+            </p>
+            \[
+              R_t=\sqrt{R_c^{\,2}-D^2}
+              =\sqrt{\left(\frac{W}{\tan\delta}\right)^{2}-D^2}\;<\;R_c .
+            \]
+            <p>
+              (Including the overhang, the hitch circle has radius
+              \(R_h=\sqrt{R_c^2+L^2}\) and \(R_t=\sqrt{R_h^2-D^2}=\sqrt{R_c^2+L^2-D^2}\).)
+            </p>
+            <p>
+              <strong>Off-tracking.</strong> Because \(R_t<R_c\), the trailer rolls on a tighter circle
+              than the tow vehicle, it cuts the corner. The radial off-tracking offset is
+            </p>
+            \[
+              \Delta R=R_c-R_t=R_c-\sqrt{R_c^2-D^2}
+              \approx\frac{D^2}{2R_c}\quad(R_c\gg D).
+            \]
+            <p>
+              <strong>A \(90^\circ\) turn.</strong> The offset above is the steady-state radial gap, and
+              for a quarter-turn at constant radius the trailer's path is displaced inward of the tow
+              vehicle's by this full \(\Delta R\) at the apex. Using the page's rig, \(W=3.0\,\mathrm m\),
+              \(D=1.8\,\mathrm m\), and a moderate \(\delta=20^\circ\) (\(\tan\delta=0.364\)):
+            </p>
+            \[
+              R_c=\frac{3.0}{0.364}=8.24\,\mathrm m,\qquad
+              R_t=\sqrt{8.24^2-1.8^2}=8.04\,\mathrm m,
+            \]
+            \[
+              \Delta R=8.24-8.04\approx0.20\,\mathrm m .
+            \]
+            <p>
+              So the trailer wheels track about \(0.2\,\mathrm m\) inside the tow vehicle's wheels
+              through the corner, the reason you must swing wide when towing. Tighter turns (smaller
+              \(R_c\), larger \(\delta\)) and longer trailers (larger \(D\)) both inflate \(\Delta R\)
+              roughly as \(D^2/2R_c\).
+            </p>
+          </div>
+        </details>
       </div>
       <div class="pset">
-        <h3><span class="tag">P7</span>Tandem axle (extension)</h3>
+        <h3><span class="tag">P7</span><abbr class="term" title="A trailer with two axles placed close together, one just behind the other, rather than a single axle.">Tandem axle</abbr> (extension)</h3>
         <p>
           A dual-axle trailer is often modeled by a single effective axle at the midpoint of the two.
           Justify this for the kinematic model, define an effective \(D_\mathrm{eff}\), and predict
           how the critical angle and the off-tracking change relative to a single-axle trailer of the
           same hitch-to-rear-axle length.
         </p>
+        <details class="sol">
+          <summary>Show solution</summary>
+          <div class="soln">
+            <p>
+              <strong>Why a single effective axle.</strong> Put the two trailer axles at distances
+              \(D_1\) and \(D_2\) behind the hitch (\(D_1<D_2\)), each with its own no-slip constraint.
+              Two rigid-body lateral constraints on one rigid trailer over-determine it unless the tire
+              patches slip, so the kinematic model cannot satisfy both exactly. The standard resolution
+              is to demand that the trailer's <em>rotation</em> be driven by the lateral hitch velocity
+              resolved at the axles' centroid: a rigid body rotating at rate \(\dot\theta_t\) has lateral
+              velocity that varies linearly along its length, and the point of <em>zero average lateral
+              slip</em> (least-squares, equal tire scrub fore and aft) is the midpoint. So define
+            </p>
+            \[
+              D_{\mathrm{eff}}=\frac{D_1+D_2}{2},
+            \]
+            <p>
+              and the trailer behaves like a single-axle trailer with wheelbase \(D_{\mathrm{eff}}\)
+              placed at that midpoint. (Real tandems do scrub, the small price the kinematic idealization
+              hides; this is the low-speed analogue of the effective wheelbase used for swept-path
+              templates.)
+            </p>
+            <p>
+              <strong>Critical angle.</strong> Substitute \(D\to D_{\mathrm{eff}}\) in the boxed
+              condition,
+            </p>
+            \[
+              \frac{\sin\gamma_c}{D_{\mathrm{eff}}}
+              =\frac{\tan\delta_{\max}}{W}\!\left(1+\frac{L}{D_{\mathrm{eff}}}\cos\gamma_c\right).
+            \]
+            <p>
+              By P3, \(\partial\gamma_c/\partial D>0\). Compared with a single-axle trailer whose axle
+              sits at the <em>front</em> tandem position \(D_1\), the effective wheelbase is
+              <em>longer</em> (\(D_{\mathrm{eff}}>D_1\)), so \(\gamma_c\) is <strong>larger</strong>:
+              a tandem is more forgiving to back. Compared instead with a single axle at the
+              <em>rear</em> position \(D_2\), \(D_{\mathrm{eff}}<D_2\) and \(\gamma_c\) is smaller.
+              The tandem behaves exactly like the midpoint axle, as expected.
+            </p>
+            <p>
+              <strong>Off-tracking.</strong> From P6, \(R_t=\sqrt{R_c^2-D^2}\) and
+              \(\Delta R\approx D^2/2R_c\), monotone increasing in the effective wheelbase. With
+              \(D_{\mathrm{eff}}\) between \(D_1\) and \(D_2\), the tandem off-tracks <em>more</em> than
+              a single axle at \(D_1\) and <em>less</em> than one at \(D_2\), again tracking the midpoint.
+              Net: lengthening the effective wheelbase trades better backing stability (larger
+              \(\gamma_c\)) for more corner-cutting (larger \(\Delta R\)), the same fundamental
+              \(D\)-tradeoff the page draws between short and long trailers.
+            </p>
+          </div>
+        </details>
       </div>
 
       <h2>7. Notes on the simulation</h2>
