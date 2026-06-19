@@ -21,6 +21,7 @@ import { createControls } from "./ui/controls";
 import { coachingMessage } from "./ui/coach";
 import { applyManeuverAt, maneuverDuration } from "./game/autopilot";
 import { SOLUTIONS } from "./game/solutions";
+import { createSfx } from "./audio/sfx";
 
 const app = document.querySelector<HTMLDivElement>("#app")!;
 app.innerHTML = "";
@@ -102,6 +103,17 @@ const controls = createControls(app, {
     renderer3d.setCarStyle(carStyle);
   },
 });
+
+// Audio. iOS only starts the AudioContext from a user gesture, so resume on the
+// first tap anywhere.
+const sfx = createSfx();
+const startAudio = (): void => {
+  sfx.resume();
+  window.removeEventListener("pointerdown", startAudio);
+};
+window.addEventListener("pointerdown", startAudio);
+let prevWallContacts = 0;
+let prevWon = false;
 
 let cssW = 0;
 let cssH = 0;
@@ -186,6 +198,17 @@ function frame(t: number): void {
   contact.hidden = !game.session.collidingNow;
 
   checkWin();
+
+  // Audio: engine hum tracks speed, backup beep while reversing, thud on a new
+  // wall contact, chime once on the win.
+  const spd = Math.abs(commandedSpeed(game));
+  sfx.setEngine(spd > 1e-3 ? Math.min(1, spd / 2.5) : 0);
+  sfx.reverseBeep(game.gear === "reverse" && spd > 0.05);
+  if (game.session.wallContacts > prevWallContacts) sfx.collision();
+  prevWallContacts = game.session.wallContacts;
+  if (won && !prevWon) sfx.success();
+  prevWon = won;
+
   requestAnimationFrame(frame);
 }
 
