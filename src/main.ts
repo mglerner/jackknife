@@ -51,6 +51,13 @@ slopeBadge.id = "slope-badge";
 slopeBadge.hidden = true;
 app.appendChild(slopeBadge);
 
+// Shown in the camera view when a tall/enclosed load blocks the backup camera.
+const camBlocked = document.createElement("div");
+camBlocked.id = "cam-blocked";
+camBlocked.textContent = "Camera blocked by the load. Switch View to Mirrors.";
+camBlocked.hidden = true;
+app.appendChild(camBlocked);
+
 const banner = document.createElement("div");
 banner.id = "banner";
 banner.hidden = true;
@@ -111,7 +118,14 @@ let demoAcc = 0;
 let demoWheelU = 0; // eased on-screen wheel position during the demo (visual only)
 let demoFrames: (typeof game)[] = []; // recorded verified trajectory, replayed pose-by-pose
 let demoIdx = 0;
-let solution: Maneuver | undefined = SOLUTIONS[`${game.rig.id}/${game.scenario.id}`];
+function lookupSolution(rigId: string, alias: string | undefined, scenarioId: string): Maneuver | undefined {
+  return SOLUTIONS[`${rigId}/${scenarioId}`] ?? (alias ? SOLUTIONS[`${alias}/${scenarioId}`] : undefined);
+}
+let solution: Maneuver | undefined = lookupSolution(
+  game.rig.id,
+  game.rig.solutionAlias,
+  game.scenario.id,
+);
 
 const renderer3d = createRenderer3d(canvas, game);
 
@@ -255,7 +269,7 @@ function applyChoice(rigId: string, diffId: string, scenarioId: string = game.sc
   game = createGame(rig, scenario, diff);
   renderer3d.rebuild(game);
   // Verified demo solutions are keyed by rig + scenario; Demo enables only when one exists.
-  solution = SOLUTIONS[`${rig.id}/${game.scenario.id}`];
+  solution = lookupSolution(rig.id, rig.solutionAlias, game.scenario.id);
   controls.setDemoEnabled(solution !== undefined);
   controls.setWheelRatio(wheelDegPerU(game));
   mirrors = diff.mirrorsDefault;
@@ -577,6 +591,7 @@ function frame(t: number): void {
   const grade = game.scenario.slope;
   slopeBadge.hidden = grade <= 0;
   if (grade > 0) slopeBadge.textContent = `Downhill grade ${Math.round(Math.tan(grade) * 100)}%`;
+  camBlocked.hidden = !(view === "backupcam" && game.rig.loadBlocksCamera);
   pull.hidden = !(d.jackknifeState === "recoverable" || d.jackknifeState === "contact");
   contact.hidden = !game.session.collidingNow;
 

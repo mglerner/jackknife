@@ -38,7 +38,10 @@ export interface Rig {
   steeringRatio?: number;
   // Optional taxonomy (for UI / scenario filtering); legacy + inline test rigs omit these:
   vehicleType?: "minivan" | "suv" | "tractor";
-  trailerType?: "utility-single" | "utility-dual" | "ag";
+  trailerType?: "utility-single" | "utility-dual" | "ag" | "cargo";
+  // When set, this rig has the SAME physics as the named rig and reuses its verified
+  // demo solutions (e.g. an enclosed trailer on the same chassis as the open one).
+  solutionAlias?: string;
 }
 
 /** Per-substep command. */

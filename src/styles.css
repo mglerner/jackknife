@@ -82,6 +82,25 @@ body {
   pointer-events: none;
 }
 
+/* "Camera blocked by the load" notice, centered over the (useless) camera view. */
+#cam-blocked {
+  position: absolute;
+  top: 42%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 20;
+  max-width: 72%;
+  text-align: center;
+  background: rgba(150, 42, 42, 0.86);
+  color: #fff;
+  border: 1px solid rgba(255, 150, 150, 0.5);
+  border-radius: 10px;
+  padding: 10px 16px;
+  font-size: 14px;
+  font-weight: 700;
+  pointer-events: none;
+}
+
 /* HUD, bottom-left above the control bar. */
 #hud {
   position: absolute;

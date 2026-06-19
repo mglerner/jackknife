@@ -568,7 +568,52 @@ function buildTrailer(gs: GameState): THREE.Group {
     ? buildDualTrailer(gs)
     : t === "ag"
       ? buildAgTrailer(gs)
-      : buildUtilityTrailer(gs);
+      : t === "cargo"
+        ? buildCargoTrailer(gs)
+        : buildUtilityTrailer(gs);
+}
+
+// Full-height enclosed cargo trailer: the open-trailer chassis (frame, wheels, tongue,
+// lights) with a tall opaque box enclosing the deck. The box front faces the tow
+// vehicle, so it blocks the backup camera; the rear doors face the way you are backing.
+function buildCargoTrailer(gs: GameState): THREE.Group {
+  const g = buildUtilityTrailer(gs); // chassis + wheels + tongue; deck cargo is hidden inside
+  const { D, trailerWidth, trailerRearOverhang } = gs.rig;
+  const deckFront = D;
+  const deckBack = -trailerRearOverhang;
+  const len = deckFront - deckBack;
+  const cx = (deckFront + deckBack) / 2;
+  const halfW = trailerWidth / 2;
+  const floorY = 0.3 + 0.1 + 0.14 + 0.04; // matches the utility deck top (wheelR + frame + planks)
+  const boxH = 1.95; // taller than the ~1.75 m backup camera, so it reads as blocked
+
+  const bodyMat = new THREE.MeshStandardMaterial({ color: 0xe9ebec, roughness: 0.5, metalness: 0.25 });
+  const trimMat = new THREE.MeshStandardMaterial({ color: 0x3f4348, roughness: 0.5, metalness: 0.6 });
+
+  const shell = box(len, boxH, trailerWidth, bodyMat);
+  shell.position.set(cx, floorY + boxH / 2, 0);
+  g.add(shell);
+  const roof = box(len + 0.06, 0.06, trailerWidth + 0.06, trimMat);
+  roof.position.set(cx, floorY + boxH + 0.02, 0);
+  g.add(roof);
+  // Vertical corner posts.
+  for (const sx of [deckFront, deckBack]) {
+    for (const sz of [halfW, -halfW]) {
+      const post = box(0.06, boxH, 0.06, trimMat);
+      post.position.set(sx, floorY + boxH / 2, sz);
+      g.add(post);
+    }
+  }
+  // Rear double doors (on the tail face): a center seam and two handles.
+  const seam = box(0.03, boxH * 0.9, 0.03, trimMat);
+  seam.position.set(deckBack - 0.01, floorY + boxH / 2, 0);
+  g.add(seam);
+  for (const hz of [0.2, -0.2]) {
+    const handle = box(0.04, 0.24, 0.04, trimMat);
+    handle.position.set(deckBack - 0.02, floorY + boxH * 0.5, hz);
+    g.add(handle);
+  }
+  return g;
 }
 
 function buildUtilityTrailer(gs: GameState): THREE.Group {

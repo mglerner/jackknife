@@ -29,6 +29,35 @@ export const ODYSSEY_UTILITY: Rig = {
 };
 
 /**
+ * Honda Odyssey + a full-height ENCLOSED cargo trailer. Identical chassis and physics
+ * to ODYSSEY_UTILITY (same W/L/D and trailer footprint), so it reuses that rig's
+ * verified demo solutions. The difference is the body: a tall box that blocks the
+ * backup camera, so you have to back it by mirrors. The friendlier open trailer and
+ * this tougher enclosed one sit side by side as two ways to practice the same rig.
+ */
+export const ODYSSEY_CARGO: Rig = {
+  id: "odyssey-cargo",
+  label: "Honda Odyssey + enclosed trailer",
+  steeringRatio: 16.4,
+  W: 3.0,
+  L: 1.1,
+  D: 1.8,
+  maxSteer: deg(33),
+  carLength: 5.16,
+  carWidth: 2.0,
+  carFrontOverhang: 4.06,
+  trailerLength: 2.3,
+  trailerWidth: 1.8,
+  trailerRearOverhang: 0.5,
+  hardLimitGamma: deg(75),
+  loadBlocksCamera: true, // tall enclosed box: backup camera blocked, read the mirrors
+  axleConfig: "single",
+  vehicleType: "minivan",
+  trailerType: "cargo",
+  solutionAlias: "odyssey-utility", // same physics: reuse the open-trailer solutions
+};
+
+/**
  * Hyundai Ioniq 5 + small single-axle utility trailer.
  * The Ioniq 5 is an electric crossover SUV on the E-GMP platform with an
  * unusually long wheelbase: 3.0 m (118.1"), essentially the same as the
@@ -116,6 +145,7 @@ export const TRACTOR_AG: Rig = {
 
 export const RIGS: Record<string, Rig> = {
   [ODYSSEY_UTILITY.id]: ODYSSEY_UTILITY,
+  [ODYSSEY_CARGO.id]: ODYSSEY_CARGO,
   [IONIQ5_UTILITY.id]: IONIQ5_UTILITY,
   [ODYSSEY_DUAL.id]: ODYSSEY_DUAL,
   [TRACTOR_AG.id]: TRACTOR_AG,
