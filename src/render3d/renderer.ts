@@ -187,14 +187,24 @@ export function createRenderer3d(canvas: HTMLCanvasElement, gs: GameState): Rend
   // trying to frame the entire (wide) street, so it fills a portrait screen.
   const TOP_VIEW_M = 34;
   let topZoom = 1; // 1 = default framing; >1 zooms in, <1 out (pinch-controlled)
+  let focusX = NaN; // smoothed top-down focus point (eased follow)
+  let focusY = NaN;
   // A gentle tilt off straight-down so the 3D depth reads, while the maneuver
   // geometry stays clear (looking slightly from the south toward the driveway).
   const TILT = 0.42; // rad (~24 deg from vertical)
 
   function aimTopCam(g: GameState): void {
     const t = g.scenario.target;
-    const fx = (g.physics.x + t.x) / 2; // focus between the rig and the target
-    const fy = (g.physics.y + t.y) / 2;
+    const mx = (g.physics.x + t.x) / 2; // midpoint of the rig and the target
+    const my = (g.physics.y + t.y) / 2;
+    if (Number.isNaN(focusX)) {
+      focusX = mx;
+      focusY = my;
+    }
+    focusX += (mx - focusX) * 0.12; // eased follow so the view glides, not snaps
+    focusY += (my - focusY) * 0.12;
+    const fx = focusX;
+    const fy = focusY;
     const aspect = W / Hc;
     const viewM = TOP_VIEW_M / topZoom;
     let hw: number;
