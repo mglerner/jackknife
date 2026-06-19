@@ -29,4 +29,8 @@ export const SOLUTIONS: Record<string, Maneuver> = {
     { gear: "reverse", steer: 0.18128765749004483, seconds: 2.1970151047833264 },
     { gear: "reverse", steer: 0.572523013559252, seconds: 4.0998980855054405 },
   ],
+  "odyssey-utility/apron-to-loading-dock": [
+    { gear: "reverse", steer: 0.2, seconds: 3.4 },
+    { gear: "reverse", steer: 0.08, seconds: 2.4 },
+  ],
 };

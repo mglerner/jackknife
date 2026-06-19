@@ -9,7 +9,7 @@ import {
 } from "./game/state";
 import { advance, commandedSpeed } from "./game/loop";
 import { DEFAULT_RIG, RIGS } from "./rigs/rigs";
-import { DEFAULT_SCENARIO } from "./scenarios/scenarios";
+import { DEFAULT_SCENARIO, SCENARIOS } from "./scenarios/scenarios";
 import { DEFAULT_DIFFICULTY, DIFFICULTIES } from "./difficulty/difficulty";
 import { steerFromBottomWheel } from "./input/bottomWheel";
 import { createRenderer3d, type ViewMode } from "./render3d/renderer";
@@ -76,7 +76,8 @@ title.addEventListener("pointerdown", () => {
 const params = new URLSearchParams(location.search);
 const initRig = RIGS[params.get("rig") ?? ""] ?? DEFAULT_RIG;
 const initDiff = DIFFICULTIES[params.get("difficulty") ?? ""] ?? DEFAULT_DIFFICULTY;
-let game = createGame(initRig, DEFAULT_SCENARIO, initDiff);
+const initScenario = SCENARIOS[params.get("scenario") ?? ""] ?? DEFAULT_SCENARIO;
+let game = createGame(initRig, initScenario, initDiff);
 let view: ViewMode = "topdown";
 let mirrors = initDiff.mirrorsDefault;
 let debug = false;
@@ -187,10 +188,11 @@ menu.id = "menu";
 menu.hidden = true;
 app.appendChild(menu);
 
-function applyChoice(rigId: string, diffId: string): void {
+function applyChoice(rigId: string, diffId: string, scenarioId: string = game.scenario.id): void {
   const rig = RIGS[rigId] ?? DEFAULT_RIG;
   const diff = DIFFICULTIES[diffId] ?? DEFAULT_DIFFICULTY;
-  game = createGame(rig, game.scenario, diff);
+  const scenario = SCENARIOS[scenarioId] ?? game.scenario;
+  game = createGame(rig, scenario, diff);
   renderer3d.rebuild(game);
   // Verified demo solutions are keyed by rig + scenario; Demo enables only when one exists.
   solution = SOLUTIONS[`${rig.id}/${game.scenario.id}`];
@@ -216,6 +218,8 @@ function renderMenu(): void {
     `<div class="menu-row">${btns(Object.values(RIGS), "rig", game.rig.id)}</div>` +
     '<div class="menu-label">Difficulty</div>' +
     `<div class="menu-row">${btns(Object.values(DIFFICULTIES), "diff", game.difficulty.id)}</div>` +
+    '<div class="menu-label">Location</div>' +
+    `<div class="menu-row">${btns(Object.values(SCENARIOS), "scenario", game.scenario.id)}</div>` +
     '<button id="menu-close">Done</button>' +
     "</div>";
   // Picking a vehicle applies it and closes the menu (the "go" action).
@@ -229,6 +233,13 @@ function renderMenu(): void {
   menu.querySelectorAll<HTMLElement>("[data-diff]").forEach((b) =>
     b.addEventListener("pointerdown", () => {
       applyChoice(game.rig.id, b.dataset.diff ?? "");
+      renderMenu();
+    }),
+  );
+  // Location is a modifier too: apply live and keep the menu open.
+  menu.querySelectorAll<HTMLElement>("[data-scenario]").forEach((b) =>
+    b.addEventListener("pointerdown", () => {
+      applyChoice(game.rig.id, game.difficulty.id, b.dataset.scenario ?? "");
       renderMenu();
     }),
   );

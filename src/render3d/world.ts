@@ -101,8 +101,13 @@ export function buildWorld(gs: GameState): THREE.Group {
 
   addSky(group);
   addLighting(group, bounds);
-  addGround(group, bounds);
-  addEnvironment(group, bounds);
+  if (gs.scenario.environment === "dock") {
+    addDockGround(group, bounds);
+    addDockEnvironment(group);
+  } else {
+    addGround(group, bounds);
+    addEnvironment(group, bounds);
+  }
   addObstacles(group, gs);
   addTarget(group, gs);
 
@@ -286,6 +291,86 @@ function addGround(group: THREE.Group, bounds: WorldBounds): void {
   });
   addGroundRegion(group, sidewalkMat, bounds.minX, -3, 3.0, 3.6, 0.01);
   addGroundRegion(group, sidewalkMat, 3, bounds.maxX, 3.0, 3.6, 0.01);
+}
+
+// -----------------------------------------------------------------------------
+// Loading-dock environment: a flat asphalt apron, a concrete bay pad, painted
+// guide lines, and a warehouse building behind the dock face. Used when the
+// scenario's environment is "dock". The bay side walls + dock face come from the
+// scenario obstacles (addObstacles); this adds the surfaces and the building.
+// -----------------------------------------------------------------------------
+function addDockGround(group: THREE.Group, bounds: WorldBounds): void {
+  const asphaltMat = new THREE.MeshStandardMaterial({
+    map: noiseTexture([88, 92, 99], 9, 18),
+    roughness: 0.93,
+    metalness: 0.0,
+  });
+  const padMat = new THREE.MeshStandardMaterial({
+    map: noiseTexture([176, 174, 168], 8, 6),
+    roughness: 0.9,
+    metalness: 0.0,
+  });
+  const lineMat = new THREE.MeshStandardMaterial({
+    color: 0xd6c049,
+    roughness: 0.7,
+    metalness: 0.0,
+    emissive: 0x322d0c,
+    emissiveIntensity: 0.18,
+  });
+
+  // Whole-lot asphalt apron, then a lighter concrete pad inside the bay.
+  addGroundRegion(group, asphaltMat, bounds.minX, bounds.maxX, bounds.minY, bounds.maxY, 0.0);
+  addGroundRegion(group, padMat, -1.7, 1.7, 0, 6.5, 0.01);
+
+  // Painted yellow guide lines extending out from the bay edges to line up the
+  // back-in, plus a dashed approach centerline.
+  addGroundRegion(group, lineMat, -1.78, -1.62, -6.5, 0, 0.02);
+  addGroundRegion(group, lineMat, 1.62, 1.78, -6.5, 0, 0.02);
+  for (let yy = -10; yy < -1.2; yy += 1.7) {
+    addGroundRegion(group, lineMat, -0.08, 0.08, yy, yy + 0.85, 0.02);
+  }
+}
+
+function addDockEnvironment(group: THREE.Group): void {
+  const wallMat = new THREE.MeshStandardMaterial({ color: 0xb9b3a3, roughness: 0.9, metalness: 0.05 });
+  const roofMat = new THREE.MeshStandardMaterial({ color: 0x6f7681, roughness: 0.95, metalness: 0.1 });
+  const doorMat = new THREE.MeshStandardMaterial({ color: 0xccd1d7, roughness: 0.55, metalness: 0.35 });
+  const bumperMat = new THREE.MeshStandardMaterial({ color: 0x1c1e21, roughness: 0.85, metalness: 0.0 });
+
+  const box = (
+    w: number,
+    h: number,
+    d: number,
+    mat: THREE.MeshStandardMaterial,
+    wx: number,
+    wy: number,
+    y: number,
+  ): void => {
+    const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat);
+    m.position.copy(worldToThree({ x: wx, y: wy }, y));
+    m.castShadow = true;
+    m.receiveShadow = true;
+    group.add(m);
+  };
+
+  // Warehouse: a long box behind the dock face (y=6.5 northward), with a roof cap.
+  const by0 = 6.5;
+  const by1 = 9.6;
+  const bw = 26;
+  const bh = 5.4;
+  box(bw, bh, by1 - by0, wallMat, 0, (by0 + by1) / 2, bh / 2);
+  box(bw + 0.4, 0.3, by1 - by0 + 0.4, roofMat, 0, (by0 + by1) / 2, bh + 0.12);
+
+  // Bay roll-up door on the dock face above the opening (bay is x in [-1.7, 1.7]).
+  box(3.5, 3.0, 0.18, doorMat, 0, 6.42, 1.7);
+  // Two rubber dock bumpers at the bay mouth.
+  box(0.32, 0.7, 0.45, bumperMat, -1.55, 6.4, 0.55);
+  box(0.32, 0.7, 0.45, bumperMat, 1.55, 6.4, 0.55);
+
+  // A couple of closed dock doors flanking the bay for context.
+  for (const dx of [-6.5, 6.5]) {
+    box(3.0, 3.0, 0.14, doorMat, dx, 6.45, 1.7);
+  }
 }
 
 // -----------------------------------------------------------------------------

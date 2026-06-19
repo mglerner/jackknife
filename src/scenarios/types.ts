@@ -38,5 +38,7 @@ export interface Scenario {
   mirrorsAvailable: boolean;
   cameraAvailable: boolean;
   worldBounds: WorldBounds;
+  /** Which decorative environment world.ts builds. Defaults to the suburban yard. */
+  environment?: "suburban" | "dock";
   params?: Record<string, number>;
 }
