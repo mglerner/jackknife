@@ -436,6 +436,9 @@ body {
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
   box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
+}
+/* Pop in only when the menu opens, not on every in-card re-render (tab switches). */
+#menu .menu-card.pop {
   animation: card-pop 0.24s ease-out;
 }
 @keyframes card-pop {
@@ -452,6 +455,33 @@ body {
   font-size: 20px;
   font-weight: 800;
   margin-bottom: 8px;
+}
+/* Tabbed Garage: a row of tabs under the title, then the active tab's body. */
+#menu .menu-tabs {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 6px;
+  border-bottom: 1px solid #2c333c;
+  padding-bottom: 10px;
+}
+#menu .menu-tab {
+  flex: 1 1 auto;
+  background: transparent;
+  color: var(--muted);
+  border: 1px solid transparent;
+  border-radius: 9px;
+  padding: 9px 6px;
+  font-size: 14px;
+  font-weight: 700;
+}
+#menu .menu-tab.sel {
+  background: #2a313a;
+  color: var(--ink);
+  border-color: #3a414a;
+}
+/* The vehicle list reads better as a single stacked column (long labels). */
+#menu .menu-row.vstack {
+  flex-direction: column;
 }
 #menu .menu-label {
   color: var(--muted);

@@ -248,7 +248,26 @@ function applyChoice(rigId: string, diffId: string, scenarioId: string = game.sc
   banner.hidden = true;
 }
 
-function renderMenu(): void {
+type MenuTab = "vehicle" | "scenario" | "options";
+let menuTab: MenuTab = "vehicle";
+
+// Scenario picker grouped for the tabbed Garage; short labels keep buttons compact.
+const SCEN_GROUPS: { label: string; ids: string[] }[] = [
+  { label: "Driveways", ids: ["street-to-driveway-90", "driveway-straight-start"] },
+  { label: "Docks", ids: ["apron-to-loading-dock", "flanked-loading-dock"] },
+  { label: "Tight spots", ids: ["street-to-gate-narrow", "parallel-park-curb", "lcorner-backin-90"] },
+];
+const SCEN_SHORT: Record<string, string> = {
+  "street-to-driveway-90": "90°",
+  "driveway-straight-start": "Straight",
+  "apron-to-loading-dock": "Standard",
+  "flanked-loading-dock": "Flanked",
+  "street-to-gate-narrow": "Gate",
+  "parallel-park-curb": "Parallel",
+  "lcorner-backin-90": "Corner",
+};
+
+function renderMenu(animate = false): void {
   const btns = (items: { id: string; label: string }[], attr: string, curId: string): string =>
     items
       .map(
@@ -256,28 +275,63 @@ function renderMenu(): void {
           `<button data-${attr}="${it.id}" class="${it.id === curId ? "sel" : ""}">${it.label}</button>`,
       )
       .join("");
+  const tab = (id: MenuTab, label: string): string =>
+    `<button data-tab="${id}" class="menu-tab ${menuTab === id ? "sel" : ""}">${label}</button>`;
+
+  let body = "";
+  if (menuTab === "vehicle") {
+    body =
+      '<div class="menu-label">Vehicle and trailer</div>' +
+      `<div class="menu-row vstack">${btns(Object.values(RIGS), "rig", game.rig.id)}</div>`;
+  } else if (menuTab === "scenario") {
+    body =
+      '<div class="menu-label">Difficulty</div>' +
+      `<div class="menu-row">${btns(Object.values(DIFFICULTIES), "diff", game.difficulty.id)}</div>` +
+      SCEN_GROUPS.map(
+        (g) =>
+          `<div class="menu-label">${g.label}</div><div class="menu-row">` +
+          g.ids
+            .map(
+              (id) =>
+                `<button data-scenario="${id}" class="${id === game.scenario.id ? "sel" : ""}">${SCEN_SHORT[id] ?? id}</button>`,
+            )
+            .join("") +
+          "</div>",
+      ).join("");
+  } else {
+    body =
+      '<div class="menu-label">Steering wheel</div>' +
+      '<div class="menu-row">' +
+      `<button data-wheel="realistic" class="${realisticWheel ? "sel" : ""}">Realistic</button>` +
+      `<button data-wheel="simple" class="${!realisticWheel ? "sel" : ""}">Simple</button>` +
+      "</div>" +
+      '<div class="menu-label">View</div>' +
+      '<div class="menu-row">' +
+      `<button data-vmode="topdown" class="${!mirrorsOnly ? "sel" : ""}">Top-down</button>` +
+      `<button data-vmode="mirrors" class="${mirrorsOnly ? "sel" : ""}">Mirrors only</button>` +
+      "</div>" +
+      '<button id="reset-best" class="menu-danger">Reset high scores</button>';
+  }
+
   menu.innerHTML =
-    '<div class="menu-card">' +
+    `<div class="menu-card${animate ? " pop" : ""}">` +
     '<div class="menu-title">Garage</div>' +
-    '<div class="menu-label">Vehicle and trailer</div>' +
-    `<div class="menu-row">${btns(Object.values(RIGS), "rig", game.rig.id)}</div>` +
-    '<div class="menu-label">Difficulty</div>' +
-    `<div class="menu-row">${btns(Object.values(DIFFICULTIES), "diff", game.difficulty.id)}</div>` +
-    '<div class="menu-label">Location</div>' +
-    `<div class="menu-row">${btns(Object.values(SCENARIOS), "scenario", game.scenario.id)}</div>` +
-    '<div class="menu-label">Steering wheel</div>' +
-    '<div class="menu-row">' +
-    `<button data-wheel="realistic" class="${realisticWheel ? "sel" : ""}">Realistic</button>` +
-    `<button data-wheel="simple" class="${!realisticWheel ? "sel" : ""}">Simple</button>` +
+    '<div class="menu-tabs">' +
+    tab("vehicle", "Vehicle") +
+    tab("scenario", "Scenario") +
+    tab("options", "Options") +
     "</div>" +
-    '<div class="menu-label">View</div>' +
-    '<div class="menu-row">' +
-    `<button data-vmode="topdown" class="${!mirrorsOnly ? "sel" : ""}">Top-down</button>` +
-    `<button data-vmode="mirrors" class="${mirrorsOnly ? "sel" : ""}">Mirrors only</button>` +
-    "</div>" +
-    '<button id="reset-best" class="menu-danger">Reset high scores</button>' +
+    `<div class="menu-body">${body}</div>` +
     '<button id="menu-close">Done</button>' +
     "</div>";
+
+  // Switch tabs in place (no card pop on re-render, only on open).
+  menu.querySelectorAll<HTMLElement>("[data-tab]").forEach((b) =>
+    b.addEventListener("pointerdown", () => {
+      menuTab = (b.dataset.tab as MenuTab) ?? "vehicle";
+      renderMenu();
+    }),
+  );
   // Picking a vehicle applies it and closes the menu (the "go" action).
   menu.querySelectorAll<HTMLElement>("[data-rig]").forEach((b) =>
     b.addEventListener("pointerdown", () => {
@@ -319,18 +373,20 @@ function renderMenu(): void {
     }),
   );
   // Reset high scores, with a confirm tap so it is not triggered by accident.
-  let resetArmed = false;
-  const resetBtn = menu.querySelector("#reset-best") as HTMLElement;
-  resetBtn.addEventListener("pointerdown", () => {
-    if (!resetArmed) {
-      resetArmed = true;
-      resetBtn.textContent = "Tap again to confirm";
-      return;
-    }
-    clearBestScores();
-    hud.setBest(undefined);
-    renderMenu();
-  });
+  const resetBtn = menu.querySelector("#reset-best") as HTMLElement | null;
+  if (resetBtn) {
+    let resetArmed = false;
+    resetBtn.addEventListener("pointerdown", () => {
+      if (!resetArmed) {
+        resetArmed = true;
+        resetBtn.textContent = "Tap again to confirm";
+        return;
+      }
+      clearBestScores();
+      hud.setBest(undefined);
+      renderMenu();
+    });
+  }
   (menu.querySelector("#menu-close") as HTMLElement).addEventListener("pointerdown", () => {
     menu.hidden = true;
   });
@@ -340,7 +396,8 @@ menu.addEventListener("pointerdown", (e) => {
   if (e.target === menu) menu.hidden = true;
 });
 menuBtn.addEventListener("pointerdown", () => {
-  renderMenu();
+  menuTab = "vehicle";
+  renderMenu(true);
   menu.hidden = false;
 });
 
