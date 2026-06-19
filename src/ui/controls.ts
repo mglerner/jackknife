@@ -28,7 +28,12 @@ export function createControls(parent: HTMLElement, h: ControlHandlers): Control
     '<button class="gear" data-rev>Reverse</button>' +
     '<button class="gear" data-fwd>Forward</button>' +
     "</div>" +
-    '<div class="wheel" data-wheel><div class="wheel-face"></div><div class="wheel-mark"></div></div>' +
+    '<div class="wheel" data-wheel>' +
+    '<div class="wheel-rim"></div>' +
+    '<div class="wheel-spokes"></div>' +
+    '<div class="wheel-hub"></div>' +
+    '<div class="wheel-mark"></div>' +
+    "</div>" +
     '<div class="toggles">' +
     '<button data-view>View: top-down</button>' +
     '<button data-mirrors>Mirrors: on</button>' +

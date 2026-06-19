@@ -120,11 +120,15 @@ body {
 }
 
 #controls button {
-  background: var(--panel);
+  /* Translucent frosted glass so the scene (and the van at the start pose) shows
+     through instead of being covered by a solid slab. */
+  background: rgba(31, 36, 43, 0.58);
+  -webkit-backdrop-filter: blur(7px);
+  backdrop-filter: blur(7px);
   color: var(--ink);
-  border: 1px solid #3a414a;
+  border: 1px solid rgba(120, 132, 148, 0.3);
   border-radius: 10px;
-  padding: 10px 12px;
+  padding: 9px 12px;
   font-size: 13px;
   touch-action: none;
 }
@@ -152,22 +156,71 @@ body {
   /* Translucent so the backup-camera view shows through behind it. */
   opacity: 0.82;
 }
-.wheel-face {
+/* Tyre/rim: a thick dark ring with a top sheen so it reads as a steering wheel. */
+.wheel-rim {
   position: absolute;
   inset: 0;
   border-radius: 50%;
-  background: radial-gradient(circle at 50% 38%, rgba(49, 57, 68, 0.66), rgba(32, 38, 45, 0.66));
-  border: 4px solid rgba(69, 81, 96, 0.85);
+  border: 15px solid #2b313a;
+  background: transparent;
+  box-shadow:
+    inset 0 3px 4px rgba(255, 255, 255, 0.14),
+    inset 0 -3px 5px rgba(0, 0, 0, 0.45),
+    0 3px 7px rgba(0, 0, 0, 0.45);
 }
+/* Three spokes: a horizontal bar (9 and 3 o'clock) plus a bottom spoke (6 o'clock,
+   reinforcing "the bottom of the wheel leads"). */
+.wheel-spokes {
+  position: absolute;
+  inset: 0;
+}
+.wheel-spokes::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 13px;
+  right: 13px;
+  height: 13px;
+  margin-top: -6.5px;
+  border-radius: 7px;
+  background: linear-gradient(#333b45, #262d35);
+}
+.wheel-spokes::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  bottom: 13px;
+  width: 13px;
+  margin-left: -6.5px;
+  border-radius: 7px;
+  background: linear-gradient(#2d343d, #262d35);
+}
+/* Center hub (horn pad). */
+.wheel-hub {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 48px;
+  height: 48px;
+  margin: -24px 0 0 -24px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 50% 38%, #3a424d, #232931);
+  border: 2px solid #485160;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.45);
+}
+/* Bright grab marker at the bottom of the rim: where you put your thumb, and the
+   cue for the steering amount as the wheel turns. */
 .wheel-mark {
   position: absolute;
   left: 50%;
-  bottom: 8px;
-  width: 14px;
-  height: 14px;
-  margin-left: -7px;
+  bottom: 3px;
+  width: 18px;
+  height: 18px;
+  margin-left: -9px;
   border-radius: 50%;
   background: var(--accent);
+  box-shadow: 0 0 9px rgba(76, 194, 255, 0.75);
 }
 
 /* Win banner. */
