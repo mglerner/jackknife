@@ -32,6 +32,10 @@ export interface Rig {
   hardLimitGamma: number; // physical contact angle (rad, ~75°)
   loadBlocksCamera: boolean; // tall/enclosed load => backup cam unusable
   axleConfig: "single" | "dual";
+  // Real steering RATIO N (degrees of steering wheel per degree of road wheel), so
+  // the on-screen wheel can rotate realistically (full lock ~= maxSteer * N degrees).
+  // Optional; legacy/test rigs fall back to a generic 16:1.
+  steeringRatio?: number;
   // Optional taxonomy (for UI / scenario filtering); legacy + inline test rigs omit these:
   vehicleType?: "minivan" | "suv" | "tractor";
   trailerType?: "utility-single" | "utility-dual" | "ag";

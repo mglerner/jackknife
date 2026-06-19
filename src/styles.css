@@ -150,9 +150,10 @@ body {
   border-radius: 50%;
   flex: 0 0 auto;
   touch-action: none;
-  /* Visual rotation mirrors the accumulated wheel rotation (u in [-1,1]).
-     u>0 (bottom pushed right) is a counter-clockwise / negative CSS angle. */
-  transform: rotate(calc(var(--wheel-u, 0) * -140deg));
+  /* Visual rotation mirrors the steer (u in [-1,1]) scaled by --wheel-deg, the
+     degrees-per-u set from the rig's real steering ratio (or a compact sweep for
+     super-beginner). u>0 (bottom pushed right) is a negative CSS angle. */
+  transform: rotate(calc(var(--wheel-u, 0) * var(--wheel-deg, 140) * -1deg));
   /* Translucent so the backup-camera view shows through behind it. */
   opacity: 0.82;
 }

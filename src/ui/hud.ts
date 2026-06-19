@@ -31,12 +31,14 @@ export function createHud(parent: HTMLElement): Hud {
   el.innerHTML =
     '<div class="chip" data-jk></div>' +
     '<div class="readout" data-err></div>' +
+    '<div class="readout" data-steer></div>' +
     '<div class="hud-best" data-best hidden></div>' +
     '<div class="debug" data-debug hidden></div>';
   parent.appendChild(el);
 
   const jk = el.querySelector("[data-jk]") as HTMLElement;
   const err = el.querySelector("[data-err]") as HTMLElement;
+  const steer = el.querySelector("[data-steer]") as HTMLElement;
   const bestEl = el.querySelector("[data-best]") as HTMLElement;
   const dbg = el.querySelector("[data-debug]") as HTMLElement;
 
@@ -52,6 +54,14 @@ export function createHud(parent: HTMLElement): Hud {
 
       const e = trailerTargetError(gs);
       err.textContent = `offset ${e.lateral.toFixed(2)} m, heading ${deg(e.heading).toFixed(0)}°`;
+
+      // Real road-wheel angle and the equivalent steering-wheel turns, so the
+      // numbers map to what you'd actually do in the car.
+      const dlt = deg(gs.delta);
+      const adlt = Math.abs(dlt);
+      const turns = (adlt * (gs.rig.steeringRatio ?? 16)) / 360;
+      const dir = adlt < 0.5 ? "" : dlt > 0 ? " L" : " R";
+      steer.textContent = `tires ${adlt.toFixed(0)}°${dir} · wheel ${turns.toFixed(1)} turns`;
 
       dbg.hidden = !debug;
       if (debug) {

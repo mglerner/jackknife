@@ -17,6 +17,9 @@ export interface Controls {
   setWheelVisual(u: number): void;
   /** Enable/disable the Demo button (no verified solution for some rigs). */
   setDemoEnabled(on: boolean): void;
+  /** Degrees the wheel visually rotates per unit of steer (u=1). Real steering
+   *  ratio in realistic modes; a compact value for the super-beginner sweep. */
+  setWheelRatio(degPerU: number): void;
 }
 
 /** Build the bottom control bar: gear buttons, the bottom-of-wheel widget, toggles. */
@@ -99,6 +102,9 @@ export function createControls(parent: HTMLElement, h: ControlHandlers): Control
       demoBtn.disabled = !on;
       demoBtn.classList.toggle("is-disabled", !on);
       demoBtn.textContent = on ? "Demo" : "Demo (n/a)";
+    },
+    setWheelRatio(degPerU: number) {
+      wheel.style.setProperty("--wheel-deg", String(degPerU));
     },
   };
 }

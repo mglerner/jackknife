@@ -126,6 +126,15 @@ const controls = createControls(app, {
   },
 });
 controls.setDemoEnabled(solution !== undefined);
+controls.setWheelRatio(wheelDegPerU(game));
+
+/** Degrees the on-screen wheel rotates at full lock (u=1): the rig's real steering
+ *  ratio in realistic modes, a compact sweep for the super-beginner mode. */
+function wheelDegPerU(g: typeof game): number {
+  if (!g.difficulty.realisticWheel) return 140;
+  const maxSteerDeg = (g.rig.maxSteer * 180) / Math.PI;
+  return maxSteerDeg * (g.rig.steeringRatio ?? 16);
+}
 
 // Audio. iOS only starts the AudioContext from a user gesture, so resume on the
 // first tap anywhere.
@@ -197,6 +206,7 @@ function applyChoice(rigId: string, diffId: string, scenarioId: string = game.sc
   // Verified demo solutions are keyed by rig + scenario; Demo enables only when one exists.
   solution = SOLUTIONS[`${rig.id}/${game.scenario.id}`];
   controls.setDemoEnabled(solution !== undefined);
+  controls.setWheelRatio(wheelDegPerU(game));
   mirrors = diff.mirrorsDefault;
   won = false;
   demoActive = false;
