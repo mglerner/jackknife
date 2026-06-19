@@ -129,6 +129,33 @@ function resize(): void {
 }
 window.addEventListener("resize", resize);
 
+// Pinch to zoom the top-down view.
+const pinchPointers = new Map<number, { x: number; y: number }>();
+let pinchDist = 0;
+function currentPinchDist(): number {
+  const pts = [...pinchPointers.values()];
+  return pts.length === 2 ? Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y) : 0;
+}
+canvas.addEventListener("pointerdown", (e) => {
+  pinchPointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+  if (pinchPointers.size === 2) pinchDist = currentPinchDist();
+});
+canvas.addEventListener("pointermove", (e) => {
+  if (!pinchPointers.has(e.pointerId)) return;
+  pinchPointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+  if (pinchPointers.size === 2) {
+    const d = currentPinchDist();
+    if (pinchDist > 0 && view === "topdown") renderer3d.nudgeTopZoom(d / pinchDist);
+    pinchDist = d;
+  }
+});
+const endPinch = (e: PointerEvent): void => {
+  pinchPointers.delete(e.pointerId);
+  pinchDist = 0;
+};
+canvas.addEventListener("pointerup", endPinch);
+canvas.addEventListener("pointercancel", endPinch);
+
 function checkWin(): void {
   if (won) return;
   if (isTrailerInTarget(game) && Math.abs(commandedSpeed(game)) < 1e-3) {

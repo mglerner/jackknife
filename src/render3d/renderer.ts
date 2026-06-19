@@ -21,6 +21,8 @@ export interface Renderer3D {
   render(gs: GameState, view: ViewMode, opts: RenderOptions): void;
   resize(wCss: number, hCss: number, dpr: number): void;
   setCarStyle(style: CarStyle): void;
+  /** Multiply the top-down zoom (pinch). Clamped to a sensible range. */
+  nudgeTopZoom(factor: number): void;
 }
 
 interface MirrorSpec {
@@ -124,6 +126,7 @@ export function createRenderer3d(canvas: HTMLCanvasElement, gs: GameState): Rend
   // Meters shown along the screen's LONG axis. Follows the action rather than
   // trying to frame the entire (wide) street, so it fills a portrait screen.
   const TOP_VIEW_M = 34;
+  let topZoom = 1; // 1 = default framing; >1 zooms in, <1 out (pinch-controlled)
   // A gentle tilt off straight-down so the 3D depth reads, while the maneuver
   // geometry stays clear (looking slightly from the south toward the driveway).
   const TILT = 0.42; // rad (~24 deg from vertical)
@@ -133,13 +136,14 @@ export function createRenderer3d(canvas: HTMLCanvasElement, gs: GameState): Rend
     const fx = (g.physics.x + t.x) / 2; // focus between the rig and the target
     const fy = (g.physics.y + t.y) / 2;
     const aspect = W / Hc;
+    const viewM = TOP_VIEW_M / topZoom;
     let hw: number;
     let hh: number;
     if (aspect >= 1) {
-      hw = TOP_VIEW_M / 2;
+      hw = viewM / 2;
       hh = hw / aspect;
     } else {
-      hh = TOP_VIEW_M / 2;
+      hh = viewM / 2;
       hw = hh * aspect;
     }
     // Tilt foreshortens the ground vertically; widen the frustum to compensate.
@@ -256,5 +260,12 @@ export function createRenderer3d(canvas: HTMLCanvasElement, gs: GameState): Rend
     if (opts.mirrors) renderMirrors(g);
   }
 
-  return { render, resize, setCarStyle: (style: CarStyle) => rig.setCarStyle(style) };
+  return {
+    render,
+    resize,
+    setCarStyle: (style: CarStyle) => rig.setCarStyle(style),
+    nudgeTopZoom: (f: number) => {
+      topZoom = Math.max(0.5, Math.min(2.6, topZoom * f));
+    },
+  };
 }
