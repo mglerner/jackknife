@@ -22,6 +22,7 @@ import { coachingMessage } from "./ui/coach";
 import { applyManeuverAt, maneuverDuration } from "./game/autopilot";
 import { SOLUTIONS } from "./game/solutions";
 import { createSfx } from "./audio/sfx";
+import { recordBest, loadProgress } from "./game/persistence";
 
 const app = document.querySelector<HTMLDivElement>("#app")!;
 app.innerHTML = "";
@@ -133,9 +134,14 @@ function checkWin(): void {
   if (isTrailerInTarget(game) && Math.abs(commandedSpeed(game)) < 1e-3) {
     won = true;
     const result = defaultScorer.scoreAttempt(game);
+    const score = Math.round(result.score);
+    const prevBest = loadProgress().bestScores[game.scenario.id];
+    const best = recordBest(game.scenario.id, score).bestScores[game.scenario.id];
+    const isNewBest = prevBest === undefined || score > prevBest;
     banner.innerHTML =
       '<div class="title">Parked!</div>' +
-      `<div class="score">Score ${Math.round(result.score)}</div>` +
+      `<div class="score">Score ${score}</div>` +
+      `<div class="best">${isNewBest ? "New best!" : `Best ${best}`}</div>` +
       `<div class="sub">${result.summary}</div>` +
       '<div class="row">' +
       '<button id="look">Keep looking</button>' +

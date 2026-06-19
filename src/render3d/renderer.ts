@@ -6,6 +6,7 @@ import { commandedSpeed } from "../game/loop";
 import type { GameState } from "../game/state";
 import { worldToThree } from "./coords";
 import { buildWorld } from "./world";
+import { createParticles } from "./particles";
 import { buildRig, type RigView, type CarStyle } from "./rig";
 
 export type ViewMode = "topdown" | "backupcam";
@@ -57,6 +58,11 @@ export function createRenderer3d(canvas: HTMLCanvasElement, gs: GameState): Rend
   scene.add(buildWorld(gs));
   const rig: RigView = buildRig(gs);
   scene.add(rig.group);
+
+  // Particle juice: dust at the wheels when moving, exhaust at the tailpipe.
+  const particles = createParticles(scene);
+  let lastT = performance.now();
+  let exhaustAcc = 0;
 
   // Mirrored cameras flip winding; make every material double-sided so nothing
   // disappears in the backup-cam / mirror views.
@@ -211,8 +217,32 @@ export function createRenderer3d(canvas: HTMLCanvasElement, gs: GameState): Rend
   }
 
   function render(g: GameState, view: ViewMode, opts: RenderOptions): void {
-    rig.update(g, derive(g.physics, g.rig, { v: commandedSpeed(g), delta: g.delta }));
+    const der = derive(g.physics, g.rig, { v: commandedSpeed(g), delta: g.delta });
+    rig.update(g, der);
     updateGhost(g, opts);
+
+    // Particles: kick up dust at the trailer and tow-vehicle wheels while moving,
+    // and puff exhaust from the tailpipe.
+    const now = performance.now();
+    const dt = Math.min(0.05, (now - lastT) / 1000);
+    lastT = now;
+    const asp = Math.abs(commandedSpeed(g));
+    if (asp > 0.12) {
+      const inten = Math.min(1, asp / 1.5);
+      const ta = worldToThree(der.trailerAxle, 0);
+      particles.wheelDust(ta.x, ta.z, inten * 0.7);
+      const ca = worldToThree(g.physics, 0);
+      particles.wheelDust(ca.x, ca.z, inten);
+      exhaustAcc += dt;
+      if (exhaustAcc > 0.22) {
+        exhaustAcc = 0;
+        const rx = g.physics.x - Math.cos(g.physics.carHeading);
+        const ry = g.physics.y - Math.sin(g.physics.carHeading);
+        const ex = worldToThree({ x: rx, y: ry }, 0);
+        particles.exhaust(ex.x, ex.z, 0.45);
+      }
+    }
+    particles.update(dt);
 
     renderer.setScissorTest(false);
     renderer.setViewport(0, 0, W, Hc);

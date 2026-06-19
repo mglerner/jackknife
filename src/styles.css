@@ -187,6 +187,12 @@ body {
   color: var(--good);
   margin-top: 4px;
 }
+#banner .best {
+  font-size: 13px;
+  color: var(--accent);
+  font-weight: 700;
+  margin-top: 2px;
+}
 #banner .sub {
   color: var(--muted);
   font-size: 13px;
