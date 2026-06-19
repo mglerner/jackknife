@@ -798,19 +798,19 @@ function buildSuv(gs: GameState): THREE.Group {
   // Near-black gloss for the contrast roof / floating-roof cap (a strong, clean
   // two-tone read in the primary top-down camera).
   const roofMat = new THREE.MeshPhysicalMaterial({
-    color: 0x14161a,
-    roughness: 0.22,
+    color: 0x33373d, // lighter graphite roof so the top-down is not a black slab
+    roughness: 0.3,
     metalness: 0.4,
     envMapIntensity: 1.2,
     clearcoat: 0.9,
     clearcoatRoughness: 0.1,
   });
   const glassMat = new THREE.MeshStandardMaterial({
-    color: 0x1b2530, // tinted glass: dark but with a cool blue cast so it reads as glazing
-    roughness: 0.06,
+    color: 0x2c3a48, // tinted glazing, lifted off pure black with a cool blue cast
+    roughness: 0.08,
     metalness: 0.6,
     transparent: true,
-    opacity: 0.82,
+    opacity: 0.7,
   });
   const trimMat = new THREE.MeshStandardMaterial({
     color: 0x0d0f12,
@@ -857,7 +857,7 @@ function buildSuv(gs: GameState): THREE.Group {
   // that fills the track (wheels tuck under flush, not poking out), then a low
   // flat greenhouse sitting just inboard, then a near-flat floating dark roof.
   // Overall height ~1.6 m. The body is the dominant mass; the cabin is short.
-  const lowerH = 0.66; // tall main body so the beltline sits high and the cabin is shallow
+  const lowerH = 0.52; // lower main body so the car sits low and wide, not jeep-tall
   const lowerY = wheelRadius + 0.02 + lowerH / 2;
   const lowerTopY = lowerY + lowerH / 2;
 
@@ -929,10 +929,10 @@ function buildSuv(gs: GameState): THREE.Group {
   const greenhouseLen = ghFrontX - ghBackX;
   const greenhouseCenterX = (ghFrontX + ghBackX) / 2;
   const ghBaseY = lowerTopY - 0.05;
-  const ghH = 0.36; // shallow cabin: a low glass band, not a tall box
+  const ghH = 0.26; // very shallow cabin: a low sleek glass band, not a tall box
   const roofY = ghBaseY + ghH;
   // Cabin sits clearly INBOARD of the wide flanks (tumblehome + floating roof).
-  const ghHalfW = carWidth * 0.38;
+  const ghHalfW = carWidth * 0.34;
 
   // Side glass: a flat, mostly upright slab per side with a little tumblehome.
   const sideGlassLen = greenhouseLen - 0.46;
@@ -970,18 +970,22 @@ function buildSuv(gs: GameState): THREE.Group {
   // "floating roof" read from straight overhead while staying low and integrated.
   const roofLen = wsTopX - (ghBackX + 0.05);
   const roofX = (wsTopX + ghBackX) / 2;
-  const roof = roundedBox(roofLen, 0.1, ghHalfW * 2 + 0.08, 0.07, roofMat, true, 5);
+  // Narrow + slightly shorter dark roof so a generous band of GREEN body shows
+  // on both sides and front/rear from straight overhead (not a black slab).
+  const roofW = ghHalfW * 2 - 0.06;
+  const roof = roundedBox(roofLen * 0.94, 0.09, roofW, 0.06, roofMat, true, 5);
   roof.position.set(roofX, roofY - 0.02, 0);
   roof.rotation.z = 0.012; // a whisper of rear taper
   g.add(roof);
   // Small kicked-up spoiler at the top of the near-vertical hatch.
-  const spoiler = box(0.13, 0.05, ghHalfW * 2 - 0.02, roofMat);
-  spoiler.position.set(ghBackX + 0.02, roofY + 0.02, 0);
+  const spoiler = box(0.12, 0.04, roofW, roofMat);
+  spoiler.position.set(ghBackX + 0.02, roofY + 0.0, 0);
   g.add(spoiler);
-  // A long glass sunroof panel inset down the center of the roof: a clean dark
-  // glossy strip that breaks up the lid and reads as the Ioniq's big glass roof.
-  const sunroof = box(roofLen * 0.78, 0.02, ghHalfW * 1.1, glassMat, false);
-  sunroof.position.set(roofX, roofY + 0.04, 0);
+  // A modest glass roof panel inset into the FRONT of the lid (the real Ioniq 5
+  // has a moderate glass panel, not a full black roof). Kept narrow and short so
+  // the surrounding roof + body still read predominantly as paint from above.
+  const sunroof = box(roofLen * 0.5, 0.02, roofW * 0.66, glassMat, false);
+  sunroof.position.set(roofX - roofLen * 0.06, roofY + 0.03, 0);
   g.add(sunroof);
 
   // --- Black gloss B/C pillars + bright window surround (clean modern frame) ---
@@ -1141,8 +1145,12 @@ function buildSuv(gs: GameState): THREE.Group {
     wheelWidth + 0.06,
     16,
   );
-  // Aero spokes: a ring of thin angled blades cut into the alloy face.
-  const bladeGeo = new THREE.BoxGeometry(wheelRadius * 1.5, 0.07, 0.05);
+  // Aero spokes: short thin radial blades CONFINED to the outward alloy face.
+  // Their length (local X) is < the face radius so they never reach across the
+  // hub or poke past the tire; they lie flat in the wheel's vertical XY face
+  // plane (no lateral tip), so they read as a clean turbine disc, not bars.
+  const spokeLen = wheelRadius * 0.5; // stays well inside the bright face radius
+  const bladeGeo = new THREE.BoxGeometry(spokeLen, 0.06, 0.02);
   for (const axleX of [W, 0]) {
     // Front wheels (axleX === W) steer: tag their meshes so rig.update yaws them.
     const t = (m: THREE.Object3D): THREE.Object3D => (axleX === W ? steerWheel(m) : m);
@@ -1166,12 +1174,23 @@ function buildSuv(gs: GameState): THREE.Group {
       face.position.set(axleX, wheelRadius, faceZ);
       g.add(t(face));
 
-      // Dark turbine cut-outs across the face (clean aero-alloy look).
-      for (let s = 0; s < 6; s++) {
+      // Dark turbine cut-outs SET INTO the face: short radial spokes laid flat in
+      // the wheel's vertical XY plane (no lateral tip), each pushed outward from
+      // the hub so it sits between the centre cap and the rim lip, fully within
+      // the bright disc. The face is at faceZ; the spokes sit a hair proud of it.
+      const spokeZ = faceZ + Math.sign(side) * 0.011;
+      const spokeMid = wheelRadius * 0.5; // mid-radius of each spoke
+      const nSpokes = 8;
+      for (let s = 0; s < nSpokes; s++) {
+        const a = (s * 2 * Math.PI) / nSpokes + 0.2;
         const blade = new THREE.Mesh(bladeGeo, rimDarkMat);
-        blade.rotation.x = WHEEL_LATERAL;
-        blade.rotation.z = (s * Math.PI) / 6 + 0.18;
-        blade.position.set(axleX, wheelRadius, faceZ + Math.sign(side) * 0.012);
+        blade.rotation.z = a;
+        // Offset along the spoke's own (rotated) radial direction.
+        blade.position.set(
+          axleX + spokeMid * Math.cos(a),
+          wheelRadius + spokeMid * Math.sin(a),
+          spokeZ,
+        );
         g.add(t(blade));
       }
       const cap = new THREE.Mesh(capGeo, rimMat);
