@@ -326,6 +326,30 @@ function buildCar(gs: GameState): THREE.Group {
     }
   }
 
+  // --- Black gloss rear-quarter glass: the Odyssey's signature wraparound dark
+  // panel at the D-pillar that makes the greenhouse look like it floats. ---
+  const quarterMat = new THREE.MeshStandardMaterial({
+    color: 0x0b0d10,
+    roughness: 0.12,
+    metalness: 0.5,
+  });
+  for (const sign of [1, -1]) {
+    const q = box(
+      greenhouseLen * 0.27,
+      (ghFrontH + ghRearH) / 2 - 0.02,
+      0.04,
+      quarterMat,
+      false,
+    );
+    q.position.set(
+      ghBackX + greenhouseLen * 0.135,
+      ghBaseY + (ghFrontH + ghRearH) / 4 + 0.04,
+      sign * (ghHalfBaseW + 0.03),
+    );
+    q.rotation.x = sign * 0.13;
+    g.add(q);
+  }
+
   // --- Bumpers (body color), front and rear ---
   const bumperH = 0.26;
   const bumperY = wheelRadius + bumperH / 2 - 0.01;
