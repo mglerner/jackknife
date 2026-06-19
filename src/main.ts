@@ -348,9 +348,15 @@ function frame(t: number): void {
 
   hud.update(game, debug);
   const d = derive(game.physics, game.rig, { v: commandedSpeed(game), delta: game.delta });
-  coach.textContent = demoActive
-    ? "Demo: easing back and steering toward the driveway. Watch the trailer follow the wheel."
-    : coachingMessage(game, d);
+  // Coaching is an aid: Expert (showCoaching false) hides it, but the Demo always
+  // narrates.
+  const showCoach = demoActive || game.difficulty.showCoaching;
+  coach.hidden = !showCoach;
+  if (showCoach) {
+    coach.textContent = demoActive
+      ? "Demo: easing back and steering toward the driveway. Watch the trailer follow the wheel."
+      : coachingMessage(game, d);
+  }
   pull.hidden = !(d.jackknifeState === "recoverable" || d.jackknifeState === "contact");
   contact.hidden = !game.session.collidingNow;
 
