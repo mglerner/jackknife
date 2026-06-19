@@ -3,6 +3,7 @@ import { createGame, setGear, setThrottle, setTargetDelta, type GameState } from
 import { steerFromBottomWheel } from "../input/bottomWheel";
 import { isTrailerInTarget, trailerTargetError, wrapAngle } from "../scoring/types";
 import { derive } from "../core/physics";
+import { computeCriticalGamma } from "../core/jackknife";
 import { clamp } from "../core/vec";
 import type { Rig } from "../core/types";
 import type { Scenario } from "../scenarios/types";
@@ -171,6 +172,86 @@ export function simulateFeedback(
     }
   }
   return { gs, parked: isTrailerInTarget(gs), seconds: maxSeconds };
+}
+
+// =============================================================================
+// Backing controller WITH pull-forward recovery. Backs toward the target under
+// the feedback law; when the articulation nears jackknife it pulls forward to
+// straighten, then resumes backing. This is the human technique, and it can solve
+// a 90 degree back-in from a straight street start (which open-loop cannot).
+// =============================================================================
+
+export interface BackingCtrl {
+  mode: "back" | "pull";
+  pullFrames: number;
+  pulls: number;
+}
+export const newBackingCtrl = (): BackingCtrl => ({ mode: "back", pullFrames: 0, pulls: 0 });
+
+/** Decide gear+steer for the next step, updating the controller state in place. */
+export function backingStep(
+  gs: GameState,
+  ctrl: BackingCtrl,
+  gains: Gains,
+  crit: number,
+): GameState {
+  const gamma = gs.physics.trailerHeading - gs.physics.carHeading;
+  const absG = Math.abs(gamma);
+  if (ctrl.mode === "back" && absG > 0.82 * crit) {
+    ctrl.mode = "pull";
+    ctrl.pullFrames = 0;
+    ctrl.pulls += 1;
+  } else if (ctrl.mode === "pull") {
+    ctrl.pullFrames += 1;
+    if (absG < 0.22 * crit || ctrl.pullFrames > 150) ctrl.mode = "back";
+  }
+
+  if (ctrl.mode === "back") {
+    const u = backingSteer(gs, gains);
+    return setThrottle(setTargetDelta(setGear(gs, "reverse"), steerFromBottomWheel(u, gs.rig.maxSteer)), 1);
+  }
+  // Pull forward, steering to unbend the rig (drive gamma toward zero).
+  const u = clamp(3 * gamma, -1, 1);
+  return setThrottle(setTargetDelta(setGear(gs, "forward"), steerFromBottomWheel(u, gs.rig.maxSteer)), 1);
+}
+
+export interface ControllerResult {
+  gs: GameState;
+  parked: boolean;
+  pulls: number;
+  seconds: number;
+  wallContacts: number;
+  maxAbsGamma: number;
+}
+
+/** Run the backing controller from `start` to parked or timeout. */
+export function simulateController(
+  rig: Rig,
+  scenario: Scenario,
+  difficulty: DifficultyConfig,
+  start: StartPose,
+  gains: Gains,
+  maxSeconds = 45,
+  frameDt = 1 / 60,
+): ControllerResult {
+  let gs = createGame(rig, scenario, difficulty);
+  gs = { ...gs, physics: { ...start } };
+  const crit = computeCriticalGamma(rig);
+  const ctrl = newBackingCtrl();
+  const frames = Math.round(maxSeconds / frameDt);
+  let held = 0;
+  for (let i = 0; i < frames; i++) {
+    gs = backingStep(gs, ctrl, gains, crit);
+    gs = advance(gs, frameDt);
+    if (isTrailerInTarget(gs)) {
+      if (++held > 20) {
+        return { gs, parked: true, pulls: ctrl.pulls, seconds: i * frameDt, wallContacts: gs.session.wallContacts, maxAbsGamma: gs.session.maxAbsGamma };
+      }
+    } else {
+      held = 0;
+    }
+  }
+  return { gs, parked: isTrailerInTarget(gs), pulls: ctrl.pulls, seconds: maxSeconds, wallContacts: gs.session.wallContacts, maxAbsGamma: gs.session.maxAbsGamma };
 }
 
 export function evaluateManeuver(
