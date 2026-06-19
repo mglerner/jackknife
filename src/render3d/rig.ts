@@ -579,7 +579,10 @@ function buildTrailer(gs: GameState): THREE.Group {
 function buildCargoTrailer(gs: GameState): THREE.Group {
   const g = buildUtilityTrailer(gs); // chassis + wheels + tongue; deck cargo is hidden inside
   const { D, trailerWidth, trailerRearOverhang } = gs.rig;
-  const deckFront = D;
+  // Inset the box front 0.4 m behind the coupler (a tongue/V-nose gap). This puts the
+  // box's front WALL just behind the backup camera + rear-view mirror, so they see a
+  // solid trailer wall (you are blocked, and you can see why) instead of the interior.
+  const deckFront = D - 0.4;
   const deckBack = -trailerRearOverhang;
   const len = deckFront - deckBack;
   const cx = (deckFront + deckBack) / 2;

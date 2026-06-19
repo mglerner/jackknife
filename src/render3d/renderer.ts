@@ -438,10 +438,8 @@ export function createRenderer3d(canvas: HTMLCanvasElement, gs: GameState): Rend
       [margin, sideY, sideW, sideH, 0], // left side mirror
       [margin + sideW + margin, sideY, sideW, sideH, 2], // right side mirror
     ];
-    const blockRear = g.rig.loadBlocksCamera; // tall load blocks the rear-view (center) panel
     renderer.setScissorTest(true);
     panels.forEach(([vx, vy, w, h, si]) => {
-      if (si === 1 && blockRear) return; // rear-view blocked by the load; panel stays dark
       renderer.setViewport(vx, vy, w, h);
       renderer.setScissor(vx, vy, w, h);
       aimMirrorCam(mirrorCams[si], g, specs[si], w / h);
@@ -530,11 +528,6 @@ export function createRenderer3d(canvas: HTMLCanvasElement, gs: GameState): Rend
         scene.fog = null; // fog would uniformly wash the far-up ortho top-down
         aimTopCam(g);
         renderer.render(scene, topCam);
-      } else if (g.rig.loadBlocksCamera) {
-        // A tall/enclosed load blocks the backup camera: show a clean dark panel (the
-        // on-screen notice explains it). The side-mirror strip below still sees past it.
-        renderer.setClearColor(0x0e0f12, 1);
-        renderer.clear();
       } else {
         scene.fog = depthFog; // perspective FPV: fade distant scene into the sky for depth
         aimBackCam(g);
