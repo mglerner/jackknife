@@ -767,29 +767,42 @@ function buildSuv(gs: GameState): THREE.Group {
   const halfW = carWidth / 2;
 
   // --- Materials (shared across this car) ---
-  // Glossy clearcoat paint like the minivan, but a pale warm "sand" two-tone.
+  // Glossy clearcoat paint like the minivan, but a cool pale grey-green so the
+  // Ioniq reads as a fresh modern EV. Clearcoat gives a crisp top-down highlight.
   const bodyMat = new THREE.MeshPhysicalMaterial({
-    color: 0xc9c4b4, // pale sand / grey-beige (Ioniq 5 "Digital Teal" alt: light sand)
-    roughness: 0.16,
-    metalness: 0.5,
-    envMapIntensity: 1.3,
+    color: 0xd4d9d0, // pale cool grey-green ("Bio Mineral" / shy mint)
+    roughness: 0.14,
+    metalness: 0.52,
+    envMapIntensity: 1.4,
     clearcoat: 1.0,
-    clearcoatRoughness: 0.06,
+    clearcoatRoughness: 0.05,
   });
+  // Matte dark anthracite for the lower cladding and wheel arches (clear contrast
+  // against the pale body, so the two-tone reads from straight overhead).
   const claddingMat = new THREE.MeshStandardMaterial({
-    color: 0x2c2f33, // dark grey lower body cladding
-    roughness: 0.78,
-    metalness: 0.15,
+    color: 0x26282c, // dark anthracite lower body cladding
+    roughness: 0.82,
+    metalness: 0.12,
+  });
+  // Near-black gloss for the contrast roof / floating-roof cap (a strong, clean
+  // two-tone read in the primary top-down camera).
+  const roofMat = new THREE.MeshPhysicalMaterial({
+    color: 0x14161a,
+    roughness: 0.22,
+    metalness: 0.4,
+    envMapIntensity: 1.2,
+    clearcoat: 0.9,
+    clearcoatRoughness: 0.1,
   });
   const glassMat = new THREE.MeshStandardMaterial({
-    color: 0x171c22,
-    roughness: 0.1,
-    metalness: 0.4,
+    color: 0x1b2530, // tinted glass: dark but with a cool blue cast so it reads as glazing
+    roughness: 0.06,
+    metalness: 0.6,
     transparent: true,
-    opacity: 0.84,
+    opacity: 0.82,
   });
   const trimMat = new THREE.MeshStandardMaterial({
-    color: 0x101216,
+    color: 0x0d0f12,
     roughness: 0.4,
     metalness: 0.4,
   });
@@ -798,54 +811,91 @@ function buildSuv(gs: GameState): THREE.Group {
     roughness: 0.92,
     metalness: 0.05,
   });
+  // Bright machined-alloy face for the aero wheels.
   const rimMat = new THREE.MeshStandardMaterial({
-    color: 0xc2c6cb,
-    roughness: 0.28,
-    metalness: 0.92,
+    color: 0xcdd1d6,
+    roughness: 0.24,
+    metalness: 0.95,
   });
-  // Emissive "pixel" lights (cool white front, red rear).
+  // Dark spoke-gap material so the alloy face reads as cut-outs over a dark dish.
+  const rimDarkMat = new THREE.MeshStandardMaterial({
+    color: 0x202327,
+    roughness: 0.6,
+    metalness: 0.4,
+  });
+  // Emissive "Parametric Pixel" lights (cool white front, red rear). Punchy
+  // emissive so the little squares clearly glow in both views.
   const pixelMat = new THREE.MeshStandardMaterial({
-    color: 0xeaf1ff,
-    emissive: 0xc6dbff,
-    emissiveIntensity: 0.9,
-    roughness: 0.2,
+    color: 0xf2f6ff,
+    emissive: 0xbfd6ff,
+    emissiveIntensity: 1.6,
+    roughness: 0.18,
     metalness: 0.1,
   });
   const tailPixelMat = new THREE.MeshStandardMaterial({
-    color: 0xe23226,
-    emissive: 0xc01408,
-    emissiveIntensity: 1.0,
-    roughness: 0.25,
+    color: 0xf03224,
+    emissive: 0xd61608,
+    emissiveIntensity: 1.7,
+    roughness: 0.22,
   });
 
-  const wheelRadius = 0.4; // big 20" wheels relative to a low body
-  const wheelWidth = 0.26;
+  const wheelRadius = 0.42; // big 20" wheels relative to a low body
+  const wheelWidth = 0.27;
 
   // The Ioniq 5 sits lower than a truck but has a tall-ish, very flat body. A
   // single clean lower mass, then a low flat greenhouse, then a flat roof.
-  const lowerH = 0.7;
+  const lowerH = 0.72;
   const lowerY = wheelRadius + 0.05 + lowerH / 2;
   const lowerTopY = lowerY + lowerH / 2;
 
-  // --- Lower body: a clean rounded slab, nearly full length, short overhangs ---
-  const bodyLen = carLength - 0.1;
-  const body = roundedBox(bodyLen, lowerH, carWidth, 0.22, bodyMat, true, 5);
+  // --- Lower body: a clean rounded slab, nearly full length, short overhangs.
+  // A touch more corner radius than before so it never reads as a hard box from
+  // straight overhead (the Ioniq is angular yet smooth).
+  const bodyLen = carLength - 0.08;
+  const body = roundedBox(bodyLen, lowerH, carWidth, 0.3, bodyMat, true, 6);
   body.position.set(bodyCenterX, lowerY, 0);
   g.add(body);
 
-  // Dark cladding wrapping the whole lower edge (rocker + bumper valances).
-  const cladH = 0.2;
-  const cladding = roundedBox(carLength - 0.04, cladH, carWidth + 0.03, 0.06, claddingMat);
+  // A crisp body-side character line (the Ioniq's signature pressed crease)
+  // running fore-aft along each flank, just below the beltline.
+  for (const sign of [1, -1]) {
+    const crease = box(bodyLen * 0.82, 0.04, 0.04, claddingMat, false);
+    crease.position.set(bodyCenterX, lowerY + 0.04, sign * (halfW + 0.005));
+    g.add(crease);
+  }
+  // Flush door-handle cues: two small dark recessed slots on each flank at the
+  // beltline (the Ioniq's pop-out handles sit flush in the door skin).
+  const handleMat = trimMat;
+  for (const sign of [1, -1]) {
+    for (const hx of [bodyCenterX + bodyLen * 0.12, bodyCenterX - bodyLen * 0.12]) {
+      const handle = box(0.16, 0.035, 0.025, handleMat, false);
+      handle.position.set(hx, lowerY + lowerH * 0.28, sign * (halfW + 0.01));
+      g.add(handle);
+    }
+  }
+
+  // Dark cladding wrapping the whole lower edge (rocker + bumper valances). A
+  // little taller so the dark/pale two-tone reads clearly from above.
+  const cladH = 0.24;
+  const cladding = roundedBox(carLength - 0.02, cladH, carWidth + 0.04, 0.07, claddingMat);
   cladding.position.set(bodyCenterX, wheelRadius + 0.05 + cladH / 2 - 0.02, 0);
   g.add(cladding);
 
   // Short flat clamshell hood; the EV nose is very short and nearly horizontal.
   const ghFrontX = front - carLength * 0.2; // base of the steeply raked A-pillar
   const hoodLen = front - 0.08 - ghFrontX;
+  const hoodX = (front - 0.08 + ghFrontX) / 2;
   const hood = roundedBox(hoodLen, 0.14, carWidth * 0.86, 0.06, bodyMat);
-  hood.position.set((front - 0.08 + ghFrontX) / 2, lowerTopY - 0.06, 0);
+  hood.position.set(hoodX, lowerTopY - 0.06, 0);
   hood.rotation.z = -0.03; // almost flat
   g.add(hood);
+  // Clamshell hood shut-lines: two fore-aft seams framing the hood from above.
+  for (const sign of [1, -1]) {
+    const seam = box(hoodLen * 0.92, 0.02, 0.02, trimMat, false);
+    seam.position.set(hoodX, lowerTopY + 0.005, sign * carWidth * 0.34);
+    seam.rotation.z = -0.03;
+    g.add(seam);
+  }
 
   // ===========================================================================
   // GREENHOUSE: a low, long, nearly-flat cabin. Flat roof; A-pillar raked, the
@@ -855,7 +905,7 @@ function buildSuv(gs: GameState): THREE.Group {
   const greenhouseLen = ghFrontX - ghBackX;
   const greenhouseCenterX = (ghFrontX + ghBackX) / 2;
   const ghBaseY = lowerTopY - 0.04;
-  const ghH = 0.5; // a low, flat cabin
+  const ghH = 0.52; // a low, flat cabin
   const roofY = ghBaseY + ghH;
   const ghHalfW = carWidth * 0.42;
 
@@ -889,11 +939,25 @@ function buildSuv(gs: GameState): THREE.Group {
   rearGlass.rotation.z = -0.12;
   g.add(rearGlass);
 
-  // --- FLAT ROOF: a wide, gently rounded clamshell lid (no crown/rails). ---
+  // --- FLAT ROOF: a wide, gently rounded clamshell lid in contrast near-black,
+  // giving the strong two-tone "floating roof" read from straight overhead. ---
   const roofLen = wsTopX - (ghBackX + 0.06);
-  const roof = roundedBox(roofLen, 0.1, carWidth * 0.84, 0.07, bodyMat, true, 4);
-  roof.position.set((wsTopX + ghBackX) / 2, roofY - 0.02, 0);
+  const roofX = (wsTopX + ghBackX) / 2;
+  const roof = roundedBox(roofLen, 0.11, carWidth * 0.84, 0.08, roofMat, true, 5);
+  roof.position.set(roofX, roofY - 0.02, 0);
   g.add(roof);
+  // A long glass sunroof panel inset down the center of the roof: a clean dark
+  // glossy strip that breaks up the lid and reads as the Ioniq's big glass roof.
+  const sunroof = box(roofLen * 0.78, 0.02, carWidth * 0.5, glassMat, false);
+  sunroof.position.set(roofX, roofY + 0.05, 0);
+  g.add(sunroof);
+  // Two bright machined roof-edge rails framing the dark lid from above (the pale
+  // rails against the near-black lid give a crisp two-tone outline overhead).
+  for (const sign of [1, -1]) {
+    const rail = box(roofLen * 0.98, 0.05, 0.06, rimMat, false);
+    rail.position.set(roofX, roofY + 0.035, sign * carWidth * 0.4);
+    g.add(rail);
+  }
 
   // --- Black gloss B/C pillars + bright window surround (clean modern frame) ---
   const surroundMat = new THREE.MeshStandardMaterial({
@@ -910,6 +974,18 @@ function buildSuv(gs: GameState): THREE.Group {
       g.add(post);
     }
   }
+  // Blacked-out A and D pillars so the greenhouse reads as one wraparound glass
+  // band (the clean "black-out pillar" look). Kept just under the roofline so
+  // they never poke up above the lid as little tabs.
+  for (const frac of [0.04, 0.96]) {
+    const px = ghBackX + frac * greenhouseLen;
+    for (const sign of [1, -1]) {
+      const post = box(0.11, ghH - 0.1, 0.055, surroundMat);
+      post.position.set(px, ghBaseY + (ghH - 0.1) / 2, sign * (ghHalfW + 0.012));
+      post.rotation.x = sign * 0.06;
+      g.add(post);
+    }
+  }
   // Bright belt strip along the base of the side windows.
   for (const sign of [1, -1]) {
     const strip = box(sideGlassLen, 0.03, 0.03, rimMat);
@@ -918,7 +994,7 @@ function buildSuv(gs: GameState): THREE.Group {
   }
 
   // --- Bumpers (body color), short and clean ---
-  const bumperH = 0.24;
+  const bumperH = 0.26;
   const bumperY = wheelRadius + bumperH / 2 + 0.0;
   const frontBumper = roundedBox(0.34, bumperH, carWidth * 0.9, 0.1, bodyMat);
   frontBumper.position.set(front - 0.12, bumperY, 0);
@@ -928,35 +1004,70 @@ function buildSuv(gs: GameState): THREE.Group {
   g.add(rearBumperMesh);
 
   // ===========================================================================
-  // PARAMETRIC PIXEL LIGHTS: a grid of small square emissive blocks at each
-  // corner. Front = a horizontal band of cool-white pixels low on the nose;
-  // rear = a full-width band of red pixels across the tailgate.
+  // PARAMETRIC PIXEL LIGHTS: clusters of small square emissive blocks. They sit
+  // in dark recessed housings so the bright pixels pop, and they wrap up onto the
+  // top face of the nose/tail so they also read in the top-down primary camera.
   // ===========================================================================
-  const pixGeo = new THREE.BoxGeometry(0.04, 0.08, 0.08);
-  // Front: two clusters near the corners, riding the top of the nose.
-  const headY = lowerTopY - 0.16;
-  for (const sideC of [halfW - 0.28, -(halfW - 0.28)]) {
+  const pixGeo = new THREE.BoxGeometry(0.06, 0.09, 0.09);
+  const pixStep = 0.12;
+
+  // Front: a dark housing across the upper nose, with two 2x3 pixel clusters at
+  // the corners (cool white). They sit a hair proud of a recessed dark band.
+  const headY = lowerTopY - 0.04;
+  const headHousing = box(0.06, 0.22, carWidth * 0.92, trimMat);
+  headHousing.position.set(front - 0.01, headY - 0.06, 0);
+  g.add(headHousing);
+  for (const sideC of [halfW - 0.26, -(halfW - 0.26)]) {
     for (let r = 0; r < 2; r++) {
       for (let c = 0; c < 3; c++) {
         const px = new THREE.Mesh(pixGeo, pixelMat);
-        px.position.set(front - 0.02, headY - r * 0.1, sideC + (c - 1) * 0.1);
+        px.position.set(front + 0.02, headY - r * pixStep, sideC + (c - 1) * pixStep);
         g.add(px);
       }
     }
   }
-  // Rear: a continuous full-width pixel light bar across the tailgate.
-  const tailY = bumperY + bumperH / 2 + 0.18;
-  const nRear = 11;
+  // Front pixel cue echoed onto the TOP of the nose (the clamshell hood front
+  // edge) so the corners glow in the primary top-down camera too. Sit them proud
+  // of the hood surface at each front top corner.
+  const hoodTopY = lowerTopY - 0.06 + 0.07; // top face of the hood slab
+  for (const sideC of [halfW - 0.22, -(halfW - 0.22)]) {
+    for (let c = 0; c < 3; c++) {
+      const px = new THREE.Mesh(pixGeo, pixelMat);
+      px.position.set(front - 0.14, hoodTopY + 0.04, sideC + (c - 1) * pixStep);
+      g.add(px);
+    }
+  }
+
+  // Rear: a continuous full-width pixel light bar across the tailgate, set into a
+  // dark recessed housing band so the red pixels read as a sharp light strip.
+  const tailY = bumperY + bumperH / 2 + 0.2;
+  const rearBand = box(0.05, 0.18, carWidth * 0.92, trimMat);
+  rearBand.position.set(rearBumper + 0.0, tailY, 0);
+  g.add(rearBand);
+  const nRear = 15;
   for (let i = 0; i < nRear; i++) {
     const px = new THREE.Mesh(pixGeo, tailPixelMat);
-    const z = -carWidth * 0.4 + (i / (nRear - 1)) * carWidth * 0.8;
-    px.position.set(rearBumper + 0.01, tailY, z);
+    const z = -carWidth * 0.42 + (i / (nRear - 1)) * carWidth * 0.84;
+    px.position.set(rearBumper + 0.02, tailY, z);
     g.add(px);
   }
-  // Thin dark housing strip behind the rear pixel bar.
-  const rearBand = box(0.04, 0.14, carWidth * 0.86, trimMat);
-  rearBand.position.set(rearBumper + 0.005, tailY, 0);
-  g.add(rearBand);
+  // Two stacked red rows for a chunkier "pixel bar" read.
+  for (const dy of [0.1, -0.1]) {
+    for (let i = 0; i < nRear; i += 2) {
+      const px = new THREE.Mesh(pixGeo, tailPixelMat);
+      const z = -carWidth * 0.42 + (i / (nRear - 1)) * carWidth * 0.84;
+      px.position.set(rearBumper + 0.02, tailY + dy, z);
+      g.add(px);
+    }
+  }
+  // Rear pixel cue echoed onto the TOP of the tail (top of the tailgate) so the
+  // full-width red bar also glows in the top-down camera.
+  for (let i = 0; i < nRear; i++) {
+    const px = new THREE.Mesh(pixGeo, tailPixelMat);
+    const z = -carWidth * 0.42 + (i / (nRear - 1)) * carWidth * 0.84;
+    px.position.set(rearBumper + 0.12, lowerTopY + 0.05, z);
+    g.add(px);
+  }
 
   // --- Closed grille-less nose panel with a subtle sensor strip ---
   const nosePanel = box(0.05, 0.16, carWidth * 0.5, trimMat);
@@ -980,20 +1091,28 @@ function buildSuv(gs: GameState): THREE.Group {
   // --- Wheels with SQUARED-OFF (octagonal) black wheel arches ---
   const halfTrack = halfW - wheelWidth / 2 + 0.02;
   const tireGeo = new THREE.CylinderGeometry(wheelRadius, wheelRadius, wheelWidth, 24);
-  const hubGeo = new THREE.CylinderGeometry(
-    wheelRadius * 0.62,
-    wheelRadius * 0.62,
+  // A bright machined alloy DISC face (the Ioniq aero wheels read as a near-solid
+  // turbine face), with a dark recessed ring and a small hub cap.
+  const faceGeo = new THREE.CylinderGeometry(
+    wheelRadius * 0.88,
+    wheelRadius * 0.88,
+    0.04,
+    24,
+  );
+  const dishGeo = new THREE.CylinderGeometry(
+    wheelRadius * 0.66,
+    wheelRadius * 0.66,
     wheelWidth + 0.02,
-    18,
+    20,
   );
   const capGeo = new THREE.CylinderGeometry(
     wheelRadius * 0.2,
     wheelRadius * 0.2,
-    wheelWidth + 0.04,
-    14,
+    wheelWidth + 0.06,
+    16,
   );
-  // Ioniq 5 aero rims read as flat spokes; a few thin spoke bars over a hub.
-  const spokeGeo = new THREE.BoxGeometry(wheelRadius * 1.2, 0.05, wheelWidth + 0.03);
+  // Aero spokes: a ring of thin angled blades cut into the alloy face.
+  const bladeGeo = new THREE.BoxGeometry(wheelRadius * 1.5, 0.07, 0.05);
   for (const axleX of [W, 0]) {
     for (const side of [halfTrack, -halfTrack]) {
       const tire = new THREE.Mesh(tireGeo, tireMat);
@@ -1002,29 +1121,39 @@ function buildSuv(gs: GameState): THREE.Group {
       tire.castShadow = true;
       g.add(tire);
 
-      const hub = new THREE.Mesh(hubGeo, rimMat);
-      hub.rotation.x = WHEEL_LATERAL;
-      hub.position.set(axleX, wheelRadius, side);
-      g.add(hub);
-      for (let s = 0; s < 5; s++) {
-        const spoke = new THREE.Mesh(spokeGeo, rimMat);
-        spoke.rotation.x = WHEEL_LATERAL;
-        spoke.rotation.z = (s * Math.PI) / 5;
-        spoke.position.set(axleX, wheelRadius, side);
-        g.add(spoke);
+      // Dark inner dish so the bright face reads as a thin outboard alloy.
+      const dish = new THREE.Mesh(dishGeo, rimDarkMat);
+      dish.rotation.x = WHEEL_LATERAL;
+      dish.position.set(axleX, wheelRadius, side);
+      g.add(dish);
+
+      // Bright machined face, sitting just outboard of the tire centerline.
+      const faceZ = side + Math.sign(side) * (wheelWidth / 2 + 0.005);
+      const face = new THREE.Mesh(faceGeo, rimMat);
+      face.rotation.x = WHEEL_LATERAL;
+      face.position.set(axleX, wheelRadius, faceZ);
+      g.add(face);
+
+      // Dark turbine cut-outs across the face (clean aero-alloy look).
+      for (let s = 0; s < 6; s++) {
+        const blade = new THREE.Mesh(bladeGeo, rimDarkMat);
+        blade.rotation.x = WHEEL_LATERAL;
+        blade.rotation.z = (s * Math.PI) / 6 + 0.18;
+        blade.position.set(axleX, wheelRadius, faceZ + Math.sign(side) * 0.012);
+        g.add(blade);
       }
-      const cap = new THREE.Mesh(capGeo, trimMat);
+      const cap = new THREE.Mesh(capGeo, rimMat);
       cap.rotation.x = WHEEL_LATERAL;
       cap.position.set(axleX, wheelRadius, side);
       g.add(cap);
 
       // Squared-off arch: build the over-tire trim from short straight cladding
       // segments arranged as a flat-topped (octagonal) arch rather than a curve.
-      const archAngles = [0.18, 0.5, 0.82]; // fractions of PI: near-flat top
+      const archAngles = [0.14, 0.37, 0.63, 0.86]; // four facets: flat-top octagon
       for (const af of archAngles) {
         const a = Math.PI * af;
-        const segLen = wheelRadius * 0.9;
-        const seg = box(segLen, 0.1, wheelWidth + 0.14, claddingMat);
+        const segLen = wheelRadius * 0.74;
+        const seg = box(segLen, 0.11, wheelWidth + 0.16, claddingMat);
         const ar = wheelRadius + 0.12;
         seg.position.set(axleX + ar * Math.cos(a), wheelRadius + ar * Math.sin(a), side);
         seg.rotation.z = a - Math.PI / 2;
@@ -1032,8 +1161,8 @@ function buildSuv(gs: GameState): THREE.Group {
       }
       // Vertical side flares closing the arch down to the cladding.
       for (const sx of [1, -1]) {
-        const flare = box(0.1, 0.34, wheelWidth + 0.14, claddingMat);
-        flare.position.set(axleX + sx * (wheelRadius + 0.06), wheelRadius + 0.06, side);
+        const flare = box(0.11, 0.36, wheelWidth + 0.16, claddingMat);
+        flare.position.set(axleX + sx * (wheelRadius + 0.07), wheelRadius + 0.06, side);
         g.add(flare);
       }
     }
