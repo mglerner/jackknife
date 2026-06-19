@@ -279,6 +279,10 @@ body {
   align-items: center;
   justify-content: center;
   background: radial-gradient(circle at 50% 35%, #2a3340, #0b0f14 75%);
+  transition: opacity 0.35s ease;
+}
+#title.hiding {
+  opacity: 0;
 }
 #title .title-card {
   text-align: center;

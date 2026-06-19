@@ -68,7 +68,10 @@ title.innerHTML =
   "</div>";
 app.appendChild(title);
 title.addEventListener("pointerdown", () => {
-  title.hidden = true;
+  title.classList.add("hiding");
+  window.setTimeout(() => {
+    title.hidden = true;
+  }, 360);
 });
 
 const params = new URLSearchParams(location.search);
