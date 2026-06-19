@@ -415,6 +415,8 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
+  /* Leave room for the notch / home bar so a tall menu never runs off-screen. */
+  padding: max(env(safe-area-inset-top, 0px), 14px) 0 max(env(safe-area-inset-bottom, 0px), 14px);
   background: rgba(0, 0, 0, 0.4);
   backdrop-filter: blur(3px);
   -webkit-backdrop-filter: blur(3px);
@@ -426,6 +428,10 @@ body {
   padding: 20px 22px;
   width: 86%;
   max-width: 360px;
+  /* Cap to the available height and scroll inside if the content is taller. */
+  max-height: 100%;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
   box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
   animation: card-pop 0.24s ease-out;
 }

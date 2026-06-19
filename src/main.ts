@@ -246,8 +246,8 @@ function renderMenu(): void {
     `<div class="menu-row">${btns(Object.values(SCENARIOS), "scenario", game.scenario.id)}</div>` +
     '<div class="menu-label">Steering wheel</div>' +
     '<div class="menu-row">' +
-    `<button data-wheel="realistic" class="${realisticWheel ? "sel" : ""}">Realistic (real ratio)</button>` +
-    `<button data-wheel="simple" class="${!realisticWheel ? "sel" : ""}">Simple (super beginner)</button>` +
+    `<button data-wheel="realistic" class="${realisticWheel ? "sel" : ""}">Realistic</button>` +
+    `<button data-wheel="simple" class="${!realisticWheel ? "sel" : ""}">Simple</button>` +
     "</div>" +
     '<button id="reset-best" class="menu-danger">Reset high scores</button>' +
     '<button id="menu-close">Done</button>' +
