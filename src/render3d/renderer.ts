@@ -10,7 +10,7 @@ import { createParticles } from "./particles";
 import { buildRig, type RigView } from "./rig";
 import { createTrails } from "./trails";
 
-export type ViewMode = "topdown" | "backupcam";
+export type ViewMode = "topdown" | "backupcam" | "mirrors";
 
 export interface RenderOptions {
   mirrors: boolean;
@@ -381,14 +381,19 @@ export function createRenderer3d(canvas: HTMLCanvasElement, gs: GameState): Rend
     mirror(cam);
   }
 
-  function renderMirrors(g: GameState): void {
+  function mirrorSpecs(g: GameState): MirrorSpec[] {
     const halfW = g.rig.carWidth / 2;
-    const specs: MirrorSpec[] = [
+    return [
       { forward: 1.2, lateral: halfW + 0.15, yaw: -0.4, height: 1.1, lookDist: 1, lookY: 0.7 },
       // High "look back over the trailer" view: clears the van body and sees the lit path.
       { forward: -1.4, lateral: 0, yaw: 0, height: 2.7, lookDist: 6, lookY: 0.15 },
       { forward: 1.2, lateral: -(halfW + 0.15), yaw: 0.4, height: 1.1, lookDist: 1, lookY: 0.7 },
     ];
+  }
+
+  // The small strip across the top, shown over the top-down / camera views.
+  function renderMirrors(g: GameState): void {
+    const specs = mirrorSpecs(g);
     const paneW = (W - MIRROR_MARGIN * 4) / 3;
     renderer.setScissorTest(true);
     specs.forEach((s, i) => {
@@ -399,6 +404,31 @@ export function createRenderer3d(canvas: HTMLCanvasElement, gs: GameState): Rend
       renderer.setViewport(vx, vy, paneW, MIRROR_H);
       renderer.setScissor(vx, vy, paneW, MIRROR_H);
       aimMirrorCam(mirrorCams[i], g, s, paneW / MIRROR_H);
+      renderer.render(scene, mirrorCams[i]);
+    });
+    renderer.setScissorTest(false);
+    renderer.setViewport(0, 0, W, Hc);
+  }
+
+  // "Mirrors only" view: the three mirrors filling a large band (no top-down / camera),
+  // so you back the trailer using only what the mirrors show, with a dark cab behind.
+  function renderMirrorsLarge(g: GameState): void {
+    renderer.setScissorTest(false);
+    renderer.setViewport(0, 0, W, Hc);
+    renderer.setClearColor(0x14171c, 1);
+    renderer.clear();
+    const margin = MIRROR_MARGIN * 1.5;
+    const paneW = (W - margin * 4) / 3;
+    const paneH = Hc * 0.4;
+    const topGap = Hc * 0.17; // sit below the coaching line
+    const vy = Hc - (topGap + paneH);
+    const specs = mirrorSpecs(g);
+    renderer.setScissorTest(true);
+    specs.forEach((s, i) => {
+      const vx = margin + i * (paneW + margin);
+      renderer.setViewport(vx, vy, paneW, paneH);
+      renderer.setScissor(vx, vy, paneW, paneH);
+      aimMirrorCam(mirrorCams[i], g, s, paneW / paneH);
       renderer.render(scene, mirrorCams[i]);
     });
     renderer.setScissorTest(false);
@@ -476,18 +506,23 @@ export function createRenderer3d(canvas: HTMLCanvasElement, gs: GameState): Rend
 
     renderer.setScissorTest(false);
     renderer.setViewport(0, 0, W, Hc);
-    if (view === "topdown") {
-      scene.fog = null; // fog would uniformly wash the far-up ortho top-down
-      aimTopCam(g);
-      renderer.render(scene, topCam);
+    if (view === "mirrors") {
+      scene.fog = depthFog; // mirrors-only: large mirror panels, no main view
+      renderMirrorsLarge(g);
     } else {
-      scene.fog = depthFog; // perspective FPV: fade distant scene into the sky for depth
-      aimBackCam(g);
-      renderer.render(scene, backCam);
-    }
-    if (opts.mirrors) {
-      scene.fog = depthFog; // mirrors are perspective too
-      renderMirrors(g);
+      if (view === "topdown") {
+        scene.fog = null; // fog would uniformly wash the far-up ortho top-down
+        aimTopCam(g);
+        renderer.render(scene, topCam);
+      } else {
+        scene.fog = depthFog; // perspective FPV: fade distant scene into the sky for depth
+        aimBackCam(g);
+        renderer.render(scene, backCam);
+      }
+      if (opts.mirrors) {
+        scene.fog = depthFog; // mirrors are perspective too
+        renderMirrors(g);
+      }
     }
     scene.fog = null;
   }

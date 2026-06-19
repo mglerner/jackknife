@@ -26,7 +26,7 @@ import {
   loadProgress,
   clearBestScores,
   setRealisticWheel,
-  setMirrorsOnly,
+  setViewMode,
   setIdealLineOn,
 } from "./game/persistence";
 
@@ -91,7 +91,12 @@ const initRig = RIGS[params.get("rig") ?? ""] ?? DEFAULT_RIG;
 const initDiff = DIFFICULTIES[params.get("difficulty") ?? ""] ?? DEFAULT_DIFFICULTY;
 const initScenario = SCENARIOS[params.get("scenario") ?? ""] ?? DEFAULT_SCENARIO;
 let game = createGame(initRig, initScenario, initDiff);
-let view: ViewMode = "topdown";
+// One View control cycles these three (top-down aid, backup camera, mirrors only).
+const VIEW_ORDER: ViewMode[] = ["topdown", "backupcam", "mirrors"];
+const viewLabel = (v: ViewMode): string =>
+  v === "topdown" ? "View: top-down" : v === "backupcam" ? "View: camera" : "View: mirrors";
+let view: ViewMode = (loadProgress().settings.viewMode as ViewMode) ?? "topdown";
+if (!VIEW_ORDER.includes(view)) view = "topdown";
 let mirrors = initDiff.mirrorsDefault;
 let debug = false;
 let won = false;
@@ -100,9 +105,6 @@ let isDemo = false; // the current attempt is a Demo playback (does not count to
 // On-screen wheel turns at the rig's real steering ratio (default). Off = the
 // simpler compact sweep for super-beginners. Independent of backing difficulty.
 let realisticWheel = loadProgress().settings.realisticWheel ?? true;
-// "Mirrors only" = back up using just the camera + mirrors (no top-down), like real
-// life. When on, the view is forced to the backup-cam and the top-down toggle hides.
-let mirrorsOnly = loadProgress().settings.mirrorsOnly ?? false;
 // Ideal line: trace the verified solution's trailer path. A teaching aid, default on.
 let idealLineOn = loadProgress().settings.idealLine ?? true;
 let demoAcc = 0;
@@ -133,7 +135,9 @@ const controls = createControls(app, {
     game = setThrottle(game, active ? 1 : 0);
   },
   onToggleView: () => {
-    view = view === "topdown" ? "backupcam" : "topdown";
+    view = VIEW_ORDER[(VIEW_ORDER.indexOf(view) + 1) % VIEW_ORDER.length];
+    setViewMode(view);
+    controls.setViewLabel(viewLabel(view));
   },
   onToggleMirrors: () => {
     mirrors = !mirrors;
@@ -158,7 +162,7 @@ const controls = createControls(app, {
 });
 controls.setDemoEnabled(solution !== undefined);
 controls.setWheelRatio(wheelDegPerU(game));
-applyMirrorsOnly();
+controls.setViewLabel(viewLabel(view));
 updateIdealLine();
 
 /** Degrees the on-screen wheel rotates at full lock (u=1): the rig's real steering
@@ -167,17 +171,6 @@ function wheelDegPerU(g: typeof game): number {
   if (!realisticWheel) return 140; // compact super-beginner sweep
   const maxSteerDeg = (g.rig.maxSteer * 180) / Math.PI;
   return maxSteerDeg * (g.rig.steeringRatio ?? 16);
-}
-
-/** Force backup-cam + mirrors and hide the top-down toggle in mirrors-only mode. */
-function applyMirrorsOnly(): void {
-  if (mirrorsOnly) {
-    view = "backupcam";
-    mirrors = true;
-  } else if (view === "backupcam") {
-    view = "topdown";
-  }
-  controls.setViewToggleVisible(!mirrorsOnly);
 }
 
 /** Recompute the ideal-line aid: the verified solution's trailer-axle path (or hide
@@ -270,7 +263,6 @@ function applyChoice(rigId: string, diffId: string, scenarioId: string = game.sc
   demoActive = false;
   isDemo = false;
   banner.hidden = true;
-  applyMirrorsOnly(); // re-assert the view lock (applyChoice reset `mirrors` above)
   updateIdealLine();
 }
 
@@ -349,11 +341,6 @@ function renderMenu(animate = false): void {
       `<button data-wheel="realistic" class="${realisticWheel ? "sel" : ""}">Realistic</button>` +
       `<button data-wheel="simple" class="${!realisticWheel ? "sel" : ""}">Simple</button>` +
       "</div>" +
-      '<div class="menu-label">View</div>' +
-      '<div class="menu-row">' +
-      `<button data-vmode="topdown" class="${!mirrorsOnly ? "sel" : ""}">Top-down</button>` +
-      `<button data-vmode="mirrors" class="${mirrorsOnly ? "sel" : ""}">Mirrors only</button>` +
-      "</div>" +
       '<div class="menu-label">Ideal line</div>' +
       '<div class="menu-row">' +
       `<button data-ideal="on" class="${idealLineOn ? "sel" : ""}">On</button>` +
@@ -412,15 +399,6 @@ function renderMenu(animate = false): void {
       renderMenu();
     }),
   );
-  // View: top-down (with aids) vs mirrors-only (real backing). Persisted; applies live.
-  menu.querySelectorAll<HTMLElement>("[data-vmode]").forEach((b) =>
-    b.addEventListener("pointerdown", () => {
-      mirrorsOnly = b.dataset.vmode === "mirrors";
-      setMirrorsOnly(mirrorsOnly);
-      applyMirrorsOnly();
-      renderMenu();
-    }),
-  );
   // Ideal line: trace the verified solution path (teaching aid). Persisted; live.
   menu.querySelectorAll<HTMLElement>("[data-ideal]").forEach((b) =>
     b.addEventListener("pointerdown", () => {
@@ -473,7 +451,7 @@ help.innerHTML =
   '<ul class="help-list">' +
   "<li><b>Steering wheel</b>: grab it anywhere and turn. The bottom of the wheel leads, so move it the way you want the trailer to go.</li>" +
   "<li><b>Reverse / Forward</b>: hold to drive. Back in slowly and make small inputs.</li>" +
-  "<li><b>View</b>: switch top-down or backup camera. <b>Mirrors</b> toggles the mirror strip.</li>" +
+  "<li><b>View</b>: cycle top-down, backup camera, and mirrors-only. <b>Mirrors</b> toggles the strip on the first two.</li>" +
   "<li><b>Demo</b>: watch a proven solution park it (then try it yourself).</li>" +
   "<li><b>Garage</b>: pick a vehicle and a difficulty.</li>" +
   "<li>Pinch to zoom the top-down view.</li>" +

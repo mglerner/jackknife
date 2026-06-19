@@ -7,7 +7,7 @@ export interface Progress {
     view?: string;
     mirrors?: boolean;
     realisticWheel?: boolean; // on-screen wheel turns at the real steering ratio
-    mirrorsOnly?: boolean; // back up using only the camera + mirrors (no top-down)
+    viewMode?: string; // last view: "topdown" | "backupcam" | "mirrors"
     idealLine?: boolean; // draw the verified solution path as a lane to trace
   };
 }
@@ -60,10 +60,10 @@ export function setRealisticWheel(on: boolean): void {
   saveProgress(p);
 }
 
-/** Persist the mirrors-only (no top-down) preference. */
-export function setMirrorsOnly(on: boolean): void {
+/** Persist the last-used view mode. */
+export function setViewMode(mode: string): void {
   const p = loadProgress();
-  p.settings.mirrorsOnly = on;
+  p.settings.viewMode = mode;
   saveProgress(p);
 }
 

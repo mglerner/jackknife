@@ -20,8 +20,8 @@ export interface Controls {
   /** Degrees the wheel visually rotates per unit of steer (u=1). Real steering
    *  ratio in realistic modes; a compact value for the super-beginner sweep. */
   setWheelRatio(degPerU: number): void;
-  /** Show/hide the top-down toggle (hidden in mirrors-only "real backing" mode). */
-  setViewToggleVisible(visible: boolean): void;
+  /** Set the View button label (main cycles top-down / camera / mirrors). */
+  setViewLabel(text: string): void;
 }
 
 /** Build the bottom control bar: gear buttons, the bottom-of-wheel widget, toggles. */
@@ -78,9 +78,7 @@ export function createControls(parent: HTMLElement, h: ControlHandlers): Control
   const viewBtn = bar.querySelector("[data-view]") as HTMLButtonElement;
   const mirrorsBtn = bar.querySelector("[data-mirrors]") as HTMLButtonElement;
   viewBtn.addEventListener("click", () => {
-    h.onToggleView();
-    viewBtn.textContent =
-      viewBtn.textContent === "View: top-down" ? "View: camera" : "View: top-down";
+    h.onToggleView(); // main cycles top-down -> camera -> mirrors and sets the label
   });
   mirrorsBtn.addEventListener("click", () => {
     h.onToggleMirrors();
@@ -111,9 +109,8 @@ export function createControls(parent: HTMLElement, h: ControlHandlers): Control
       // thumb (full lock = the real ~1.4 turns of dragging, or a compact sweep).
       wheelBinder.setMaxRotDeg(degPerU);
     },
-    setViewToggleVisible(visible: boolean) {
-      viewBtn.hidden = !visible;
-      if (visible) viewBtn.textContent = "View: top-down";
+    setViewLabel(text: string) {
+      viewBtn.textContent = text;
     },
   };
 }
