@@ -99,6 +99,7 @@ export function buildWorld(gs: GameState): THREE.Group {
   const group = new THREE.Group();
   const bounds = gs.scenario.worldBounds;
 
+  addSky(group);
   addLighting(group, bounds);
   addGround(group, bounds);
   addEnvironment(group, bounds);
@@ -109,25 +110,71 @@ export function buildWorld(gs: GameState): THREE.Group {
 }
 
 // -----------------------------------------------------------------------------
+// 0. Sky dome: a large inverted sphere with a vertical gradient baked into
+//    vertex colors (gentle blue at the zenith, warm/pale at the horizon). It
+//    sits behind everything and never casts or receives shadows.
+// -----------------------------------------------------------------------------
+
+function addSky(group: THREE.Group): void {
+  const radius = 200;
+  const geo = new THREE.SphereGeometry(radius, 32, 24);
+
+  // Bake a vertical gradient into per-vertex colors. y in [-radius, radius];
+  // normalize to t in [0,1] (0 = horizon-and-below, 1 = zenith).
+  const zenith = new THREE.Color(0x5fa8e6); // gentle saturated blue
+  const horizon = new THREE.Color(0xfaf0e0); // warm pale near the ground
+  const pos = geo.attributes.position;
+  const colors = new Float32Array(pos.count * 3);
+  const c = new THREE.Color();
+  for (let i = 0; i < pos.count; i++) {
+    const y = pos.getY(i);
+    // Smooth, slightly biased blend so the horizon band stays soft and pale.
+    let t = (y / radius) * 0.5 + 0.5;
+    t = Math.max(0, Math.min(1, t));
+    const k = Math.pow(t, 0.7); // lift the horizon a touch
+    c.copy(horizon).lerp(zenith, k);
+    colors[i * 3 + 0] = c.r;
+    colors[i * 3 + 1] = c.g;
+    colors[i * 3 + 2] = c.b;
+  }
+  geo.setAttribute("color", new THREE.BufferAttribute(colors, 3));
+
+  const mat = new THREE.MeshBasicMaterial({
+    vertexColors: true,
+    side: THREE.BackSide, // render the inside of the sphere
+    fog: false,
+    depthWrite: false, // draw behind everything; never occlude
+  });
+
+  const dome = new THREE.Mesh(geo, mat);
+  dome.castShadow = false;
+  dome.receiveShadow = false;
+  dome.renderOrder = -1; // paint first, behind all world geometry
+  group.add(dome);
+}
+
+// -----------------------------------------------------------------------------
 // 1. Lighting: soft ambient + a high directional sun casting shadows that cover
 //    the whole worldBounds.
 // -----------------------------------------------------------------------------
 
 function addLighting(group: THREE.Group, bounds: WorldBounds): void {
-  // Sky/ground hemisphere fill: warm bluish sky, soft green-tinted ground bounce.
-  const hemi = new THREE.HemisphereLight(0xd2e4ff, 0x9aa982, 0.55);
+  // Sky/ground hemisphere fill: clean blue sky bounce, soft warm-green ground
+  // bounce. This keeps shadow interiors colorful rather than dead grey.
+  const hemi = new THREE.HemisphereLight(0xbcdcff, 0xa6b585, 0.5);
   hemi.position.set(0, 30, 0);
   group.add(hemi);
 
   // Light ambient fill so the backup cam and rear mirror stay visible. The env map
   // now provides most of the soft fill, so this is much lower than before (it was
   // washing the scene out when stacked on the environment).
-  const ambient = new THREE.AmbientLight(0xffffff, 0.18);
+  const ambient = new THREE.AmbientLight(0xffffff, 0.16);
   group.add(ambient);
 
-  // Bright, slightly warm midday sun: the main source of contrast and shadows.
-  const sun = new THREE.DirectionalLight(0xfff4e2, 1.6);
-  sun.position.set(12, 22, 8);
+  // Bright, slightly warm late-morning sun: the main source of contrast and
+  // shadows. Lifted higher and angled for short, soft, pleasant shadows.
+  const sun = new THREE.DirectionalLight(0xfff2d8, 1.55);
+  sun.position.set(14, 28, 12);
   sun.castShadow = true;
 
   // Size the orthographic shadow camera to cover the world bounds (Three's XZ
@@ -147,7 +194,11 @@ function addLighting(group: THREE.Group, bounds: WorldBounds): void {
   cam.updateProjectionMatrix();
 
   sun.shadow.mapSize.set(2048, 2048);
-  sun.shadow.bias = -0.0005;
+  // Gentle bias + a soft penumbra radius so shadow edges feel diffuse and
+  // pleasant rather than hard and jagged (PCFSoft in the renderer).
+  sun.shadow.bias = -0.0004;
+  sun.shadow.normalBias = 0.02;
+  sun.shadow.radius = 4;
 
   // Aim the sun at the world center so the shadow frustum is centered.
   const cx = (bounds.minX + bounds.maxX) / 2;
@@ -170,18 +221,23 @@ function addLighting(group: THREE.Group, bounds: WorldBounds): void {
 
 function addGround(group: THREE.Group, bounds: WorldBounds): void {
   const grassMat = new THREE.MeshStandardMaterial({
-    map: noiseTexture([74, 124, 56], 22, 24),
-    roughness: 0.95,
+    // Fresh, slightly saturated lawn green; gentle speckle so it reads as grass
+    // without looking noisy from above.
+    map: noiseTexture([96, 158, 74], 14, 26),
+    roughness: 0.98,
     metalness: 0.0,
   });
   const asphaltMat = new THREE.MeshStandardMaterial({
-    map: noiseTexture([60, 62, 66], 14, 12),
-    roughness: 0.9,
+    // Cool neutral grey, a touch lighter than before so it does not read as a
+    // muddy black pit next to the grass.
+    map: noiseTexture([92, 96, 102], 10, 12),
+    roughness: 0.92,
     metalness: 0.0,
   });
   const concreteMat = new THREE.MeshStandardMaterial({
-    map: noiseTexture([176, 174, 168], 16, 8),
-    roughness: 0.85,
+    // Warm light grey driveway.
+    map: noiseTexture([198, 192, 182], 10, 8),
+    roughness: 0.88,
     metalness: 0.0,
   });
 
@@ -205,8 +261,8 @@ function addGround(group: THREE.Group, bounds: WorldBounds): void {
   // Sidewalk: light concrete strip along y in [3, 3.6], across the bounds, but
   // split around the driveway opening (x in [-3, 3]) so the opening stays clear.
   const sidewalkMat = new THREE.MeshStandardMaterial({
-    map: noiseTexture([198, 196, 190], 12, 10),
-    roughness: 0.85,
+    map: noiseTexture([214, 210, 202], 8, 10),
+    roughness: 0.88,
     metalness: 0.0,
   });
   addGroundRegion(group, sidewalkMat, bounds.minX, -3, 3.0, 3.6, 0.01);
@@ -224,6 +280,9 @@ function addEnvironment(group: THREE.Group, bounds: WorldBounds): void {
   addFrontFence(group, bounds);
   addTrees(group);
   addShrubs(group);
+  addFlowerBeds(group);
+  addRocks(group);
+  addLampPost(group);
   addMailbox(group);
 }
 
@@ -416,50 +475,72 @@ function addFrontFence(group: THREE.Group, bounds: WorldBounds): void {
 
 function addTrees(group: THREE.Group): void {
   const trunkMat = new THREE.MeshStandardMaterial({
-    color: 0x6b4a2f,
+    color: 0x8a5a38, // warm bark
     roughness: 0.95,
     metalness: 0.0,
   });
-  const foliageMat = new THREE.MeshStandardMaterial({
-    color: 0x3f7d3a,
-    roughness: 0.9,
-    metalness: 0.0,
+
+  // A small palette of cheerful greens; each tree picks one base tone and its
+  // canopy blobs vary gently around it for a soft, stylized look.
+  const canopyTones = [0x6fbf52, 0x84c95f, 0x5fb04c];
+  const foliageMats = canopyTones.map(
+    (col) =>
+      new THREE.MeshStandardMaterial({
+        color: col,
+        roughness: 0.85,
+        metalness: 0.0,
+      }),
+  );
+  // A slightly lighter top-light material per tone for a sun-kissed crown.
+  const highlightMats = canopyTones.map((col) => {
+    const c = new THREE.Color(col).lerp(new THREE.Color(0xffffff), 0.18);
+    return new THREE.MeshStandardMaterial({
+      color: c,
+      roughness: 0.8,
+      metalness: 0.0,
+    });
   });
 
-  // Reused geometries.
-  const trunkGeo = new THREE.CylinderGeometry(0.18, 0.24, 2.2, 8);
-  const foliageGeo = new THREE.SphereGeometry(1.3, 12, 10);
+  // Reused geometries. Smooth spheres for a rounded, charming canopy.
+  const trunkGeo = new THREE.CylinderGeometry(0.16, 0.26, 2.0, 10);
+  const foliageGeo = new THREE.SphereGeometry(1.0, 16, 14);
 
   // World positions on the lawn, well clear of street and driveway.
-  const spots: Array<[number, number]> = [
-    [-11, 9],
-    [12, 8],
-    [-14, 14],
+  // [x, y, scale, toneIndex]
+  const spots: Array<[number, number, number, number]> = [
+    [-11, 9, 1.0, 0],
+    [12, 8, 0.9, 1],
+    [-14, 14, 1.15, 2],
+    [13, 14, 0.85, 0],
   ];
 
-  for (const [x, y] of spots) {
+  for (const [x, y, treeScale, tone] of spots) {
     const tree = new THREE.Group();
 
     const trunk = new THREE.Mesh(trunkGeo, trunkMat);
-    trunk.position.y = 1.1;
+    trunk.position.y = 1.0;
     trunk.castShadow = true;
     tree.add(trunk);
 
-    // A cluster of foliage spheres for an irregular canopy.
-    const offsets: Array<[number, number, number, number]> = [
-      [0, 2.7, 0, 1.0],
-      [0.7, 2.4, 0.4, 0.75],
-      [-0.6, 2.5, -0.3, 0.8],
-      [0.2, 3.2, -0.2, 0.7],
+    // Layered rounded canopy: a few overlapping spheres in a loose dome, with a
+    // lighter highlight cap on top.
+    const blobs: Array<[number, number, number, number, boolean]> = [
+      [0, 2.3, 0, 1.25, false],
+      [0.8, 2.05, 0.3, 0.85, false],
+      [-0.7, 2.15, -0.35, 0.9, false],
+      [0.15, 2.2, 0.75, 0.8, false],
+      [0.0, 3.0, -0.05, 0.95, true], // sun-kissed crown
     ];
-    for (const [ox, oy, oz, s] of offsets) {
-      const blob = new THREE.Mesh(foliageGeo, foliageMat);
+    for (const [ox, oy, oz, s, hi] of blobs) {
+      const mat = hi ? highlightMats[tone] : foliageMats[tone];
+      const blob = new THREE.Mesh(foliageGeo, mat);
       blob.position.set(ox, oy, oz);
       blob.scale.setScalar(s);
       blob.castShadow = true;
       tree.add(blob);
     }
 
+    tree.scale.setScalar(treeScale);
     tree.position.copy(worldToThree({ x, y }, 0));
     group.add(tree);
   }
@@ -470,11 +551,11 @@ function addTrees(group: THREE.Group): void {
 
 function addShrubs(group: THREE.Group): void {
   const shrubMat = new THREE.MeshStandardMaterial({
-    color: 0x4f8a45,
-    roughness: 0.95,
+    color: 0x5fa84d, // cheerful, slightly saturated green
+    roughness: 0.9,
     metalness: 0.0,
   });
-  const shrubGeo = new THREE.SphereGeometry(0.6, 10, 8);
+  const shrubGeo = new THREE.SphereGeometry(0.6, 14, 12);
 
   const spots: Array<[number, number]> = [
     [5.5, 14.6], // by the front door
@@ -490,6 +571,150 @@ function addShrubs(group: THREE.Group): void {
     shrub.castShadow = true;
     group.add(shrub);
   }
+}
+
+// --- Flower beds --------------------------------------------------------------
+// Small clusters of green mounds dotted with bright flower caps, tucked along
+// the house front and lawn corners. Purely decorative, clear of the rig path.
+
+function addFlowerBeds(group: THREE.Group): void {
+  const leafMat = new THREE.MeshStandardMaterial({
+    color: 0x5aa048,
+    roughness: 0.9,
+    metalness: 0.0,
+  });
+  // A few candy-bright blossom colors for charm.
+  const flowerCols = [0xff6f91, 0xffd23f, 0xff8c42, 0xe86af0, 0xffffff];
+  const flowerMats = flowerCols.map(
+    (c) =>
+      new THREE.MeshStandardMaterial({
+        color: c,
+        emissive: new THREE.Color(c).multiplyScalar(0.12),
+        roughness: 0.7,
+        metalness: 0.0,
+      }),
+  );
+
+  const moundGeo = new THREE.SphereGeometry(0.28, 10, 8);
+  const flowerGeo = new THREE.SphereGeometry(0.1, 8, 6);
+
+  // Cluster centers on the lawn, away from street (y in [-3,3]) and driveway
+  // (x in [-3,3]).
+  const beds: Array<[number, number]> = [
+    [6.5, 13.5],
+    [-6.5, 13.5],
+    [-12, 6.5],
+    [11, 11],
+  ];
+
+  for (const [bx, by] of beds) {
+    const bed = new THREE.Group();
+    // 3-4 little leafy mounds per cluster.
+    const mounds: Array<[number, number, number]> = [
+      [0, 0, 1.0],
+      [0.45, 0.25, 0.8],
+      [-0.35, 0.35, 0.85],
+      [0.15, -0.4, 0.75],
+    ];
+    let fi = 0;
+    for (const [ox, oz, s] of mounds) {
+      const mound = new THREE.Mesh(moundGeo, leafMat);
+      mound.scale.set(s, s * 0.8, s);
+      mound.position.set(ox, 0.2 * s, oz);
+      mound.castShadow = true;
+      bed.add(mound);
+      // A blossom perched on top.
+      const fmat = flowerMats[(fi++) % flowerMats.length];
+      const flower = new THREE.Mesh(flowerGeo, fmat);
+      flower.position.set(ox, 0.2 * s + 0.22 * s, oz);
+      bed.add(flower);
+    }
+    bed.position.copy(worldToThree({ x: bx, y: by }, 0));
+    group.add(bed);
+  }
+}
+
+// --- Rocks --------------------------------------------------------------------
+// A couple of low rounded boulders on the lawn for visual interest.
+
+function addRocks(group: THREE.Group): void {
+  const rockMat = new THREE.MeshStandardMaterial({
+    color: 0xa7a6a0, // soft cool stone grey
+    roughness: 1.0,
+    metalness: 0.0,
+  });
+  const rockGeo = new THREE.IcosahedronGeometry(0.5, 0); // faceted pebble
+
+  // [x, y, scale]
+  const spots: Array<[number, number, number]> = [
+    [10, 7, 1.0],
+    [-10, 12, 0.7],
+    [14, 11, 0.55],
+  ];
+  for (const [x, y, s] of spots) {
+    const rock = new THREE.Mesh(rockGeo, rockMat);
+    rock.scale.set(s, s * 0.7, s);
+    rock.rotation.y = (x + y) * 0.3; // vary facing
+    rock.position.copy(worldToThree({ x, y }, 0.25 * s));
+    rock.castShadow = true;
+    rock.receiveShadow = true;
+    group.add(rock);
+  }
+}
+
+// --- Lamp post ----------------------------------------------------------------
+// A tidy street lamp beside the driveway opening, mirroring the mailbox side.
+
+function addLampPost(group: THREE.Group): void {
+  const poleMat = new THREE.MeshStandardMaterial({
+    color: 0x394049, // dark charcoal
+    roughness: 0.6,
+    metalness: 0.3,
+  });
+  const lampMat = new THREE.MeshStandardMaterial({
+    color: 0xfff3c4, // warm glow
+    emissive: 0xffe39a,
+    emissiveIntensity: 0.7,
+    roughness: 0.4,
+    metalness: 0.0,
+  });
+
+  const lamp = new THREE.Group();
+
+  const pole = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.06, 0.08, 2.6, 10),
+    poleMat,
+  );
+  pole.position.y = 1.3;
+  pole.castShadow = true;
+  lamp.add(pole);
+
+  // A small base cap.
+  const base = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.16, 0.2, 0.18, 12),
+    poleMat,
+  );
+  base.position.y = 0.09;
+  base.castShadow = true;
+  lamp.add(base);
+
+  // Lantern head.
+  const head = new THREE.Mesh(
+    new THREE.SphereGeometry(0.22, 14, 12),
+    lampMat,
+  );
+  head.position.y = 2.55;
+  lamp.add(head);
+  const cap = new THREE.Mesh(
+    new THREE.ConeGeometry(0.26, 0.2, 12),
+    poleMat,
+  );
+  cap.position.y = 2.78;
+  lamp.add(cap);
+
+  // On the left side of the driveway opening, mirroring the mailbox at x=4.
+  lamp.position.copy(worldToThree({ x: -4.0, y: 4.0 }, 0));
+  group.add(lamp);
 }
 
 // --- Mailbox ------------------------------------------------------------------

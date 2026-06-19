@@ -23,6 +23,8 @@ export interface Renderer3D {
   setCarStyle(style: CarStyle): void;
   /** Multiply the top-down zoom (pinch). Clamped to a sensible range. */
   nudgeTopZoom(factor: number): void;
+  /** Swap the world + rig for a new game (rig or scenario change). */
+  rebuild(gs: GameState): void;
 }
 
 interface MirrorSpec {
@@ -57,9 +59,29 @@ export function createRenderer3d(canvas: HTMLCanvasElement, gs: GameState): Rend
   // No scene fog: it ruins the top-down (camera is ~40 m up). The backup-cam reads
   // fine without it. A subtle ground-level haze can come back per-camera later.
 
-  scene.add(buildWorld(gs));
-  const rig: RigView = buildRig(gs);
+  let world = buildWorld(gs);
+  scene.add(world);
+  let rig: RigView = buildRig(gs);
   scene.add(rig.group);
+
+  // Swap the world + rig for a new game (rig / scenario change). Old groups are
+  // disposed to free GPU memory.
+  function disposeGroup(obj: THREE.Object3D): void {
+    obj.traverse((o) => {
+      const m = o as THREE.Mesh;
+      if (m.geometry) m.geometry.dispose();
+    });
+  }
+  function rebuild(g: GameState): void {
+    scene.remove(world);
+    disposeGroup(world);
+    world = buildWorld(g);
+    scene.add(world);
+    scene.remove(rig.group);
+    disposeGroup(rig.group);
+    rig = buildRig(g);
+    scene.add(rig.group);
+  }
 
   // Particle juice: dust at the wheels when moving, exhaust at the tailpipe.
   const particles = createParticles(scene);
@@ -267,5 +289,6 @@ export function createRenderer3d(canvas: HTMLCanvasElement, gs: GameState): Rend
     nudgeTopZoom: (f: number) => {
       topZoom = Math.max(0.5, Math.min(2.6, topZoom * f));
     },
+    rebuild,
   };
 }
