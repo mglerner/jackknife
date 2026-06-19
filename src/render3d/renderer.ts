@@ -87,6 +87,8 @@ export function createRenderer3d(canvas: HTMLCanvasElement, gs: GameState): Rend
   const particles = createParticles(scene);
   let lastT = performance.now();
   let exhaustAcc = 0;
+  let shake = 0; // brief camera shake on a new wall contact
+  let prevContacts = 0;
 
   // Mirrored cameras flip winding; make every material double-sided so nothing
   // disappears in the backup-cam / mirror views.
@@ -179,6 +181,10 @@ export function createRenderer3d(canvas: HTMLCanvasElement, gs: GameState): Rend
     topCam.position.set(fx, H, -fy + south);
     topCam.up.set(0, 1, 0);
     topCam.lookAt(fx, 0, -fy);
+    if (shake > 0) {
+      topCam.position.x += (Math.random() - 0.5) * shake;
+      topCam.position.z += (Math.random() - 0.5) * shake;
+    }
     topCam.updateProjectionMatrix();
   }
 
@@ -252,6 +258,9 @@ export function createRenderer3d(canvas: HTMLCanvasElement, gs: GameState): Rend
     const now = performance.now();
     const dt = Math.min(0.05, (now - lastT) / 1000);
     lastT = now;
+    if (g.session.wallContacts > prevContacts) shake = 0.3;
+    prevContacts = g.session.wallContacts;
+    shake = Math.max(0, shake - dt * 1.6);
     const asp = Math.abs(commandedSpeed(g));
     if (asp > 0.12) {
       const inten = Math.min(1, asp / 1.5);
