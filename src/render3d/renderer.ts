@@ -7,7 +7,7 @@ import type { GameState } from "../game/state";
 import { worldToThree, placeObject } from "./coords";
 import { buildWorld } from "./world";
 import { createParticles } from "./particles";
-import { buildRig, type RigView, type CarStyle } from "./rig";
+import { buildRig, type RigView } from "./rig";
 
 export type ViewMode = "topdown" | "backupcam";
 
@@ -20,7 +20,6 @@ export interface RenderOptions {
 export interface Renderer3D {
   render(gs: GameState, view: ViewMode, opts: RenderOptions): void;
   resize(wCss: number, hCss: number, dpr: number): void;
-  setCarStyle(style: CarStyle): void;
   /** Multiply the top-down zoom (pinch). Clamped to a sensible range. */
   nudgeTopZoom(factor: number): void;
   /** Swap the world + rig for a new game (rig or scenario change). */
@@ -383,7 +382,6 @@ export function createRenderer3d(canvas: HTMLCanvasElement, gs: GameState): Rend
   return {
     render,
     resize,
-    setCarStyle: (style: CarStyle) => rig.setCarStyle(style),
     nudgeTopZoom: (f: number) => {
       topZoom = Math.max(0.5, Math.min(2.6, topZoom * f));
     },

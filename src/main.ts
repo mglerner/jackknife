@@ -13,7 +13,6 @@ import { DEFAULT_SCENARIO } from "./scenarios/scenarios";
 import { DEFAULT_DIFFICULTY, DIFFICULTIES } from "./difficulty/difficulty";
 import { steerFromBottomWheel } from "./input/bottomWheel";
 import { createRenderer3d, type ViewMode } from "./render3d/renderer";
-import type { CarStyle } from "./render3d/rig";
 import { isTrailerInTarget } from "./scoring/types";
 import { defaultScorer } from "./scoring/defaultScorer";
 import { createHud } from "./ui/hud";
@@ -85,7 +84,6 @@ let won = false;
 let demoActive = false;
 let demoT = 0;
 let demoAcc = 0;
-let carStyle: CarStyle = "procedural";
 let solution: Maneuver | undefined =
   initRig.id === "odyssey-utility" ? SOLUTIONS[game.scenario.id] : undefined;
 
@@ -126,11 +124,8 @@ const controls = createControls(app, {
     demoT = 0;
     demoAcc = 0;
   },
-  onToggleModel: () => {
-    carStyle = carStyle === "procedural" ? "gltf" : "procedural";
-    renderer3d.setCarStyle(carStyle);
-  },
 });
+controls.setDemoEnabled(solution !== undefined);
 
 // Audio. iOS only starts the AudioContext from a user gesture, so resume on the
 // first tap anywhere.
@@ -198,9 +193,9 @@ function applyChoice(rigId: string, diffId: string): void {
   const diff = DIFFICULTIES[diffId] ?? DEFAULT_DIFFICULTY;
   game = createGame(rig, game.scenario, diff);
   renderer3d.rebuild(game);
-  renderer3d.setCarStyle(carStyle);
   // The baked demo solution was verified for the Odyssey utility rig only.
   solution = rig.id === "odyssey-utility" ? SOLUTIONS[game.scenario.id] : undefined;
+  controls.setDemoEnabled(solution !== undefined);
   mirrors = diff.mirrorsDefault;
   won = false;
   demoActive = false;

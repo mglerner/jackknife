@@ -1,5 +1,4 @@
 import * as THREE from "three";
-import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { RoundedBoxGeometry } from "three/examples/jsm/geometries/RoundedBoxGeometry.js";
 import type { PhysicsDerived } from "../core/types";
 import type { GameState } from "../game/state";
@@ -23,13 +22,9 @@ import { placeObject } from "./coords";
 // geometries (wheels, tools) across instances rather than allocating per part.
 // =============================================================================
 
-export type CarStyle = "procedural" | "gltf";
-
 export interface RigView {
   group: THREE.Group;
   update(gs: GameState, derived: PhysicsDerived): void;
-  /** Switch the tow vehicle between the hand-built model and the loaded glTF. */
-  setCarStyle(style: CarStyle): void;
 }
 
 const WHEEL_LATERAL = Math.PI / 2; // rotate cylinder axis from +Y to +Z (lateral)
@@ -1922,69 +1917,17 @@ function buildAgTrailer(gs: GameState): THREE.Group {
   return g;
 }
 
-/**
- * Load the licensed glTF van into `parent`, normalized to our conventions: scaled
- * so its length matches carLength, centered between the bumpers (rear-axle origin),
- * sitting on the ground. ("Van" by jeremy, via Poly Pizza, CC-BY 3.0; longest axis
- * is X = forward.) Async; the mesh pops in when loaded.
- */
-function loadGltfCar(gs: GameState, parent: THREE.Group): void {
-  const { carLength, carFrontOverhang } = gs.rig;
-  const rearBumper = -(carLength - carFrontOverhang);
-  const bodyCenterX = (carFrontOverhang + rearBumper) / 2;
-
-  new GLTFLoader().load(
-    "/models/van.glb",
-    (gltf) => {
-      const model = gltf.scene;
-      const box = new THREE.Box3().setFromObject(model);
-      const size = box.getSize(new THREE.Vector3());
-      const center = box.getCenter(new THREE.Vector3());
-      const scale = carLength / Math.max(size.x, 1e-3); // source: longest axis is X
-      model.scale.setScalar(scale);
-      model.position.set(
-        bodyCenterX - center.x * scale,
-        -box.min.y * scale, // sit on the ground
-        -center.z * scale,
-      );
-      model.traverse((o) => {
-        const m = o as THREE.Mesh;
-        if (m.isMesh) {
-          m.castShadow = true;
-          const mats = Array.isArray(m.material) ? m.material : [m.material];
-          mats.forEach((mm) => mm && (mm.side = THREE.DoubleSide));
-        }
-      });
-      parent.add(model);
-    },
-    undefined,
-    (err) => {
-      // eslint-disable-next-line no-console
-      console.warn("van.glb failed to load", err);
-    },
-  );
-}
-
 export function buildRig(gs: GameState): RigView {
   const group = new THREE.Group();
-  const carProc = buildCar(gs);
-  const carGltf = new THREE.Group();
-  carGltf.visible = false;
-  loadGltfCar(gs, carGltf);
+  const carGroup = buildCar(gs);
   const trailerGroup = buildTrailer(gs);
-  group.add(carProc, carGltf, trailerGroup);
+  group.add(carGroup, trailerGroup);
 
   return {
     group,
     update(gs2: GameState, derived: PhysicsDerived): void {
-      placeObject(carProc, gs2.physics, gs2.physics.carHeading);
-      placeObject(carGltf, gs2.physics, gs2.physics.carHeading);
+      placeObject(carGroup, gs2.physics, gs2.physics.carHeading);
       placeObject(trailerGroup, derived.trailerAxle, derived.trailerHeading);
-    },
-    setCarStyle(style: CarStyle): void {
-      const useGltf = style === "gltf";
-      carGltf.visible = useGltf;
-      carProc.visible = !useGltf;
     },
   };
 }

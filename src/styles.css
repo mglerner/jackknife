@@ -243,6 +243,13 @@ body {
   border: 1px solid #3a414a;
 }
 
+/* Disabled control button (e.g. Demo with no verified solution for this rig). */
+#controls button.is-disabled,
+#controls button:disabled {
+  opacity: 0.4;
+  pointer-events: none;
+}
+
 /* Tactile press feedback on UI buttons (not the animated title button). */
 #controls button,
 #menu button,
