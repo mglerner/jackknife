@@ -1,4 +1,5 @@
 import * as THREE from "three";
+import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js";
 import { derive } from "../core/physics";
 import { predictTailPath } from "../core/predict";
 import { commandedSpeed } from "../game/loop";
@@ -41,7 +42,12 @@ export function createRenderer3d(canvas: HTMLCanvasElement, gs: GameState): Rend
   renderer.toneMappingExposure = 1.5;
 
   const scene = new THREE.Scene();
-  scene.background = new THREE.Color("#0e1217");
+  scene.background = new THREE.Color("#aebfce");
+  // Environment map: real reflections for metallic paint and glass. Without it,
+  // metal reflects the (near-black) background and looks dark; this is what makes
+  // the silver read as actual car paint in-game, not a grey box.
+  const pmrem = new THREE.PMREMGenerator(renderer);
+  scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
   // No scene fog: it ruins the top-down (camera is ~40 m up). The backup-cam reads
   // fine without it. A subtle ground-level haze can come back per-camera later.
 

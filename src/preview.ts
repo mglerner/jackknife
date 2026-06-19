@@ -1,10 +1,11 @@
 // Dev-only model preview: renders the rig on a turntable with good lighting so we
 // can iterate on the vehicle/trailer geometry headlessly (screenshot from angles).
 import * as THREE from "three";
+import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js";
 import { buildRig } from "./render3d/rig";
 import { createGame } from "./game/state";
 import { derive } from "./core/physics";
-import { DEFAULT_RIG } from "./rigs/rigs";
+import { DEFAULT_RIG, RIGS } from "./rigs/rigs";
 import { DEFAULT_SCENARIO } from "./scenarios/scenarios";
 import { DEFAULT_DIFFICULTY } from "./difficulty/difficulty";
 
@@ -18,6 +19,11 @@ const dpr = Math.min(window.devicePixelRatio || 1, 3);
 
 const scene = new THREE.Scene();
 scene.background = new THREE.Color("#c7d0d7");
+
+// Environment map: gives metallic paint and glass real reflections (the single
+// biggest lever for a "slick" car look; without it metal renders flat grey).
+const pmrem = new THREE.PMREMGenerator(renderer);
+scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
 
 scene.add(new THREE.HemisphereLight(0xdfeaff, 0x9aa17f, 1.1));
 const sun = new THREE.DirectionalLight(0xfff4e2, 1.6);
@@ -37,8 +43,10 @@ ground.rotation.x = -Math.PI / 2;
 ground.receiveShadow = true;
 scene.add(ground);
 
-// A straight rig at the origin facing +X (forward).
-const base = createGame(DEFAULT_RIG, DEFAULT_SCENARIO, DEFAULT_DIFFICULTY);
+// A straight rig at the origin facing +X (forward). ?rig=<id> picks which rig.
+const rigId = new URLSearchParams(location.search).get("rig");
+const chosenRig = (rigId && RIGS[rigId]) || DEFAULT_RIG;
+const base = createGame(chosenRig, DEFAULT_SCENARIO, DEFAULT_DIFFICULTY);
 const gs = { ...base, physics: { x: 0, y: 0, carHeading: 0, trailerHeading: 0 } };
 const rig = buildRig(gs);
 scene.add(rig.group);
