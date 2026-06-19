@@ -473,6 +473,16 @@ body {
   font-size: 15px;
   font-weight: 700;
 }
+#menu .menu-danger {
+  width: 100%;
+  margin-top: 14px;
+  background: rgba(150, 50, 50, 0.22);
+  color: #ff9a9a;
+  border: 1px solid rgba(255, 120, 120, 0.4);
+  border-radius: 10px;
+  padding: 9px;
+  font-size: 13px;
+}
 
 /* Help overlay. */
 #help-btn {

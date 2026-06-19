@@ -6,6 +6,7 @@ export interface Progress {
     difficultyId?: string;
     view?: string;
     mirrors?: boolean;
+    realisticWheel?: boolean; // on-screen wheel turns at the real steering ratio
   };
 }
 
@@ -40,4 +41,19 @@ export function recordBest(scenarioId: string, score: number): Progress {
     saveProgress(p);
   }
   return p;
+}
+
+/** Wipe all stored best scores (settings are kept). */
+export function clearBestScores(): Progress {
+  const p = loadProgress();
+  p.bestScores = {};
+  saveProgress(p);
+  return p;
+}
+
+/** Persist the realistic-wheel preference. */
+export function setRealisticWheel(on: boolean): void {
+  const p = loadProgress();
+  p.settings.realisticWheel = on;
+  saveProgress(p);
 }

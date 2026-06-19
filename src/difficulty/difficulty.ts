@@ -15,7 +15,6 @@ export const BEGINNER: DifficultyConfig = {
   showGuideLines: true,
   showCoaching: true,
   mirrorsDefault: true,
-  realisticWheel: false, // super-beginner: compact wheel sweep + readout
   allowPullForwardAlways: true,
   blockReverseWhenJackknifed: true,
   posTolerance: 0.9,
@@ -35,7 +34,6 @@ export const INTERMEDIATE: DifficultyConfig = {
   showGuideLines: false,
   showCoaching: true,
   mirrorsDefault: true,
-  realisticWheel: true, // real steering ratio: full lock is ~1.4 turns
   allowPullForwardAlways: true,
   blockReverseWhenJackknifed: true,
   posTolerance: 0.6,
@@ -55,7 +53,6 @@ export const EXPERT: DifficultyConfig = {
   showGuideLines: false,
   showCoaching: false,
   mirrorsDefault: true,
-  realisticWheel: true, // real steering ratio: full lock is ~1.4 turns
   allowPullForwardAlways: false, // only when jackknifeState is recoverable/contact
   blockReverseWhenJackknifed: true,
   posTolerance: 0.4,

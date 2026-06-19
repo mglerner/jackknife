@@ -21,7 +21,7 @@ import { coachingMessage } from "./ui/coach";
 import { applyManeuverAt, maneuverDuration, type Maneuver } from "./game/autopilot";
 import { SOLUTIONS } from "./game/solutions";
 import { createSfx } from "./audio/sfx";
-import { recordBest, loadProgress } from "./game/persistence";
+import { recordBest, loadProgress, clearBestScores, setRealisticWheel } from "./game/persistence";
 
 const app = document.querySelector<HTMLDivElement>("#app")!;
 app.innerHTML = "";
@@ -84,6 +84,9 @@ let debug = false;
 let won = false;
 let demoActive = false;
 let isDemo = false; // the current attempt is a Demo playback (does not count toward best)
+// On-screen wheel turns at the rig's real steering ratio (default). Off = the
+// simpler compact sweep for super-beginners. Independent of backing difficulty.
+let realisticWheel = loadProgress().settings.realisticWheel ?? true;
 let demoT = 0;
 let demoAcc = 0;
 let solution: Maneuver | undefined = SOLUTIONS[`${game.rig.id}/${game.scenario.id}`];
@@ -134,7 +137,7 @@ controls.setWheelRatio(wheelDegPerU(game));
 /** Degrees the on-screen wheel rotates at full lock (u=1): the rig's real steering
  *  ratio in realistic modes, a compact sweep for the super-beginner mode. */
 function wheelDegPerU(g: typeof game): number {
-  if (!g.difficulty.realisticWheel) return 140;
+  if (!realisticWheel) return 140; // compact super-beginner sweep
   const maxSteerDeg = (g.rig.maxSteer * 180) / Math.PI;
   return maxSteerDeg * (g.rig.steeringRatio ?? 16);
 }
@@ -234,6 +237,12 @@ function renderMenu(): void {
     `<div class="menu-row">${btns(Object.values(DIFFICULTIES), "diff", game.difficulty.id)}</div>` +
     '<div class="menu-label">Location</div>' +
     `<div class="menu-row">${btns(Object.values(SCENARIOS), "scenario", game.scenario.id)}</div>` +
+    '<div class="menu-label">Steering wheel</div>' +
+    '<div class="menu-row">' +
+    `<button data-wheel="realistic" class="${realisticWheel ? "sel" : ""}">Realistic (real ratio)</button>` +
+    `<button data-wheel="simple" class="${!realisticWheel ? "sel" : ""}">Simple (super beginner)</button>` +
+    "</div>" +
+    '<button id="reset-best" class="menu-danger">Reset high scores</button>' +
     '<button id="menu-close">Done</button>' +
     "</div>";
   // Picking a vehicle applies it and closes the menu (the "go" action).
@@ -257,6 +266,29 @@ function renderMenu(): void {
       renderMenu();
     }),
   );
+  // Steering: realistic real-ratio wheel (default) vs the compact super-beginner
+  // sweep. Independent of difficulty; persisted; applies live.
+  menu.querySelectorAll<HTMLElement>("[data-wheel]").forEach((b) =>
+    b.addEventListener("pointerdown", () => {
+      realisticWheel = b.dataset.wheel === "realistic";
+      setRealisticWheel(realisticWheel);
+      controls.setWheelRatio(wheelDegPerU(game));
+      renderMenu();
+    }),
+  );
+  // Reset high scores, with a confirm tap so it is not triggered by accident.
+  let resetArmed = false;
+  const resetBtn = menu.querySelector("#reset-best") as HTMLElement;
+  resetBtn.addEventListener("pointerdown", () => {
+    if (!resetArmed) {
+      resetArmed = true;
+      resetBtn.textContent = "Tap again to confirm";
+      return;
+    }
+    clearBestScores();
+    hud.setBest(undefined);
+    renderMenu();
+  });
   (menu.querySelector("#menu-close") as HTMLElement).addEventListener("pointerdown", () => {
     menu.hidden = true;
   });

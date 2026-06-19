@@ -18,10 +18,6 @@ export interface DifficultyConfig {
   showGuideLines: boolean;
   showCoaching: boolean;
   mirrorsDefault: boolean; // mirror strip on by default
-  // true => the on-screen wheel rotates at the rig's REAL steering ratio (so full
-  // lock is ~1.4 turns, building real muscle memory). false (super-beginner) => a
-  // compact, easy-to-read sweep. The road-wheel-angle readout is shown either way.
-  realisticWheel: boolean;
 
   // Rules:
   allowPullForwardAlways: boolean; // false => only when jackknifeState is recoverable/contact
