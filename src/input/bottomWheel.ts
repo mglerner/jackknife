@@ -28,8 +28,10 @@ export interface BottomWheelOptions {
   holdOnRelease?: boolean;
 }
 
-/** Wheel travel (radians) that corresponds to full steering lock. */
-const MAX_WHEEL_ROT = (140 * Math.PI) / 180;
+/** Wheel travel (radians) for full steering lock. Set to match the VISUAL steering
+ * ratio so the wheel rotates 1:1 with the thumb drag: a real-ratio rig needs ~1.4
+ * turns of dragging (hand-over-hand) for full lock, a super-beginner a short sweep. */
+let maxRot = (140 * Math.PI) / 180;
 
 /**
  * Thin DOM binder: grab the wheel ANYWHERE (top, bottom, or side) and rotate it
@@ -39,7 +41,13 @@ const MAX_WHEEL_ROT = (140 * Math.PI) / 180;
  * stays in `steerFromBottomWheel`; this only tracks angular drag and publishes the
  * CSS var `--wheel-u` for the visual.
  */
-export function attachBottomWheel(el: HTMLElement, opts: BottomWheelOptions): () => void {
+export interface WheelBinder {
+  detach: () => void;
+  /** Set the wheel travel for full lock (degrees), matching the visual ratio. */
+  setMaxRotDeg: (deg: number) => void;
+}
+
+export function attachBottomWheel(el: HTMLElement, opts: BottomWheelOptions): WheelBinder {
   const hold = opts.holdOnRelease ?? true;
   let active = false;
   let lastAngle = 0;
@@ -51,9 +59,9 @@ export function attachBottomWheel(el: HTMLElement, opts: BottomWheelOptions): ()
   };
 
   const publish = (): void => {
-    rot = clamp(rot, -MAX_WHEEL_ROT, MAX_WHEEL_ROT);
+    rot = clamp(rot, -maxRot, maxRot);
     // Pushing the bottom to the right is a negative screen rotation; read it as u>0.
-    const u = clamp(-rot / MAX_WHEEL_ROT, -1, 1);
+    const u = clamp(-rot / maxRot, -1, 1);
     el.style.setProperty("--wheel-u", String(u));
     opts.onChange(u);
   };
@@ -92,10 +100,15 @@ export function attachBottomWheel(el: HTMLElement, opts: BottomWheelOptions): ()
   el.addEventListener("pointermove", move);
   el.addEventListener("pointerup", end);
   el.addEventListener("pointercancel", end);
-  return () => {
-    el.removeEventListener("pointerdown", down);
-    el.removeEventListener("pointermove", move);
-    el.removeEventListener("pointerup", end);
-    el.removeEventListener("pointercancel", end);
+  return {
+    detach: () => {
+      el.removeEventListener("pointerdown", down);
+      el.removeEventListener("pointermove", move);
+      el.removeEventListener("pointerup", end);
+      el.removeEventListener("pointercancel", end);
+    },
+    setMaxRotDeg: (deg: number): void => {
+      maxRot = (deg * Math.PI) / 180;
+    },
   };
 }

@@ -89,6 +89,7 @@ let isDemo = false; // the current attempt is a Demo playback (does not count to
 let realisticWheel = loadProgress().settings.realisticWheel ?? true;
 let demoT = 0;
 let demoAcc = 0;
+let demoWheelU = 0; // eased on-screen wheel position during the demo (visual only)
 let solution: Maneuver | undefined = SOLUTIONS[`${game.rig.id}/${game.scenario.id}`];
 
 const renderer3d = createRenderer3d(canvas, game);
@@ -129,6 +130,7 @@ const controls = createControls(app, {
     isDemo = true; // a Demo win is illustrative; it must not set the high score
     demoT = 0;
     demoAcc = 0;
+    demoWheelU = 0;
   },
 });
 controls.setDemoEnabled(solution !== undefined);
@@ -405,7 +407,14 @@ function frame(t: number): void {
 
   // During the Demo, rotate the on-screen wheel to match the autopilot's steering
   // so you can see how much wheel the maneuver uses.
-  if (demoActive) controls.setWheelVisual(game.delta / game.rig.maxSteer);
+  if (demoActive) {
+    // Ease the visible wheel toward the actual steer so it rotates watchably instead
+    // of snapping (the real ratio would otherwise spin it several turns per second).
+    // Visual only; the physics keeps the verified steering slew, so the path is exact.
+    const targetU = game.delta / game.rig.maxSteer;
+    demoWheelU += (targetU - demoWheelU) * Math.min(1, dt * 6);
+    controls.setWheelVisual(demoWheelU);
+  }
 
   renderer3d.render(game, view, {
     mirrors,

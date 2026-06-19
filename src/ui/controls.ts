@@ -47,7 +47,7 @@ export function createControls(parent: HTMLElement, h: ControlHandlers): Control
   parent.appendChild(bar);
 
   const wheel = bar.querySelector("[data-wheel]") as HTMLElement;
-  const detachWheel = attachBottomWheel(wheel, { onChange: h.onSteer, holdOnRelease: true });
+  const wheelBinder = attachBottomWheel(wheel, { onChange: h.onSteer, holdOnRelease: true });
 
   const holdGear = (sel: string, gear: Gear): void => {
     const b = bar.querySelector(sel) as HTMLElement;
@@ -92,7 +92,7 @@ export function createControls(parent: HTMLElement, h: ControlHandlers): Control
 
   return {
     detach() {
-      detachWheel();
+      wheelBinder.detach();
       bar.remove();
     },
     setWheelVisual(u: number) {
@@ -105,6 +105,9 @@ export function createControls(parent: HTMLElement, h: ControlHandlers): Control
     },
     setWheelRatio(degPerU: number) {
       wheel.style.setProperty("--wheel-deg", String(degPerU));
+      // Match the drag travel to the visual ratio so the wheel rotates 1:1 with the
+      // thumb (full lock = the real ~1.4 turns of dragging, or a compact sweep).
+      wheelBinder.setMaxRotDeg(degPerU);
     },
   };
 }

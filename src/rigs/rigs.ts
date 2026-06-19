@@ -10,7 +10,7 @@ const deg = (d: number): number => (d * Math.PI) / 180;
 export const ODYSSEY_UTILITY: Rig = {
   id: "odyssey-utility",
   label: "Honda Odyssey + utility trailer",
-  steeringRatio: 16, // ~16:1, minivan
+  steeringRatio: 16.4, // real: 2016 Odyssey spec, 3.5 turns lock-to-lock
   W: 3.0,
   L: 1.1,
   D: 1.8,
@@ -67,7 +67,7 @@ export const IONIQ5_UTILITY: Rig = {
 export const ODYSSEY_DUAL: Rig = {
   id: "odyssey-dual",
   label: "Honda Odyssey + tandem-axle trailer",
-  steeringRatio: 16, // ~16:1, minivan
+  steeringRatio: 16.4, // real: same Odyssey tow vehicle (3.5 turns lock-to-lock)
   W: 3.0,
   L: 1.1,
   D: 2.4, // effective wheelbase to the tandem's midpoint (stabler)
@@ -96,7 +96,7 @@ export const ODYSSEY_DUAL: Rig = {
 export const TRACTOR_AG: Rig = {
   id: "tractor-ag",
   label: "Compact tractor + ag trailer",
-  steeringRatio: 18, // tractors crank a lot of wheel for full lock
+  steeringRatio: 18, // APPROX: compact tractors use hydrostatic steering (no fixed ratio); ~2 turns to full lock
   W: 2.05, // compact utility tractor wheelbase
   L: 0.8, // drawbar: rear axle -> hitch point
   D: 3.0, // long ag trailer wheelbase (sluggish but stable)
