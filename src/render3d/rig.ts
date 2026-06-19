@@ -174,6 +174,15 @@ function buildCar(gs: GameState): THREE.Group {
   hood.rotation.z = -0.06; // a gentle forward slope (the Odyssey hood is fairly flat)
   g.add(hood);
 
+  // Rounded front fascia (nose): the hood is too thin to round its own corners, so
+  // a tall rounded box just behind the grille/headlights wraps the front-top
+  // corners that otherwise read square by the headlights.
+  const noseTopY = lowerTopY - 0.05;
+  const noseBotY = wheelRadius + 0.16;
+  const noseCap = roundedBox(0.24, noseTopY - noseBotY, carWidth * 0.98, 0.17, bodyMat, true, 5);
+  noseCap.position.set(front - 0.16, (noseTopY + noseBotY) / 2, 0);
+  g.add(noseCap);
+
   // Dark lower cladding / rocker panels along the sills.
   const rockerH = 0.16;
   const rocker = roundedBox(carLength * 0.88, rockerH, carWidth + 0.02, 0.06, lowerTrimMat);
