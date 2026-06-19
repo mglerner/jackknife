@@ -21,7 +21,13 @@ import { coachingMessage } from "./ui/coach";
 import { simulateManeuverFrames, type Maneuver } from "./game/autopilot";
 import { SOLUTIONS } from "./game/solutions";
 import { createSfx } from "./audio/sfx";
-import { recordBest, loadProgress, clearBestScores, setRealisticWheel } from "./game/persistence";
+import {
+  recordBest,
+  loadProgress,
+  clearBestScores,
+  setRealisticWheel,
+  setMirrorsOnly,
+} from "./game/persistence";
 
 const app = document.querySelector<HTMLDivElement>("#app")!;
 app.innerHTML = "";
@@ -87,6 +93,9 @@ let isDemo = false; // the current attempt is a Demo playback (does not count to
 // On-screen wheel turns at the rig's real steering ratio (default). Off = the
 // simpler compact sweep for super-beginners. Independent of backing difficulty.
 let realisticWheel = loadProgress().settings.realisticWheel ?? true;
+// "Mirrors only" = back up using just the camera + mirrors (no top-down), like real
+// life. When on, the view is forced to the backup-cam and the top-down toggle hides.
+let mirrorsOnly = loadProgress().settings.mirrorsOnly ?? false;
 let demoAcc = 0;
 let demoWheelU = 0; // eased on-screen wheel position during the demo (visual only)
 let demoFrames: (typeof game)[] = []; // recorded verified trajectory, replayed pose-by-pose
@@ -140,6 +149,7 @@ const controls = createControls(app, {
 });
 controls.setDemoEnabled(solution !== undefined);
 controls.setWheelRatio(wheelDegPerU(game));
+applyMirrorsOnly();
 
 /** Degrees the on-screen wheel rotates at full lock (u=1): the rig's real steering
  *  ratio in realistic modes, a compact sweep for the super-beginner mode. */
@@ -147,6 +157,17 @@ function wheelDegPerU(g: typeof game): number {
   if (!realisticWheel) return 140; // compact super-beginner sweep
   const maxSteerDeg = (g.rig.maxSteer * 180) / Math.PI;
   return maxSteerDeg * (g.rig.steeringRatio ?? 16);
+}
+
+/** Force backup-cam + mirrors and hide the top-down toggle in mirrors-only mode. */
+function applyMirrorsOnly(): void {
+  if (mirrorsOnly) {
+    view = "backupcam";
+    mirrors = true;
+  } else if (view === "backupcam") {
+    view = "topdown";
+  }
+  controls.setViewToggleVisible(!mirrorsOnly);
 }
 
 // Audio. iOS only starts the AudioContext from a user gesture, so resume on the
@@ -249,6 +270,11 @@ function renderMenu(): void {
     `<button data-wheel="realistic" class="${realisticWheel ? "sel" : ""}">Realistic</button>` +
     `<button data-wheel="simple" class="${!realisticWheel ? "sel" : ""}">Simple</button>` +
     "</div>" +
+    '<div class="menu-label">View</div>' +
+    '<div class="menu-row">' +
+    `<button data-vmode="topdown" class="${!mirrorsOnly ? "sel" : ""}">Top-down</button>` +
+    `<button data-vmode="mirrors" class="${mirrorsOnly ? "sel" : ""}">Mirrors only</button>` +
+    "</div>" +
     '<button id="reset-best" class="menu-danger">Reset high scores</button>' +
     '<button id="menu-close">Done</button>' +
     "</div>";
@@ -280,6 +306,15 @@ function renderMenu(): void {
       realisticWheel = b.dataset.wheel === "realistic";
       setRealisticWheel(realisticWheel);
       controls.setWheelRatio(wheelDegPerU(game));
+      renderMenu();
+    }),
+  );
+  // View: top-down (with aids) vs mirrors-only (real backing). Persisted; applies live.
+  menu.querySelectorAll<HTMLElement>("[data-vmode]").forEach((b) =>
+    b.addEventListener("pointerdown", () => {
+      mirrorsOnly = b.dataset.vmode === "mirrors";
+      setMirrorsOnly(mirrorsOnly);
+      applyMirrorsOnly();
       renderMenu();
     }),
   );

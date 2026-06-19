@@ -20,6 +20,8 @@ export interface Controls {
   /** Degrees the wheel visually rotates per unit of steer (u=1). Real steering
    *  ratio in realistic modes; a compact value for the super-beginner sweep. */
   setWheelRatio(degPerU: number): void;
+  /** Show/hide the top-down toggle (hidden in mirrors-only "real backing" mode). */
+  setViewToggleVisible(visible: boolean): void;
 }
 
 /** Build the bottom control bar: gear buttons, the bottom-of-wheel widget, toggles. */
@@ -108,6 +110,10 @@ export function createControls(parent: HTMLElement, h: ControlHandlers): Control
       // Match the drag travel to the visual ratio so the wheel rotates 1:1 with the
       // thumb (full lock = the real ~1.4 turns of dragging, or a compact sweep).
       wheelBinder.setMaxRotDeg(degPerU);
+    },
+    setViewToggleVisible(visible: boolean) {
+      viewBtn.hidden = !visible;
+      if (visible) viewBtn.textContent = "View: top-down";
     },
   };
 }

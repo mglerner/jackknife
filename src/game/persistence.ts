@@ -7,6 +7,7 @@ export interface Progress {
     view?: string;
     mirrors?: boolean;
     realisticWheel?: boolean; // on-screen wheel turns at the real steering ratio
+    mirrorsOnly?: boolean; // back up using only the camera + mirrors (no top-down)
   };
 }
 
@@ -55,5 +56,12 @@ export function clearBestScores(): Progress {
 export function setRealisticWheel(on: boolean): void {
   const p = loadProgress();
   p.settings.realisticWheel = on;
+  saveProgress(p);
+}
+
+/** Persist the mirrors-only (no top-down) preference. */
+export function setMirrorsOnly(on: boolean): void {
+  const p = loadProgress();
+  p.settings.mirrorsOnly = on;
   saveProgress(p);
 }
