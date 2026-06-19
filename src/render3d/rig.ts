@@ -169,7 +169,7 @@ function buildCar(gs: GameState): THREE.Group {
   const hoodFrontX = front - 0.14;
   const ghFrontX = front - carLength * 0.13; // base of A-pillar (very short van hood)
   const hoodLen = hoodFrontX - ghFrontX;
-  const hood = roundedBox(hoodLen + 0.22, 0.15, carWidth * 0.95, 0.06, bodyMat);
+  const hood = roundedBox(hoodLen + 0.22, 0.15, carWidth * 0.82, 0.06, bodyMat);
   hood.position.set((hoodFrontX + ghFrontX) / 2, lowerTopY - 0.07, 0);
   hood.rotation.z = -0.06; // a gentle forward slope (the Odyssey hood is fairly flat)
   g.add(hood);
@@ -179,8 +179,10 @@ function buildCar(gs: GameState): THREE.Group {
   // corners that otherwise read square by the headlights.
   const noseTopY = lowerTopY - 0.05;
   const noseBotY = wheelRadius + 0.16;
-  const noseCap = roundedBox(0.24, noseTopY - noseBotY, carWidth * 0.98, 0.17, bodyMat, true, 5);
-  noseCap.position.set(front - 0.16, (noseTopY + noseBotY) / 2, 0);
+  // Deep and narrower than the body so its big top-view corner radius rounds the
+  // FRONT OUTLINE seen from overhead (the body's rounded corners then show beside it).
+  const noseCap = roundedBox(0.46, noseTopY - noseBotY, carWidth * 0.9, 0.24, bodyMat, true, 6);
+  noseCap.position.set(front - 0.25, (noseTopY + noseBotY) / 2, 0);
   g.add(noseCap);
 
   // Dark lower cladding / rocker panels along the sills.
@@ -417,8 +419,8 @@ function buildCar(gs: GameState): THREE.Group {
   // --- Bumpers (body color), front and rear ---
   const bumperH = 0.26;
   const bumperY = wheelRadius + bumperH / 2 - 0.01;
-  const frontBumper = roundedBox(0.2, bumperH, carWidth * 0.98, 0.07, bodyMat);
-  frontBumper.position.set(front - 0.07, bumperY, 0);
+  const frontBumper = roundedBox(0.42, bumperH, carWidth * 0.9, 0.2, bodyMat);
+  frontBumper.position.set(front - 0.14, bumperY, 0);
   g.add(frontBumper);
   const rearBumperMesh = roundedBox(0.2, bumperH, carWidth * 0.98, 0.07, bodyMat);
   rearBumperMesh.position.set(rearBumper + 0.07, bumperY, 0);
