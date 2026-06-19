@@ -65,9 +65,10 @@ function roundedBox(
   radius: number,
   mat: THREE.Material,
   cast = true,
+  segments = 4,
 ): THREE.Mesh {
   const r = Math.min(radius, length / 2, height / 2, width / 2) * 0.999;
-  const mesh = new THREE.Mesh(new RoundedBoxGeometry(length, height, width, 4, r), mat);
+  const mesh = new THREE.Mesh(new RoundedBoxGeometry(length, height, width, segments, r), mat);
   mesh.castShadow = cast;
   return mesh;
 }
@@ -87,10 +88,10 @@ function buildCar(gs: GameState): THREE.Group {
   // Light silver (Honda Polished Metal Metallic). Lighter than nominal so it
   // reads as light silver paint rather than charcoal under this lighting.
   const bodyMat = new THREE.MeshStandardMaterial({
-    color: 0xc3c8cc,
-    roughness: 0.38,
-    metalness: 0.55,
-    envMapIntensity: 1.3,
+    color: 0x969ca1, // Honda "Polished Metal Metallic": a medium cool grey-silver
+    roughness: 0.28, // glossy: env map reflections read as fresh car paint
+    metalness: 0.72,
+    envMapIntensity: 1.0,
   });
   const lowerTrimMat = new THREE.MeshStandardMaterial({
     color: 0x35383c, // dark rocker / cladding (lighter than before so it isn't a black void)
@@ -143,8 +144,8 @@ function buildCar(gs: GameState): THREE.Group {
     metalness: 0.0,
   });
 
-  const wheelRadius = 0.38;
-  const wheelWidth = 0.25;
+  const wheelRadius = 0.42;
+  const wheelWidth = 0.27;
 
   // Ride geometry. A minivan is LONG and fairly low. The lower body is a single
   // rounded slab; the greenhouse (cabin) is a long glassy mass on top that runs
@@ -156,7 +157,7 @@ function buildCar(gs: GameState): THREE.Group {
 
   // --- Lower body (main rounded slab), nearly full length ---
   const bodyLen = carLength - 0.18;
-  const body = roundedBox(bodyLen, lowerH, carWidth, 0.28, bodyMat);
+  const body = roundedBox(bodyLen, lowerH, carWidth, 0.3, bodyMat, true, 5);
   body.position.set(bodyCenterX, lowerY, 0);
   g.add(body);
 
@@ -185,12 +186,12 @@ function buildCar(gs: GameState): THREE.Group {
   const greenhouseLen = ghFrontX - ghBackX;
   const greenhouseCenterX = (ghFrontX + ghBackX) / 2;
   const ghBaseY = lowerTopY - 0.06; // glass starts a touch into the body (belt line)
-  const ghHalfBaseW = carWidth * 0.47;
-  const ghHalfTopW = carWidth * 0.41; // narrower at the top -> tumblehome
+  const ghHalfBaseW = carWidth * 0.46;
+  const ghHalfTopW = carWidth * 0.37; // narrower at the top -> more tumblehome
 
   // Roofline: highest just behind the windshield, tapering down to the rear.
-  const ghFrontH = 0.66; // cabin height at the front (over the A-pillar base)
-  const ghRearH = 0.54; // lower at the rear quarter
+  const ghFrontH = 0.56; // cabin height at the front (over the A-pillar base)
+  const ghRearH = 0.47; // lower at the rear quarter
   const roofFrontY = ghBaseY + ghFrontH;
   const roofRearY = ghBaseY + ghRearH;
 
@@ -220,9 +221,10 @@ function buildCar(gs: GameState): THREE.Group {
     coreLen,
     (ghFrontH + ghRearH) / 2 - 0.04,
     ghHalfTopW * 2 - 0.02,
-    0.1,
+    0.2,
     bodyMat,
     false,
+    5,
   );
   core.position.set(greenhouseCenterX, ghBaseY + (ghFrontH + ghRearH) / 4 + 0.04, 0);
   g.add(core);
@@ -238,18 +240,16 @@ function buildCar(gs: GameState): THREE.Group {
     g.add(strip);
   }
 
-  // --- Raked windshield (front glass): a thin slab spanning from the cowl up to
-  // the roof front edge, steeply raked. Sized so it does not poke past the roof.
-  const wsRake = 0.72; // radians from vertical-ish; big forward rake
-  const wsHeight = ghFrontH * 0.94;
-  const windshield = box(0.07, wsHeight, carWidth * 0.84, glassMat, false);
-  // Center it on the line from cowl base (ghFrontX) up to the roof front.
-  windshield.position.set(
-    ghFrontX + Math.sin(wsRake) * wsHeight * 0.5,
-    ghBaseY + Math.cos(wsRake) * wsHeight * 0.5 + 0.04,
-    0,
-  );
-  windshield.rotation.z = wsRake;
+  // --- Raked windshield: a panel built from its two real endpoints, the cowl
+  // (base) and the roof front edge (top), so it always aligns with the A-pillars.
+  // The top sits well behind the base for a steep, cab-forward rake.
+  const wsTopX = ghFrontX - 0.62;
+  const wsDx = wsTopX - ghFrontX;
+  const wsDy = roofFrontY - ghBaseY;
+  const wsLen = Math.hypot(wsDx, wsDy);
+  const windshield = box(0.06, wsLen, carWidth * 0.86, glassMat, false);
+  windshield.position.set(ghFrontX + wsDx / 2, ghBaseY + wsDy / 2, 0);
+  windshield.rotation.z = Math.atan2(-wsDx, wsDy); // local +Y runs base -> top
   g.add(windshield);
 
   // --- Rear glass / near-vertical tailgate window ---
@@ -266,8 +266,10 @@ function buildCar(gs: GameState): THREE.Group {
   const roofLen = greenhouseLen + 0.22; // extend front a bit to meet the windshield top
   const roofTilt = Math.atan2(roofFrontY - roofRearY, greenhouseLen);
   const roofCenterX = greenhouseCenterX + 0.08;
-  const roof = roundedBox(roofLen / Math.cos(roofTilt), 0.1, ghHalfTopW * 2 - 0.02, 0.06, bodyMat);
-  roof.position.set(roofCenterX, (roofFrontY + roofRearY) / 2 + 0.05, 0);
+  // A tall radius gives the roof a domed (crowned) cross-section instead of a flat
+  // slab lid, which reads much less boxy from above and the side.
+  const roof = roundedBox(roofLen / Math.cos(roofTilt), 0.2, ghHalfTopW * 2, 0.1, bodyMat, true, 6);
+  roof.position.set(roofCenterX, (roofFrontY + roofRearY) / 2 - 0.0, 0);
   roof.rotation.z = roofTilt; // front edge higher than rear
   g.add(roof);
 
@@ -284,6 +286,26 @@ function buildCar(gs: GameState): THREE.Group {
   const spoiler = box(0.16, 0.06, carWidth * 0.74, trimMat);
   spoiler.position.set(ghBackX + 0.06, roofRearY + 0.06, 0);
   g.add(spoiler);
+
+  // Moonroof: a dark glass panel set into the front of the roof (a clear cue from
+  // the top-down view).
+  const moonroof = box(0.62, 0.03, carWidth * 0.42, glassMat, false);
+  moonroof.position.set(greenhouseCenterX + greenhouseLen * 0.16, roofFrontY + 0.02, 0);
+  moonroof.rotation.z = roofTilt;
+  g.add(moonroof);
+
+  // Bright chrome window surround along the TOP of the side glass (an Odyssey cue
+  // that, with the lower belt strip, frames the glass).
+  for (const sign of [1, -1]) {
+    const topStrip = box(greenhouseLen * 0.8, 0.03, 0.025, chromeMat);
+    topStrip.position.set(
+      greenhouseCenterX - 0.06,
+      (roofFrontY + roofRearY) / 2 - 0.02,
+      sign * (ghHalfTopW + 0.012),
+    );
+    topStrip.rotation.z = roofTilt;
+    g.add(topStrip);
+  }
 
   // --- Body-colored A/B/C/D pillars dividing the side glass into panes ---
   // Each pillar is a thin body-colored post on the outer face of the glass.
