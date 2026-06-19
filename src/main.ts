@@ -321,12 +321,15 @@ function checkWin(): void {
 }
 
 let last = 0;
+let hitPause = 0; // brief sim freeze after an impact, for weight
 function frame(t: number): void {
   if (cssW === 0) resize();
   const dt = last ? (t - last) / 1000 : 0;
   last = t;
 
-  if (demoActive && solution) {
+  if (hitPause > 0) {
+    hitPause -= dt; // hold the sim still for a beat on impact
+  } else if (demoActive && solution) {
     // Fixed-timestep playback so it reproduces the verified solution exactly
     // (the reverse direction is unstable, so variable dt would drift).
     const fixed = 1 / 60;
@@ -378,9 +381,15 @@ function frame(t: number): void {
   const spd = Math.abs(commandedSpeed(game));
   sfx.setEngine(spd > 1e-3 ? Math.min(1, spd / 2.5) : 0);
   sfx.reverseBeep(game.gear === "reverse" && spd > 0.05);
-  if (game.session.wallContacts > prevWallContacts) sfx.collision();
+  if (game.session.wallContacts > prevWallContacts) {
+    sfx.collision();
+    hitPause = 0.08; // a beat of hit-pause makes the bump land
+  }
   prevWallContacts = game.session.wallContacts;
-  if (won && !prevWon) sfx.success();
+  if (won && !prevWon) {
+    sfx.success();
+    renderer3d.celebrate(game);
+  }
   prevWon = won;
 
   requestAnimationFrame(frame);

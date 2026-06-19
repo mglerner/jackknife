@@ -21,13 +21,17 @@ export interface ParticleSystem {
   wheelDust(worldX: number, worldZ: number, intensity01: number): void;
   /** Spawn a small soft grey exhaust puff at the tailpipe. */
   exhaust(worldX: number, worldZ: number, y: number): void;
+  /** A sharp outward spray of dust on an impact (collision feedback). */
+  burst(worldX: number, worldZ: number, n?: number): void;
+  /** A celebratory pop of colorful confetti at a ground point (on a clean park). */
+  celebrate(worldX: number, worldZ: number): void;
   /** Advance and fade all live particles; recycle dead ones. `dt` in seconds. */
   update(dt: number): void;
   /** Release GPU/CPU resources and remove from the scene. */
   dispose(): void;
 }
 
-const MAX_PARTICLES = 300;
+const MAX_PARTICLES = 460; // headroom so a win's confetti is never starved by dust
 
 // Per-spawn caps so a burst of calls cannot blow the pool budget in one frame.
 const MAX_DUST_PER_SPAWN = 8;
@@ -36,6 +40,13 @@ const MAX_EXHAUST_PER_SPAWN = 3;
 // Pale warm dust and soft grey exhaust.
 const DUST_COLOR = new THREE.Color(0.86, 0.78, 0.62);
 const EXHAUST_COLOR = new THREE.Color(0.6, 0.6, 0.62);
+// Confetti palette for the win pop.
+const CONFETTI = [
+  new THREE.Color(0x4cc2ff),
+  new THREE.Color(0xffd45e),
+  new THREE.Color(0x7ee787),
+  new THREE.Color(0xff7b9c),
+];
 
 function clamp01(v: number): number {
   return v < 0 ? 0 : v > 1 ? 1 : v;
@@ -213,6 +224,44 @@ export function createParticles(scene: THREE.Group | THREE.Scene): ParticleSyste
     }
   }
 
+  function burst(worldX: number, worldZ: number, n = 14): void {
+    for (let i = 0; i < n; i++) {
+      const ang = rand(0, Math.PI * 2);
+      const spd = rand(0.7, 1.8);
+      spawn(
+        worldX,
+        0.06,
+        worldZ,
+        Math.cos(ang) * spd,
+        rand(0.5, 1.3),
+        Math.sin(ang) * spd,
+        rand(0.3, 0.55),
+        rand(0.12, 0.2),
+        rand(-0.1, 0.05),
+        DUST_COLOR,
+      );
+    }
+  }
+
+  function celebrate(worldX: number, worldZ: number): void {
+    for (let i = 0; i < 44; i++) {
+      const ang = rand(0, Math.PI * 2);
+      const spd = rand(0.5, 1.9);
+      spawn(
+        worldX + rand(-0.3, 0.3),
+        rand(0.2, 0.7),
+        worldZ + rand(-0.3, 0.3),
+        Math.cos(ang) * spd,
+        rand(1.4, 2.8), // pop upward
+        Math.sin(ang) * spd,
+        rand(1.1, 1.8),
+        rand(0.14, 0.24),
+        rand(-0.03, 0.04),
+        CONFETTI[i % CONFETTI.length],
+      );
+    }
+  }
+
   function update(dt: number): void {
     if (dt <= 0) return;
     // Clamp huge dt (e.g. after a tab was backgrounded) to keep things sane.
@@ -261,5 +310,5 @@ export function createParticles(scene: THREE.Group | THREE.Scene): ParticleSyste
     sprite.dispose();
   }
 
-  return { wheelDust, exhaust, update, dispose };
+  return { wheelDust, exhaust, burst, celebrate, update, dispose };
 }

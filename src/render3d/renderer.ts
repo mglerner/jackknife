@@ -25,6 +25,8 @@ export interface Renderer3D {
   nudgeTopZoom(factor: number): void;
   /** Swap the world + rig for a new game (rig or scenario change). */
   rebuild(gs: GameState): void;
+  /** Pop a burst of celebratory confetti at the parked trailer (called on a win). */
+  celebrate(gs: GameState): void;
 }
 
 interface MirrorSpec {
@@ -383,7 +385,11 @@ export function createRenderer3d(canvas: HTMLCanvasElement, gs: GameState): Rend
     const now = performance.now();
     const dt = Math.min(0.05, (now - lastT) / 1000);
     lastT = now;
-    if (g.session.wallContacts > prevContacts) shake = 0.3;
+    if (g.session.wallContacts > prevContacts) {
+      shake = 0.3;
+      const tb = worldToThree(der.trailerAxle, 0);
+      particles.burst(tb.x, tb.z, 16);
+    }
     prevContacts = g.session.wallContacts;
     shake = Math.max(0, shake - dt * 1.6);
     const worldTick = world.userData.tick as ((t: number) => void) | undefined;
@@ -418,6 +424,12 @@ export function createRenderer3d(canvas: HTMLCanvasElement, gs: GameState): Rend
     if (opts.mirrors) renderMirrors(g);
   }
 
+  function celebrate(g: GameState): void {
+    const der = derive(g.physics, g.rig, { v: 0, delta: 0 });
+    const tb = worldToThree(der.trailerAxle, 0);
+    particles.celebrate(tb.x, tb.z);
+  }
+
   return {
     render,
     resize,
@@ -425,5 +437,6 @@ export function createRenderer3d(canvas: HTMLCanvasElement, gs: GameState): Rend
       topZoom = Math.max(0.5, Math.min(2.6, topZoom * f));
     },
     rebuild,
+    celebrate,
   };
 }
