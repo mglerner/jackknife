@@ -181,8 +181,8 @@ function buildCar(gs: GameState): THREE.Group {
   const noseBotY = wheelRadius + 0.16;
   // Deep and narrower than the body so its big top-view corner radius rounds the
   // FRONT OUTLINE seen from overhead (the body's rounded corners then show beside it).
-  const noseCap = roundedBox(0.46, noseTopY - noseBotY, carWidth * 0.9, 0.24, bodyMat, true, 6);
-  noseCap.position.set(front - 0.25, (noseTopY + noseBotY) / 2, 0);
+  const noseCap = roundedBox(0.64, noseTopY - noseBotY, carWidth * 0.82, 0.31, bodyMat, true, 7);
+  noseCap.position.set(front - 0.34, (noseTopY + noseBotY) / 2, 0);
   g.add(noseCap);
 
   // Dark lower cladding / rocker panels along the sills.
@@ -419,8 +419,8 @@ function buildCar(gs: GameState): THREE.Group {
   // --- Bumpers (body color), front and rear ---
   const bumperH = 0.26;
   const bumperY = wheelRadius + bumperH / 2 - 0.01;
-  const frontBumper = roundedBox(0.42, bumperH, carWidth * 0.9, 0.2, bodyMat);
-  frontBumper.position.set(front - 0.14, bumperY, 0);
+  const frontBumper = roundedBox(0.58, bumperH, carWidth * 0.82, 0.28, bodyMat);
+  frontBumper.position.set(front - 0.2, bumperY, 0);
   g.add(frontBumper);
   const rearBumperMesh = roundedBox(0.2, bumperH, carWidth * 0.98, 0.07, bodyMat);
   rearBumperMesh.position.set(rearBumper + 0.07, bumperY, 0);
