@@ -292,18 +292,23 @@ let menuTab: MenuTab = "vehicle";
 
 // Scenario picker grouped for the tabbed Garage; short labels keep buttons compact.
 const SCEN_GROUPS: { label: string; ids: string[] }[] = [
-  { label: "Driveways", ids: ["street-to-driveway-90", "driveway-straight-start"] },
+  { label: "Driveways", ids: ["street-to-driveway-90", "driveway-straight-start", "driveway-downhill"] },
   { label: "Docks", ids: ["apron-to-loading-dock", "flanked-loading-dock"] },
-  { label: "Tight spots", ids: ["street-to-gate-narrow", "parallel-park-curb", "lcorner-backin-90"] },
+  {
+    label: "Tight spots",
+    ids: ["street-to-gate-narrow", "parallel-park-curb", "lcorner-backin-90", "blindside-backin"],
+  },
 ];
 const SCEN_SHORT: Record<string, string> = {
   "street-to-driveway-90": "90°",
   "driveway-straight-start": "Straight",
+  "driveway-downhill": "Downhill",
   "apron-to-loading-dock": "Standard",
   "flanked-loading-dock": "Flanked",
   "street-to-gate-narrow": "Gate",
   "parallel-park-curb": "Parallel",
   "lcorner-backin-90": "Corner",
+  "blindside-backin": "Blind side",
 };
 
 function renderMenu(animate = false): void {
