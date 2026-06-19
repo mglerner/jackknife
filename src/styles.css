@@ -170,6 +170,7 @@ body {
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
+  z-index: 1000; /* above the controls bar and the pull/contact overlays */
   background: var(--panel);
   border: 1px solid #3a414a;
   border-radius: 16px;

@@ -130,9 +130,11 @@ function checkWin(): void {
       '<button id="again">Try again</button>' +
       "</div>";
     banner.hidden = false;
-    (banner.querySelector("#again") as HTMLElement).addEventListener("click", restart);
+    // Use pointerdown (fires immediately on touch) so the first tap always lands;
+    // a plain click was being dropped on the first press after a demo.
+    (banner.querySelector("#again") as HTMLElement).addEventListener("pointerdown", restart);
     // Dismiss the banner but keep the parked scene, so you can free-look / switch views.
-    (banner.querySelector("#look") as HTMLElement).addEventListener("click", () => {
+    (banner.querySelector("#look") as HTMLElement).addEventListener("pointerdown", () => {
       banner.hidden = true;
     });
   }
