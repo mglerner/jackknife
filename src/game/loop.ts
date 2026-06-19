@@ -59,6 +59,11 @@ export function advance(gs: GameState, frameDt: number): GameState {
       if (!session.collidingNow) {
         session = { ...session, collidingNow: true, wallContacts: session.wallContacts + 1 };
       }
+      // A blocked reverse still shows intent to back up, so a later pull-forward
+      // is counted even if every reverse substep here was rejected by a wall.
+      if (vSub < -1e-4 && !session.reversedSinceForward) {
+        session = { ...session, reversedSinceForward: true };
+      }
     } else {
       physics = candidate;
       if (session.collidingNow) session = { ...session, collidingNow: false };

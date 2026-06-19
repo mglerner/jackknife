@@ -61,10 +61,11 @@ export function setThrottle(gs: GameState, value: number): GameState {
 }
 
 export function setGear(gs: GameState, gear: Gear): GameState {
-  // Count a pull-up only when switching reverse -> forward AFTER actually reversing
-  // (so idly toggling gears at rest does not rack up penalties).
+  // Count a pull-up whenever switching INTO forward after actually reversing,
+  // regardless of the immediately prior gear (so pausing in park between backing
+  // and pulling forward still counts, but idle toggling at rest does not).
   const pullForward =
-    gs.gear === "reverse" && gear === "forward" && gs.session.reversedSinceForward;
+    gear === "forward" && gs.gear !== "forward" && gs.session.reversedSinceForward;
   return {
     ...gs,
     gear,

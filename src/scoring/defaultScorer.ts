@@ -8,8 +8,9 @@ const clamp01 = (x: number): number => (x < 0 ? 0 : x > 1 ? 1 : x);
 // Weights (a clean attempt tops out near 100). Stopping to reassess is good
 // technique, so it is NOT penalized; inefficiency shows up as path length and
 // pull-ups instead.
-const W_LATERAL = 45; // accuracy: lateral offset to target
-const W_HEADING = 35; // accuracy: heading match to target
+const W_LATERAL = 38; // accuracy: lateral (side to side) offset to target
+const W_LONGITUDINAL = 12; // accuracy: fore/aft (depth) offset to target
+const W_HEADING = 30; // accuracy: heading match to target
 const W_PATH = 20; // efficiency: short path
 const P_GAMMA = 25; // graduated penalty for nearing/passing criticalGamma
 const P_PULLFWD = 6; // per pull-up, capped
@@ -28,8 +29,10 @@ export const defaultScorer: Scorer = {
 
     // --- Accuracy: linear falloff from perfect (1) to at-tolerance (0). ---
     const latFrac = clamp01(1 - Math.abs(e.lateral) / posTolerance);
+    const longFrac = clamp01(1 - Math.abs(e.longitudinal) / posTolerance);
     const headFrac = clamp01(1 - Math.abs(e.heading) / headingTolerance);
     const lateralPts = W_LATERAL * latFrac;
+    const longitudinalPts = W_LONGITUDINAL * longFrac;
     const headingPts = W_HEADING * headFrac;
 
     // --- Efficiency: shorter path. ---
@@ -64,6 +67,7 @@ export const defaultScorer: Scorer = {
 
     const breakdown: Record<string, number> = {
       lateral: lateralPts,
+      longitudinal: longitudinalPts,
       heading: headingPts,
       path: pathPts,
       gammaPenalty: -gammaPenalty,
@@ -72,7 +76,13 @@ export const defaultScorer: Scorer = {
     };
 
     const raw =
-      lateralPts + headingPts + pathPts - gammaPenalty - pullPenalty - contactPenalty;
+      lateralPts +
+      longitudinalPts +
+      headingPts +
+      pathPts -
+      gammaPenalty -
+      pullPenalty -
+      contactPenalty;
     const score = Math.max(0, Math.round(raw * 10) / 10);
     const passed = isTrailerInTarget(gs);
 
