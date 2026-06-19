@@ -38,7 +38,9 @@ export interface Scenario {
   mirrorsAvailable: boolean;
   cameraAvailable: boolean;
   worldBounds: WorldBounds;
-  /** Which decorative environment world.ts builds. Defaults to the suburban yard. */
-  environment?: "suburban" | "dock";
+  /** Which decorative environment world.ts builds. Defaults to the suburban yard.
+   *  "generic" is a neutral paved lot (just the scenario's own obstacles + ground),
+   *  used by scenarios whose layout doesn't match the fixed suburban props. */
+  environment?: "suburban" | "dock" | "generic";
   params?: Record<string, number>;
 }

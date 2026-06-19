@@ -104,6 +104,8 @@ export function buildWorld(gs: GameState): THREE.Group {
   if (gs.scenario.environment === "dock") {
     addDockGround(group, bounds);
     addDockEnvironment(group);
+  } else if (gs.scenario.environment === "generic") {
+    addGenericGround(group, bounds);
   } else {
     addGround(group, bounds);
     addEnvironment(group, bounds);
@@ -291,6 +293,26 @@ function addGround(group: THREE.Group, bounds: WorldBounds): void {
   });
   addGroundRegion(group, sidewalkMat, bounds.minX, -3, 3.0, 3.6, 0.01);
   addGroundRegion(group, sidewalkMat, 3, bounds.maxX, 3.0, 3.6, 0.01);
+}
+
+// -----------------------------------------------------------------------------
+// Neutral "generic" environment for scenarios whose layout does not match the
+// fixed suburban props (gate, parallel-park, L-corner): a grass surround with a
+// paved play area. All structure comes from the scenario's own obstacles + target.
+// -----------------------------------------------------------------------------
+function addGenericGround(group: THREE.Group, bounds: WorldBounds): void {
+  const grassMat = new THREE.MeshStandardMaterial({
+    map: noiseTexture([96, 158, 74], 14, 30),
+    roughness: 0.98,
+    metalness: 0.0,
+  });
+  const asphaltMat = new THREE.MeshStandardMaterial({
+    map: noiseTexture([92, 96, 102], 10, 16),
+    roughness: 0.92,
+    metalness: 0.0,
+  });
+  addGroundRegion(group, grassMat, bounds.minX - 12, bounds.maxX + 12, bounds.minY - 12, bounds.maxY + 12, -0.02);
+  addGroundRegion(group, asphaltMat, bounds.minX, bounds.maxX, bounds.minY, bounds.maxY, 0.0);
 }
 
 // -----------------------------------------------------------------------------

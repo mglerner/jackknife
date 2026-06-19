@@ -90,10 +90,115 @@ export const DRIVEWAY_STRAIGHT_START: Scenario = {
   worldBounds: STREET_TO_DRIVEWAY_90.worldBounds,
 };
 
+/** Back through a narrow (2.6 m) gate into a fenced yard. Search-found, verified. */
+export const STREET_TO_GATE_NARROW: Scenario = {
+  id: "street-to-gate-narrow",
+  label: "Narrow gate",
+  start: { x: -2.8970202145599178, y: -2.0933448157706254, carHeading: -2.2923608569786573, trailerHeading: -2.0701465259569325 },
+  target: { x: 0, y: 8, heading: -1.5707963267948966, halfWidth: 1.2, halfLength: 2.2 },
+  obstacles: [
+    { kind: "curb", shape: seg(-18, -5, 18, -5), penalty: 50 },
+    { kind: "wall", shape: seg(-18, 3, -1.3, 3), penalty: 120 },
+    { kind: "wall", shape: seg(1.3, 3, 18, 3), penalty: 120 },
+    { kind: "wall", shape: seg(-1.3, 3, -1.3, 4.2), penalty: 150 },
+    { kind: "wall", shape: seg(1.3, 3, 1.3, 4.2), penalty: 150 },
+    { kind: "wall", shape: seg(-4.5, 3, -4.5, 12), penalty: 120 },
+    { kind: "wall", shape: seg(4.5, 3, 4.5, 12), penalty: 120 },
+    { kind: "wall", shape: seg(-4.5, 12, 4.5, 12), penalty: 200 },
+  ],
+  surface: "asphalt",
+  slope: 0,
+  mirrorsAvailable: true,
+  cameraAvailable: true,
+  worldBounds: { minX: -18, minY: -8, maxX: 18, maxY: 14 },
+  environment: "generic",
+};
+
+/** Loading dock with two parked trailers flanking the bay mouth. Verified. */
+export const FLANKED_LOADING_DOCK: Scenario = {
+  id: "flanked-loading-dock",
+  label: "Dock (flanked by trailers)",
+  start: { x: 0.7446, y: -6.8085, carHeading: -1.3453, trailerHeading: -1.45 },
+  target: { x: 0, y: 4.5, heading: -1.5707963267948966, halfWidth: 1.4, halfLength: 2.2 },
+  obstacles: [
+    { kind: "wall", shape: seg(-1.7, 0, -1.7, 6.5), penalty: 120 },
+    { kind: "wall", shape: seg(1.7, 0, 1.7, 6.5), penalty: 120 },
+    { kind: "wall", shape: seg(-1.7, 6.5, 1.7, 6.5), penalty: 200 },
+    { kind: "curb", shape: seg(-22, 0, -1.7, 0), penalty: 50 },
+    { kind: "curb", shape: seg(1.7, 0, 22, 0), penalty: 50 },
+    { kind: "curb", shape: seg(-22, -9, 22, -9), penalty: 40 },
+    { kind: "wall", shape: seg(-4.2, -7.5, -2.2, -7.5), penalty: 120 },
+    { kind: "wall", shape: seg(-2.2, -7.5, -2.2, -1), penalty: 120 },
+    { kind: "wall", shape: seg(-2.2, -1, -4.2, -1), penalty: 120 },
+    { kind: "wall", shape: seg(-4.2, -1, -4.2, -7.5), penalty: 120 },
+    { kind: "wall", shape: seg(2.2, -7.5, 4.2, -7.5), penalty: 120 },
+    { kind: "wall", shape: seg(4.2, -7.5, 4.2, -1), penalty: 120 },
+    { kind: "wall", shape: seg(4.2, -1, 2.2, -1), penalty: 120 },
+    { kind: "wall", shape: seg(2.2, -1, 2.2, -7.5), penalty: 120 },
+  ],
+  surface: "asphalt",
+  slope: 0,
+  mirrorsAvailable: true,
+  cameraAvailable: true,
+  worldBounds: { minX: -22, minY: -11, maxX: 22, maxY: 9 },
+  environment: "dock",
+};
+
+/** Parallel-park the trailer into a curbside gap between two parked cars. Verified. */
+export const PARALLEL_PARK_CURB: Scenario = {
+  id: "parallel-park-curb",
+  label: "Parallel park (curbside)",
+  start: { x: 9.5, y: 3.8, carHeading: 0, trailerHeading: 0 },
+  target: { x: -1.45, y: 1.05, heading: 0, halfWidth: 1, halfLength: 2.2 },
+  obstacles: [
+    { kind: "curb", shape: seg(-16, 0, 16, 0), penalty: 50 },
+    { kind: "curb", shape: seg(-16, 7.5, 16, 7.5), penalty: 50 },
+    { kind: "wall", shape: seg(-7.6, 0.1, -2.9, 0.1), penalty: 120 },
+    { kind: "wall", shape: seg(-2.9, 0.1, -2.9, 2), penalty: 120 },
+    { kind: "wall", shape: seg(-2.9, 2, -7.6, 2), penalty: 120 },
+    { kind: "wall", shape: seg(-7.6, 2, -7.6, 0.1), penalty: 120 },
+    { kind: "wall", shape: seg(3.3, 0.1, 8, 0.1), penalty: 120 },
+    { kind: "wall", shape: seg(8, 0.1, 8, 2), penalty: 120 },
+    { kind: "wall", shape: seg(8, 2, 3.3, 2), penalty: 120 },
+    { kind: "wall", shape: seg(3.3, 2, 3.3, 0.1), penalty: 120 },
+  ],
+  surface: "asphalt",
+  slope: 0,
+  mirrorsAvailable: true,
+  cameraAvailable: true,
+  worldBounds: { minX: -16, minY: -2, maxX: 16, maxY: 10 },
+  environment: "generic",
+};
+
+/** Back the trailer around a 90-degree corner (L-shaped alley). Verified. */
+export const LCORNER_BACKIN_90: Scenario = {
+  id: "lcorner-backin-90",
+  label: "L-corner back-in",
+  start: { x: 12.44, y: 0, carHeading: 0, trailerHeading: 0 },
+  target: { x: 0, y: 7.2, heading: -1.5707963267948966, halfWidth: 1.4, halfLength: 2.2 },
+  obstacles: [
+    { kind: "wall", shape: seg(13.5, -3.8, -3.8, -3.8), penalty: 120 },
+    { kind: "wall", shape: seg(-3.8, -3.8, -3.8, 12), penalty: 120 },
+    { kind: "wall", shape: seg(13.5, 3.8, 3.8, 3.8), penalty: 120 },
+    { kind: "wall", shape: seg(3.8, 3.8, 3.8, 12), penalty: 120 },
+    { kind: "wall", shape: seg(-3.8, 12, 3.8, 12), penalty: 200 },
+  ],
+  surface: "asphalt",
+  slope: 0,
+  mirrorsAvailable: true,
+  cameraAvailable: true,
+  worldBounds: { minX: -6, minY: -6, maxX: 16.5, maxY: 15 },
+  environment: "generic",
+};
+
 export const SCENARIOS: Record<string, Scenario> = {
   [STREET_TO_DRIVEWAY_90.id]: STREET_TO_DRIVEWAY_90,
   [DRIVEWAY_STRAIGHT_START.id]: DRIVEWAY_STRAIGHT_START,
   [APRON_TO_LOADING_DOCK.id]: APRON_TO_LOADING_DOCK,
+  [STREET_TO_GATE_NARROW.id]: STREET_TO_GATE_NARROW,
+  [FLANKED_LOADING_DOCK.id]: FLANKED_LOADING_DOCK,
+  [PARALLEL_PARK_CURB.id]: PARALLEL_PARK_CURB,
+  [LCORNER_BACKIN_90.id]: LCORNER_BACKIN_90,
 };
 
 export const DEFAULT_SCENARIO = STREET_TO_DRIVEWAY_90;

@@ -45,4 +45,26 @@ export const SOLUTIONS: Record<string, Maneuver> = {
     { gear: "reverse", steer: -0.9556019526626729, seconds: 1.2877949867154286 },
     { gear: "reverse", steer: -0.42585798223376276, seconds: 0.9347265038482286 },
   ],
+  // New scenarios: search-found, adversarially-verified, all reverse-only.
+  "odyssey-utility/street-to-gate-narrow": [
+    { gear: "reverse", steer: -0.3690815973095596, seconds: 1.9355150305330755 },
+    { gear: "reverse", steer: -0.5800595700927078, seconds: 1.9490679452195763 },
+    { gear: "reverse", steer: -0.3756404554005712, seconds: 0.5402605695007368 },
+  ],
+  "odyssey-utility/flanked-loading-dock": [
+    { gear: "reverse", steer: 0.2, seconds: 3.3585279999999997 },
+    { gear: "reverse", steer: 0.08, seconds: 2.6846720000000004 },
+  ],
+  "odyssey-utility/parallel-park-curb": [
+    { gear: "reverse", steer: 0.42869613374988375, seconds: 0.5793468018897566 },
+    { gear: "reverse", steer: 0.005262709169305296, seconds: 1.0646937750581156 },
+    { gear: "reverse", steer: -0.6141256532883856, seconds: 3.8052696999652635 },
+    { gear: "reverse", steer: -0.19700956252264298, seconds: 2.627050970181381 },
+  ],
+  "odyssey-utility/lcorner-backin-90": [
+    { gear: "reverse", steer: -0.043165, seconds: 3.198813 },
+    { gear: "reverse", steer: 0.381121, seconds: 2.205931 },
+    { gear: "reverse", steer: 0.916154, seconds: 2.391716 },
+    { gear: "reverse", steer: 0.566398, seconds: 2.249586 },
+  ],
 };
