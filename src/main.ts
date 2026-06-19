@@ -10,7 +10,7 @@ import {
 import { advance, commandedSpeed } from "./game/loop";
 import { DEFAULT_RIG, RIGS } from "./rigs/rigs";
 import { DEFAULT_SCENARIO, SCENARIOS } from "./scenarios/scenarios";
-import { DEFAULT_DIFFICULTY, DIFFICULTIES } from "./difficulty/difficulty";
+import { DEFAULT_DIFFICULTY, DIFFICULTIES, BEGINNER } from "./difficulty/difficulty";
 import { steerFromBottomWheel } from "./input/bottomWheel";
 import { createRenderer3d, type ViewMode } from "./render3d/renderer";
 import { isTrailerInTarget } from "./scoring/types";
@@ -18,7 +18,7 @@ import { defaultScorer } from "./scoring/defaultScorer";
 import { createHud } from "./ui/hud";
 import { createControls } from "./ui/controls";
 import { coachingMessage } from "./ui/coach";
-import { applyManeuverAt, maneuverDuration, type Maneuver } from "./game/autopilot";
+import { simulateManeuverFrames, type Maneuver } from "./game/autopilot";
 import { SOLUTIONS } from "./game/solutions";
 import { createSfx } from "./audio/sfx";
 import { recordBest, loadProgress, clearBestScores, setRealisticWheel } from "./game/persistence";
@@ -87,9 +87,10 @@ let isDemo = false; // the current attempt is a Demo playback (does not count to
 // On-screen wheel turns at the rig's real steering ratio (default). Off = the
 // simpler compact sweep for super-beginners. Independent of backing difficulty.
 let realisticWheel = loadProgress().settings.realisticWheel ?? true;
-let demoT = 0;
 let demoAcc = 0;
 let demoWheelU = 0; // eased on-screen wheel position during the demo (visual only)
+let demoFrames: (typeof game)[] = []; // recorded verified trajectory, replayed pose-by-pose
+let demoIdx = 0;
 let solution: Maneuver | undefined = SOLUTIONS[`${game.rig.id}/${game.scenario.id}`];
 
 const renderer3d = createRenderer3d(canvas, game);
@@ -126,9 +127,13 @@ const controls = createControls(app, {
   onDemo: () => {
     if (!solution) return;
     restart();
+    // Record the EXACT verified trajectory at Beginner (the difficulty the solutions
+    // were solved for) and replay it pose-by-pose, so even the sensitive straight-
+    // start maneuver reproduces exactly regardless of the player's difficulty.
+    demoFrames = simulateManeuverFrames(game.rig, game.scenario, BEGINNER, solution);
+    demoIdx = 0;
     demoActive = true;
     isDemo = true; // a Demo win is illustrative; it must not set the high score
-    demoT = 0;
     demoAcc = 0;
     demoWheelU = 0;
   },
@@ -384,22 +389,18 @@ function frame(t: number): void {
 
   if (hitPause > 0) {
     hitPause -= dt; // hold the sim still for a beat on impact
-  } else if (demoActive && solution) {
-    // Fixed-timestep playback so it reproduces the verified solution exactly
-    // (the reverse direction is unstable, so variable dt would drift).
-    const fixed = 1 / 60;
-    const dur = maneuverDuration(solution);
+  } else if (demoActive && demoFrames.length) {
+    // Replay the recorded verified trajectory pose-by-pose (decoupled from live
+    // physics, so sensitive open-loop maneuvers reproduce exactly).
     demoAcc += dt;
-    while (demoAcc >= fixed) {
-      demoAcc -= fixed;
-      if (demoT > dur) {
-        game = setThrottle(game, 0);
+    while (demoAcc >= 1 / 60) {
+      demoAcc -= 1 / 60;
+      if (demoIdx >= demoFrames.length) {
         demoActive = false;
         break;
       }
-      game = applyManeuverAt(game, solution, demoT);
-      game = advance(game, fixed);
-      demoT += fixed;
+      const f = demoFrames[demoIdx++];
+      game = { ...game, physics: f.physics, delta: f.delta, session: f.session };
     }
   } else if (!won) {
     game = advance(game, dt);
@@ -436,7 +437,9 @@ function frame(t: number): void {
   pull.hidden = !(d.jackknifeState === "recoverable" || d.jackknifeState === "contact");
   contact.hidden = !game.session.collidingNow;
 
-  checkWin();
+  // Don't evaluate a win mid-replay (the replayed poses have no throttle, so a
+  // transient box pass would otherwise trip it); the final settled pose checks in.
+  if (!demoActive) checkWin();
 
   // Audio: engine hum tracks speed, backup beep while reversing, thud on a new
   // wall contact, chime once on the win.

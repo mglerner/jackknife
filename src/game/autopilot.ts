@@ -102,6 +102,36 @@ export function simulateManeuver(
   return gs;
 }
 
+/**
+ * Like simulateManeuver but RECORDS the full state at every frame, so the Demo can
+ * replay the exact verified trajectory pose-by-pose instead of re-running live
+ * physics (which diverges for sensitive open-loop maneuvers, e.g. the unstable
+ * reverse straight-start). Same fixed-timestep loop + 30-frame settle.
+ */
+export function simulateManeuverFrames(
+  rig: Rig,
+  scenario: Scenario,
+  difficulty: DifficultyConfig,
+  m: Maneuver,
+  frameDt = 1 / 60,
+): GameState[] {
+  let gs = createGame(rig, scenario, difficulty);
+  const total = maneuverDuration(m);
+  const frames = Math.round(total / frameDt);
+  const out: GameState[] = [];
+  for (let i = 0; i < frames; i++) {
+    gs = applyManeuverAt(gs, m, i * frameDt);
+    gs = advance(gs, frameDt);
+    out.push(gs);
+  }
+  for (let i = 0; i < 30; i++) {
+    gs = setThrottle(gs, 0);
+    gs = advance(gs, frameDt);
+    out.push(gs);
+  }
+  return out;
+}
+
 export interface ManeuverResult {
   parked: boolean;
   lateral: number;
