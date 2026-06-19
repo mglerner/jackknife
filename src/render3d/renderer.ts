@@ -8,6 +8,7 @@ import { worldToThree, placeObject } from "./coords";
 import { buildWorld } from "./world";
 import { createParticles } from "./particles";
 import { buildRig, type RigView } from "./rig";
+import { createTrails } from "./trails";
 
 export type ViewMode = "topdown" | "backupcam";
 
@@ -95,6 +96,12 @@ export function createRenderer3d(canvas: HTMLCanvasElement, gs: GameState): Rend
   guides.visible = false;
   scene.add(guides);
 
+  // Persistent tyre marks (the path the rig has traced). Persists across rig/world
+  // rebuilds; reset on rebuild and on a teleport (restart / demo start).
+  const trails = createTrails();
+  scene.add(trails.mesh);
+  let lastStampPos: { x: number; y: number } | null = null;
+
   // Swap the world + rig for a new game (rig / scenario change). Old groups are
   // disposed to free GPU memory.
   function disposeGroup(obj: THREE.Object3D): void {
@@ -116,6 +123,8 @@ export function createRenderer3d(canvas: HTMLCanvasElement, gs: GameState): Rend
     disposeGroup(guides);
     guides = buildBackupGuides(g);
     scene.add(guides);
+    trails.reset();
+    lastStampPos = null;
   }
 
   // Particle juice: dust at the wheels when moving, exhaust at the tailpipe.
@@ -338,6 +347,36 @@ export function createRenderer3d(canvas: HTMLCanvasElement, gs: GameState): Rend
     placeObject(guides, der.trailerAxle, der.trailerHeading, 0.03);
     guides.visible = view === "backupcam";
     updateGhost(g, opts);
+
+    // Tyre marks: stamp a mark at each car-rear and trailer wheel as the rig moves;
+    // a large jump means a restart / demo start / rig switch, so clear instead.
+    {
+      const cx = g.physics.x;
+      const cy = g.physics.y;
+      const ch = g.physics.carHeading;
+      if (!lastStampPos) {
+        lastStampPos = { x: cx, y: cy };
+      } else {
+        const d = Math.hypot(cx - lastStampPos.x, cy - lastStampPos.y);
+        if (d > 2.5) {
+          trails.reset();
+          lastStampPos = { x: cx, y: cy };
+        } else if (d > 0.18) {
+          const tx = der.trailerAxle.x;
+          const ty = der.trailerAxle.y;
+          const th = der.trailerHeading;
+          const cH = g.rig.carWidth * 0.42;
+          const tH = g.rig.trailerWidth * 0.42;
+          trails.stamp([
+            { p: { x: cx - Math.sin(ch) * cH, y: cy + Math.cos(ch) * cH }, heading: ch },
+            { p: { x: cx + Math.sin(ch) * cH, y: cy - Math.cos(ch) * cH }, heading: ch },
+            { p: { x: tx - Math.sin(th) * tH, y: ty + Math.cos(th) * tH }, heading: th },
+            { p: { x: tx + Math.sin(th) * tH, y: ty - Math.cos(th) * tH }, heading: th },
+          ]);
+          lastStampPos = { x: cx, y: cy };
+        }
+      }
+    }
 
     // Particles: kick up dust at the trailer and tow-vehicle wheels while moving,
     // and puff exhaust from the tailpipe.
