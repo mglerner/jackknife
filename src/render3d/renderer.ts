@@ -410,26 +410,35 @@ export function createRenderer3d(canvas: HTMLCanvasElement, gs: GameState): Rend
     renderer.setViewport(0, 0, W, Hc);
   }
 
-  // "Mirrors only" view: the three mirrors filling a large band (no top-down / camera),
-  // so you back the trailer using only what the mirrors show, with a dark cab behind.
+  // "Mirrors only" view (no top-down / camera): the rear-view mirror wide-and-short on
+  // top, the two side mirrors taller below it, over a dark cab. Laid out like a real
+  // cabin, so you back the trailer using only what the mirrors show.
   function renderMirrorsLarge(g: GameState): void {
     renderer.setScissorTest(false);
     renderer.setViewport(0, 0, W, Hc);
     renderer.setClearColor(0x14171c, 1);
     renderer.clear();
+    const specs = mirrorSpecs(g); // [left side, rear-view, right side]
     const margin = MIRROR_MARGIN * 1.5;
-    const paneW = (W - margin * 4) / 3;
-    const paneH = Hc * 0.4;
-    const topGap = Hc * 0.17; // sit below the coaching line
-    const vy = Hc - (topGap + paneH);
-    const specs = mirrorSpecs(g);
+    const top = Hc * 0.15; // below the coaching line
+    const rearH = Hc * 0.2; // rear-view: wide and short
+    const sideH = Hc * 0.25; // side mirrors: a bit taller
+    const fullW = W - margin * 2;
+    const sideW = (W - margin * 3) / 2;
+    const rearY = Hc - (top + rearH); // WebGL y is bottom-up
+    const sideY = Hc - (top + rearH + margin + sideH);
+    // [viewport x, y, w, h, spec/cam index]
+    const panels: [number, number, number, number, number][] = [
+      [margin, rearY, fullW, rearH, 1], // rear-view mirror, wide on top
+      [margin, sideY, sideW, sideH, 0], // left side mirror
+      [margin + sideW + margin, sideY, sideW, sideH, 2], // right side mirror
+    ];
     renderer.setScissorTest(true);
-    specs.forEach((s, i) => {
-      const vx = margin + i * (paneW + margin);
-      renderer.setViewport(vx, vy, paneW, paneH);
-      renderer.setScissor(vx, vy, paneW, paneH);
-      aimMirrorCam(mirrorCams[i], g, s, paneW / paneH);
-      renderer.render(scene, mirrorCams[i]);
+    panels.forEach(([vx, vy, w, h, si]) => {
+      renderer.setViewport(vx, vy, w, h);
+      renderer.setScissor(vx, vy, w, h);
+      aimMirrorCam(mirrorCams[si], g, specs[si], w / h);
+      renderer.render(scene, mirrorCams[si]);
     });
     renderer.setScissorTest(false);
     renderer.setViewport(0, 0, W, Hc);
