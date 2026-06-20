@@ -22,47 +22,6 @@ import { surfaceMaterial } from "./textures";
 // =============================================================================
 
 // -----------------------------------------------------------------------------
-// Procedural canvas textures (no asset files). Each makes a small tileable
-// 2D noise pattern, wrapped + repeated across the ground meshes.
-// -----------------------------------------------------------------------------
-
-/** Build a CanvasTexture of value-noise speckle around a base color. */
-function noiseTexture(
-  base: [number, number, number],
-  jitter: number,
-  repeat: number,
-): THREE.CanvasTexture {
-  const size = 128;
-  const canvas = document.createElement("canvas");
-  canvas.width = size;
-  canvas.height = size;
-  const ctx = canvas.getContext("2d")!;
-
-  const [br, bg, bb] = base;
-  const img = ctx.createImageData(size, size);
-  for (let i = 0; i < size * size; i++) {
-    // Symmetric jitter so the average stays on the base color.
-    const n = (Math.random() - 0.5) * 2 * jitter;
-    img.data[i * 4 + 0] = clamp255(br + n);
-    img.data[i * 4 + 1] = clamp255(bg + n);
-    img.data[i * 4 + 2] = clamp255(bb + n);
-    img.data[i * 4 + 3] = 255;
-  }
-  ctx.putImageData(img, 0, 0);
-
-  const tex = new THREE.CanvasTexture(canvas);
-  tex.wrapS = THREE.RepeatWrapping;
-  tex.wrapT = THREE.RepeatWrapping;
-  tex.repeat.set(repeat, repeat);
-  tex.colorSpace = THREE.SRGBColorSpace; // this is an albedo map
-  return tex;
-}
-
-function clamp255(v: number): number {
-  return v < 0 ? 0 : v > 255 ? 255 : v;
-}
-
-// -----------------------------------------------------------------------------
 // Ground region helper: a thin Box on the XZ plane covering a world rectangle.
 // -----------------------------------------------------------------------------
 
@@ -263,6 +222,10 @@ const CURB_MAT = (repeat: number): THREE.MeshStandardMaterial =>
 // low envMapIntensity so it stays matte rather than washing to flat grey).
 const WALL_CONCRETE_MAT = (repeat: number): THREE.MeshStandardMaterial =>
   surfaceMaterial({ key: "wall_concrete", base: [150, 150, 146], freq: 8, octaves: 4, contrast: 0.22, speckle: 7, normalStrength: 0.8, roughness: 0.92, roughVar: 0.14, envMapIntensity: 0.3, repeat });
+// Painted-block building facade (warehouse + distant generic building): a matte
+// PBR wall with gentle relief, kept low-env so big flat faces stay matte.
+const BUILDING_WALL_MAT = (repeat: number): THREE.MeshStandardMaterial =>
+  surfaceMaterial({ key: "building_wall", base: [150, 148, 142], freq: 9, octaves: 4, contrast: 0.16, speckle: 6, normalStrength: 0.55, roughness: 0.95, roughVar: 0.1, envMapIntensity: 0.3, repeat });
 
 function addGround(group: THREE.Group, bounds: WorldBounds): void {
   const grassMat = GRASS_MAT(26);
@@ -302,7 +265,9 @@ function addGround(group: THREE.Group, bounds: WorldBounds): void {
 // world tick). Placed at a world (x, y); rises in local +Y.
 function buildLightPole(x: number, y: number): THREE.Group {
   const g = new THREE.Group();
-  const poleMat = new THREE.MeshStandardMaterial({ color: 0x3c4046, roughness: 0.5, metalness: 0.7 });
+  // Proper dark painted metal: deep charcoal, fairly tight spec, low env so it
+  // reads as anodized pole rather than washed plastic.
+  const poleMat = new THREE.MeshStandardMaterial({ color: 0x33373c, roughness: 0.42, metalness: 0.85, envMapIntensity: 0.5 });
   const base = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.28, 0.4, 10), poleMat);
   base.position.y = 0.2;
   g.add(base);
@@ -385,10 +350,9 @@ function addGenericProps(group: THREE.Group, bounds: WorldBounds): void {
     group.add(buildLotTree(maxX + 9, minY + spanY * t, (phase += 1.3)));
   }
 
-  const wallMat = new THREE.MeshStandardMaterial({
-    map: noiseTexture([150, 148, 142], 6, 8),
-    roughness: 0.95,
-  });
+  // Distant facade: a matte PBR painted-block wall (albedo + normal + roughness),
+  // low envMapIntensity so the big flat face does not wash to grey.
+  const wallMat = BUILDING_WALL_MAT(8);
   const bldg = new THREE.Mesh(new THREE.BoxGeometry(spanX + 16, 5, 4), wallMat);
   bldg.position.copy(worldToThree({ x: (minX + maxX) / 2, y: maxY + 13 }, 2.5));
   bldg.castShadow = true;
@@ -438,7 +402,7 @@ function addDockGround(group: THREE.Group, bounds: WorldBounds): void {
 }
 
 function addDockEnvironment(group: THREE.Group): void {
-  const wallMat = new THREE.MeshStandardMaterial({ color: 0xb9b3a3, roughness: 0.9, metalness: 0.05 });
+  const wallMat = BUILDING_WALL_MAT(6);
   const roofMat = new THREE.MeshStandardMaterial({ color: 0x6f7681, roughness: 0.95, metalness: 0.1 });
   const doorMat = new THREE.MeshStandardMaterial({ color: 0xccd1d7, roughness: 0.55, metalness: 0.35 });
   const bumperMat = new THREE.MeshStandardMaterial({ color: 0x1c1e21, roughness: 0.85, metalness: 0.0 });
@@ -503,10 +467,20 @@ function addEnvironment(group: THREE.Group, bounds: WorldBounds): void {
 function addHouse(group: THREE.Group): void {
   const house = new THREE.Group();
 
-  const wallMat = new THREE.MeshStandardMaterial({
-    color: 0xd8cdb6, // warm beige siding
+  // Warm beige siding as a matte PBR wall (subtle plank-ish relief), low-env so
+  // the broad facade stays matte rather than washing flat-grey.
+  const wallMat = surfaceMaterial({
+    key: "house_siding",
+    base: [216, 205, 182],
+    freq: 10,
+    octaves: 3,
+    contrast: 0.12,
+    speckle: 4,
+    normalStrength: 0.45,
     roughness: 0.9,
-    metalness: 0.0,
+    roughVar: 0.08,
+    envMapIntensity: 0.3,
+    repeat: 5,
   });
   const trimMat = new THREE.MeshStandardMaterial({
     color: 0xf2ede2,
