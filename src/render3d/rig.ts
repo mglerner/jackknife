@@ -835,11 +835,11 @@ function buildSuv(gs: GameState): THREE.Group {
   // Ioniq reads as a fresh modern EV. Clearcoat gives a crisp top-down highlight.
   const bodyMat = new THREE.MeshPhysicalMaterial({
     color: 0x6c8168, // muted sage / forest green (matches the reference Ioniq 5)
-    roughness: 0.16,
+    roughness: 0.32, // softer base coat under the clearcoat (layered paint, not plasticky)
     metalness: 0.5,
     envMapIntensity: 1.4,
     clearcoat: 1.0,
-    clearcoatRoughness: 0.05,
+    clearcoatRoughness: 0.06,
   });
   // Matte dark anthracite for the lower cladding and wheel arches (clear contrast
   // against the pale body, so the two-tone reads from straight overhead).
@@ -858,12 +858,14 @@ function buildSuv(gs: GameState): THREE.Group {
     clearcoat: 0.9,
     clearcoatRoughness: 0.1,
   });
-  const glassMat = new THREE.MeshStandardMaterial({
-    color: 0x2c3a48, // tinted glazing, lifted off pure black with a cool blue cast
+  const glassMat = new THREE.MeshPhysicalMaterial({
+    color: 0x21303c, // tinted glazing with a cool blue cast, alive by reflecting the env
     roughness: 0.08,
-    metalness: 0.6,
+    metalness: 0.0,
+    ior: 1.5,
+    envMapIntensity: 1.6,
     transparent: true,
-    opacity: 0.7,
+    opacity: 0.78,
   });
   const trimMat = new THREE.MeshStandardMaterial({
     color: 0x0d0f12,
@@ -1310,12 +1312,14 @@ function buildTractor(gs: GameState): THREE.Group {
     roughness: 0.6,
     metalness: 0.4,
   });
-  const glassMat = new THREE.MeshStandardMaterial({
-    color: 0x1b2128,
-    roughness: 0.1,
-    metalness: 0.35,
+  const glassMat = new THREE.MeshPhysicalMaterial({
+    color: 0x172029,
+    roughness: 0.09,
+    metalness: 0.0,
+    ior: 1.5,
+    envMapIntensity: 1.5,
     transparent: true,
-    opacity: 0.7,
+    opacity: 0.74,
   });
   const tireMat = new THREE.MeshStandardMaterial({
     color: 0x141417,
