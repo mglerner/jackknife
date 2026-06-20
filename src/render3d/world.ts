@@ -2,7 +2,7 @@ import * as THREE from "three";
 import type { GameState } from "../game/state";
 import type { WorldBounds } from "../scenarios/types";
 import { worldToThree, placeObject } from "./coords";
-import { surfaceMaterial } from "./textures";
+import { surfaceMaterial, macroMaterial } from "./textures";
 
 // =============================================================================
 // world.ts -- builds the static 3D environment for the current scenario.
@@ -49,6 +49,23 @@ function addGroundRegion(
   const c = worldToThree({ x: cx, y: cy }, y);
   mesh.position.copy(c);
   mesh.receiveShadow = true;
+  group.add(mesh);
+}
+
+// A large-scale macro overlay over the ground rectangle, to break up the visible
+// repeat of the tiled detail textures (its period is much larger than the tiles).
+function addMacroOverlay(
+  group: THREE.Group,
+  x0: number,
+  x1: number,
+  y0: number,
+  y1: number,
+): void {
+  const w = Math.abs(x1 - x0);
+  const d = Math.abs(y1 - y0);
+  const repeat = Math.max(1, w / 22);
+  const mesh = new THREE.Mesh(new THREE.BoxGeometry(w, 0.02, d), macroMaterial(repeat));
+  mesh.position.copy(worldToThree({ x: (x0 + x1) / 2, y: (y0 + y1) / 2 }, 0.008));
   group.add(mesh);
 }
 
@@ -254,6 +271,7 @@ function addGround(group: THREE.Group, bounds: WorldBounds): void {
   const sidewalkMat = SIDEWALK_MAT(10);
   addGroundRegion(group, sidewalkMat, bounds.minX, -3, 3.0, 3.6, 0.01);
   addGroundRegion(group, sidewalkMat, 3, bounds.maxX, 3.0, 3.6, 0.01);
+  addMacroOverlay(group, bounds.minX - 14, bounds.maxX + 14, bounds.minY - 14, bounds.maxY + 14);
 }
 
 // -----------------------------------------------------------------------------
@@ -368,6 +386,7 @@ function addGenericGround(group: THREE.Group, bounds: WorldBounds): void {
   // A thin concrete curb ringing the paved lot, then the asphalt inset just inside it.
   addGroundRegion(group, curbMat, bounds.minX - 0.25, bounds.maxX + 0.25, bounds.minY - 0.25, bounds.maxY + 0.25, -0.005);
   addGroundRegion(group, asphaltMat, bounds.minX, bounds.maxX, bounds.minY, bounds.maxY, 0.0);
+  addMacroOverlay(group, bounds.minX - 14, bounds.maxX + 14, bounds.minY - 16, bounds.maxY + 18);
   addGenericProps(group, bounds);
 }
 
@@ -399,6 +418,7 @@ function addDockGround(group: THREE.Group, bounds: WorldBounds): void {
   for (let yy = -10; yy < -1.2; yy += 1.7) {
     addGroundRegion(group, lineMat, -0.08, 0.08, yy, yy + 0.85, 0.02);
   }
+  addMacroOverlay(group, bounds.minX, bounds.maxX, bounds.minY, bounds.maxY);
 }
 
 function addDockEnvironment(group: THREE.Group): void {

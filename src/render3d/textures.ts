@@ -26,7 +26,7 @@ export interface SurfaceOpts {
   envMapIntensity?: number; // matte ground should be LOW (~0.3) so env light doesn't wash it flat
 }
 
-const SIZE = 256;
+const SIZE = 512;
 const canvasCache = new Map<string, { albedo: HTMLCanvasElement; normal: HTMLCanvasElement; rough: HTMLCanvasElement }>();
 
 /** Small deterministic RNG so a given key always generates the same surface. */
@@ -194,5 +194,41 @@ export function surfaceMaterial(opts: SurfaceOpts): THREE.MeshStandardMaterial {
     roughness: 1,
     metalness: opts.metalness ?? 0,
     envMapIntensity: opts.envMapIntensity ?? 0.3,
+  });
+}
+
+// Large-scale "macro" variation: soft low-frequency blobs that gently darken the
+// ground in patches at a scale much bigger than the detail tiles. Overlaid with
+// multiply blending, it breaks up the obvious repeating grid of the tiled detail
+// texture (the detail period and this macro period are incommensurate), and reads
+// as natural ground unevenness. One cached grayscale canvas, reused everywhere.
+let macroCanvas: HTMLCanvasElement | null = null;
+function macroGen(): HTMLCanvasElement {
+  if (macroCanvas) return macroCanvas;
+  const h = heightField(3, 3, mulberry32(0x5eed));
+  const c = document.createElement("canvas");
+  c.width = SIZE;
+  c.height = SIZE;
+  const ctx = c.getContext("2d")!;
+  const img = ctx.createImageData(SIZE, SIZE);
+  for (let i = 0; i < SIZE * SIZE; i++) {
+    const v = clamp255((0.87 + h[i] * 0.13) * 255); // 0.87..1.0: gentle darken-only patches
+    img.data[i * 4] = v;
+    img.data[i * 4 + 1] = v;
+    img.data[i * 4 + 2] = v;
+    img.data[i * 4 + 3] = 255;
+  }
+  ctx.putImageData(img, 0, 0);
+  macroCanvas = c;
+  return c;
+}
+
+/** A multiply-blended overlay material that breaks up ground tile repetition. */
+export function macroMaterial(repeat: number): THREE.MeshBasicMaterial {
+  return new THREE.MeshBasicMaterial({
+    map: tex(macroGen(), repeat, true),
+    transparent: true,
+    blending: THREE.MultiplyBlending,
+    depthWrite: false,
   });
 }
