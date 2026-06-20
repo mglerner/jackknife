@@ -300,6 +300,94 @@ function addGround(group: THREE.Group, bounds: WorldBounds): void {
 // fixed suburban props (gate, parallel-park, L-corner): a grass surround with a
 // paved play area. All structure comes from the scenario's own obstacles + target.
 // -----------------------------------------------------------------------------
+// Parking-lot light pole with a boom arm and a glowing lamp head (pulses via the
+// world tick). Placed at a world (x, y); rises in local +Y.
+function buildLightPole(x: number, y: number): THREE.Group {
+  const g = new THREE.Group();
+  const poleMat = new THREE.MeshStandardMaterial({ color: 0x3c4046, roughness: 0.5, metalness: 0.7 });
+  const base = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.28, 0.4, 10), poleMat);
+  base.position.y = 0.2;
+  g.add(base);
+  const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.11, 6, 10), poleMat);
+  pole.position.y = 3;
+  pole.castShadow = true;
+  g.add(pole);
+  const arm = new THREE.Mesh(new THREE.BoxGeometry(1.0, 0.08, 0.08), poleMat);
+  arm.position.set(0.5, 5.9, 0);
+  g.add(arm);
+  const lampMat = new THREE.MeshStandardMaterial({
+    color: 0x2a2c30,
+    emissive: 0xffe6b0,
+    emissiveIntensity: 0.9,
+    roughness: 0.4,
+  });
+  const lamp = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.16, 0.32), lampMat);
+  lamp.position.set(1.0, 5.82, 0);
+  lamp.userData.glow = 0.9;
+  g.add(lamp);
+  g.position.copy(worldToThree({ x, y }, 0));
+  return g;
+}
+
+// Simple lot tree: trunk + a few canopy blobs. The canopy sways via the world tick.
+function buildLotTree(x: number, y: number, phase: number, scale = 1): THREE.Group {
+  const g = new THREE.Group();
+  const trunkMat = new THREE.MeshStandardMaterial({ color: 0x6b4f33, roughness: 0.9 });
+  const leafMat = new THREE.MeshStandardMaterial({ color: 0x4f7a3a, roughness: 0.95 });
+  const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.16, 1.6, 8), trunkMat);
+  trunk.position.y = 0.8;
+  trunk.castShadow = true;
+  g.add(trunk);
+  const canopy = new THREE.Group();
+  for (const [ox, oy, oz, r] of [
+    [0, 1.9, 0, 1.0],
+    [0.6, 1.6, 0.2, 0.7],
+    [-0.5, 1.7, -0.3, 0.65],
+  ]) {
+    const blob = new THREE.Mesh(new THREE.SphereGeometry(r, 10, 8), leafMat);
+    blob.position.set(ox, oy, oz);
+    blob.castShadow = true;
+    canopy.add(blob);
+  }
+  canopy.userData.swayPhase = phase;
+  g.add(canopy);
+  g.scale.setScalar(scale);
+  g.position.copy(worldToThree({ x, y }, 0));
+  return g;
+}
+
+// Context props ringing the paved lot (all kept OUTSIDE worldBounds, so they never
+// intersect the driving area, obstacles, or target): corner light poles, perimeter
+// trees, and a distant building along the far edge.
+function addGenericProps(group: THREE.Group, bounds: WorldBounds): void {
+  const { minX, minY, maxX, maxY } = bounds;
+  group.add(buildLightPole(minX - 2, minY - 2));
+  group.add(buildLightPole(maxX + 2, minY - 2));
+  group.add(buildLightPole(minX - 2, maxY + 2));
+  group.add(buildLightPole(maxX + 2, maxY + 2));
+
+  const spanX = maxX - minX;
+  const spanY = maxY - minY;
+  let phase = 0;
+  for (let t = 0.1; t < 0.95; t += 0.2) {
+    group.add(buildLotTree(minX + spanX * t, maxY + 9, (phase += 1.3), 1.1));
+  }
+  for (let t = 0.18; t < 0.95; t += 0.32) {
+    group.add(buildLotTree(minX - 9, minY + spanY * t, (phase += 1.3)));
+    group.add(buildLotTree(maxX + 9, minY + spanY * t, (phase += 1.3)));
+  }
+
+  const wallMat = new THREE.MeshStandardMaterial({
+    map: noiseTexture([150, 148, 142], 6, 8),
+    roughness: 0.95,
+  });
+  const bldg = new THREE.Mesh(new THREE.BoxGeometry(spanX + 16, 5, 4), wallMat);
+  bldg.position.copy(worldToThree({ x: (minX + maxX) / 2, y: maxY + 13 }, 2.5));
+  bldg.castShadow = true;
+  bldg.receiveShadow = true;
+  group.add(bldg);
+}
+
 function addGenericGround(group: THREE.Group, bounds: WorldBounds): void {
   const grassMat = new THREE.MeshStandardMaterial({
     map: noiseTexture([96, 158, 74], 14, 30),
@@ -311,8 +399,16 @@ function addGenericGround(group: THREE.Group, bounds: WorldBounds): void {
     roughness: 0.92,
     metalness: 0.0,
   });
-  addGroundRegion(group, grassMat, bounds.minX - 12, bounds.maxX + 12, bounds.minY - 12, bounds.maxY + 12, -0.02);
+  const curbMat = new THREE.MeshStandardMaterial({
+    map: noiseTexture([168, 166, 160], 7, 5),
+    roughness: 0.9,
+    metalness: 0.0,
+  });
+  addGroundRegion(group, grassMat, bounds.minX - 14, bounds.maxX + 14, bounds.minY - 16, bounds.maxY + 18, -0.02);
+  // A thin concrete curb ringing the paved lot, then the asphalt inset just inside it.
+  addGroundRegion(group, curbMat, bounds.minX - 0.25, bounds.maxX + 0.25, bounds.minY - 0.25, bounds.maxY + 0.25, -0.005);
   addGroundRegion(group, asphaltMat, bounds.minX, bounds.maxX, bounds.minY, bounds.maxY, 0.0);
+  addGenericProps(group, bounds);
 }
 
 // -----------------------------------------------------------------------------
