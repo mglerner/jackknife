@@ -259,6 +259,10 @@ const SIDEWALK_MAT = (repeat: number): THREE.MeshStandardMaterial =>
   surfaceMaterial({ key: "sidewalk", base: [214, 210, 202], freq: 6, octaves: 3, contrast: 0.18, speckle: 6, normalStrength: 0.5, roughness: 0.85, repeat });
 const CURB_MAT = (repeat: number): THREE.MeshStandardMaterial =>
   surfaceMaterial({ key: "curb", base: [168, 166, 160], freq: 7, octaves: 3, contrast: 0.18, speckle: 5, normalStrength: 0.5, roughness: 0.88, repeat });
+// Poured-concrete barrier surface for scenario walls (rougher, pitted relief,
+// low envMapIntensity so it stays matte rather than washing to flat grey).
+const WALL_CONCRETE_MAT = (repeat: number): THREE.MeshStandardMaterial =>
+  surfaceMaterial({ key: "wall_concrete", base: [150, 150, 146], freq: 8, octaves: 4, contrast: 0.22, speckle: 7, normalStrength: 0.8, roughness: 0.92, roughVar: 0.14, envMapIntensity: 0.3, repeat });
 
 function addGround(group: THREE.Group, bounds: WorldBounds): void {
   const grassMat = GRASS_MAT(26);
@@ -958,15 +962,20 @@ function addMailbox(group: THREE.Group): void {
 // -----------------------------------------------------------------------------
 
 function addObstacles(group: THREE.Group, gs: GameState): void {
-  const wallMat = new THREE.MeshStandardMaterial({
-    color: 0xb8b4ac,
-    roughness: 0.9,
-    metalness: 0.0,
-  });
+  // Poured-concrete barrier face (PBR), shared across wall segments. The repeat
+  // is set per-segment below so texel density stays consistent on long runs.
   const curbMat = new THREE.MeshStandardMaterial({
     color: 0xcaccce,
     roughness: 0.85,
     metalness: 0.0,
+  });
+  // A slightly darker matte cap material for the bevel along the wall top, so the
+  // barriers read as poured concrete with a worn top edge, not flat slabs.
+  const capMat = new THREE.MeshStandardMaterial({
+    color: 0x8f8f8a,
+    roughness: 0.95,
+    metalness: 0.0,
+    envMapIntensity: 0.25,
   });
 
   for (const ob of gs.scenario.obstacles) {
@@ -988,12 +997,28 @@ function addObstacles(group: THREE.Group, gs: GameState): void {
       const thickness = 0.2;
       // Box: local +X is along the segment (length), +Z is thickness.
       const geo = new THREE.BoxGeometry(length, height, thickness);
+      // ~1 repeat per metre along the run, ~2 up the face: keeps the concrete
+      // grain a consistent real-world size on short and long barriers alike.
+      const wallMat = WALL_CONCRETE_MAT(1);
+      wallMat.map!.repeat.set(Math.max(1, length), 2);
+      wallMat.normalMap!.repeat.copy(wallMat.map!.repeat);
+      wallMat.roughnessMap!.repeat.copy(wallMat.map!.repeat);
       const mesh = new THREE.Mesh(geo, wallMat);
       // Raise so the wall sits on the ground (center at height/2).
       placeObject(mesh, mid, heading, height / 2);
       mesh.castShadow = true;
       mesh.receiveShadow = true;
       group.add(mesh);
+
+      // Darker beveled cap along the top edge: a thin, slightly wider box riding
+      // the wall crown. Visual only; sits above collision geometry.
+      const capH = 0.08;
+      const capGeo = new THREE.BoxGeometry(length + 0.02, capH, thickness + 0.06);
+      const cap = new THREE.Mesh(capGeo, capMat);
+      placeObject(cap, mid, heading, height - capH / 2);
+      cap.castShadow = true;
+      cap.receiveShadow = true;
+      group.add(cap);
     } else if (ob.kind === "curb") {
       const height = 0.12;
       const thickness = 0.16;
