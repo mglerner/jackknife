@@ -200,59 +200,36 @@ export function surfaceMaterial(opts: SurfaceOpts): THREE.MeshStandardMaterial {
   return mat;
 }
 
-// In-shader de-tiling. A large, soft, low-frequency grayscale field (one cached
-// texture) is multiplied into the albedo AS THE SURFACE IS DRAWN, at a scale much
-// bigger than the detail tiles. Because the macro period and the tile period are
-// incommensurate, the obvious repeating grid dissolves into natural unevenness.
-// Unlike the old overlay mesh, this is a plain texture multiply inside the standard
-// MeshStandard shader: no second mesh, no transparency, no blend mode -- so it is
-// safe on iOS Safari (the multiply-blended overlay rendered grey there).
-let macroCanvas: HTMLCanvasElement | null = null;
-function macroGen(): HTMLCanvasElement {
-  if (macroCanvas) return macroCanvas;
-  const h = heightField(3, 3, mulberry32(0x5eed)); // freq 3 = big soft blobs
-  const c = document.createElement("canvas");
-  c.width = SIZE;
-  c.height = SIZE;
-  const ctx = c.getContext("2d")!;
-  const img = ctx.createImageData(SIZE, SIZE);
-  for (let i = 0; i < SIZE * SIZE; i++) {
-    const v = clamp255(h[i] * 255); // raw 0..1 field; the shader maps it to a gentle range
-    img.data[i * 4] = v;
-    img.data[i * 4 + 1] = v;
-    img.data[i * 4 + 2] = v;
-    img.data[i * 4 + 3] = 255;
-  }
-  ctx.putImageData(img, 0, 0);
-  macroCanvas = c;
-  return c;
-}
-
-let macroTex: THREE.CanvasTexture | null = null;
-function macroTexture(): THREE.CanvasTexture {
-  if (macroTex) return macroTex;
-  macroTex = new THREE.CanvasTexture(macroGen());
-  macroTex.wrapS = THREE.RepeatWrapping;
-  macroTex.wrapT = THREE.RepeatWrapping;
-  macroTex.colorSpace = THREE.NoColorSpace; // sampled as data, not color
-  return macroTex;
-}
-
-// Multiply a large-scale macro variation into the albedo of a MeshStandardMaterial.
-// detailRepeat is baked in as a literal (so each repeat gets its own cached program
-// and there is no shared-uniform aliasing); the macro texture is the one shared field.
+// In-shader de-tiling. A large-scale value-noise field is computed PROCEDURALLY in
+// the fragment shader and multiplied into the albedo as the surface is drawn, at a
+// scale much bigger than the detail tiles. Because the macro and tile periods are
+// incommensurate, the repeating grid dissolves into natural unevenness. It is pure
+// shader math -- no extra texture, no second mesh, no blend mode -- which is what
+// makes it iOS-safe: the old multiply-blended overlay mesh rendered grey on iOS, and
+// a macro TEXTURE added via onBeforeCompile is not tracked by the renderer, so it can
+// fail to upload and sample as black on iOS. Procedural noise sidesteps both.
 function applyDetile(mat: THREE.MeshStandardMaterial, detailRepeat: number): void {
-  const texture = macroTexture();
   const r = detailRepeat.toFixed(5);
   mat.onBeforeCompile = (shader) => {
-    shader.uniforms.uMacro = { value: texture };
     shader.fragmentShader = shader.fragmentShader
-      .replace("#include <common>", "#include <common>\nuniform sampler2D uMacro;")
+      .replace(
+        "#include <common>",
+        `#include <common>
+        float jkHash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453123); }
+        float jkNoise(vec2 p) {
+          vec2 i = floor(p); vec2 f = fract(p); f = f * f * (3.0 - 2.0 * f);
+          float a = jkHash(i), b = jkHash(i + vec2(1.0, 0.0));
+          float c = jkHash(i + vec2(0.0, 1.0)), d = jkHash(i + vec2(1.0, 1.0));
+          return mix(mix(a, b, f.x), mix(c, d, f.x), f.y);
+        }`,
+      )
       .replace(
         "#include <map_fragment>",
         `#include <map_fragment>
         #ifdef USE_MAP
-          diffuseColor.rgb *= mix(0.84, 1.10, texture2D(uMacro, (vMapUv / ${r}) * 2.5).r);
+          vec2 jkUv = vMapUv / ${r};
+          float jkM = 0.62 * jkNoise(jkUv * 3.0) + 0.38 * jkNoise(jkUv * 6.7 + 17.0);
+          diffuseColor.rgb *= mix(0.78, 1.16, jkM);
         #endif`,
       );
   };
