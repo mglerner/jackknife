@@ -330,19 +330,29 @@ function buildLightPole(x: number, y: number): THREE.Group {
 // Simple lot tree: trunk + a few canopy blobs. The canopy sways via the world tick.
 function buildLotTree(x: number, y: number, phase: number, scale = 1): THREE.Group {
   const g = new THREE.Group();
-  const trunkMat = new THREE.MeshStandardMaterial({ color: 0x6b4f33, roughness: 0.9 });
-  const leafMat = new THREE.MeshStandardMaterial({ color: 0x4f7a3a, roughness: 0.95 });
+  // Rougher, slightly warmer bark with a faint normal-free relief via roughness.
+  const trunkMat = new THREE.MeshStandardMaterial({ color: 0x6b4f33, roughness: 1.0 });
+  // Two-tone foliage: a deeper green for the shaded underside blobs, a lighter
+  // sun-kissed green for the crown. Flat MeshStandardMaterial (no sheen) keeps
+  // distant top-down foliage cheap on mobile.
+  const leafDark = new THREE.MeshStandardMaterial({ color: 0x3f6630, roughness: 0.98 });
+  const leafLight = new THREE.MeshStandardMaterial({ color: 0x639351, roughness: 0.95 });
   const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.16, 1.6, 8), trunkMat);
   trunk.position.y = 0.8;
   trunk.castShadow = true;
   g.add(trunk);
   const canopy = new THREE.Group();
-  for (const [ox, oy, oz, r] of [
-    [0, 1.9, 0, 1.0],
-    [0.6, 1.6, 0.2, 0.7],
-    [-0.5, 1.7, -0.3, 0.65],
-  ]) {
-    const blob = new THREE.Mesh(new THREE.SphereGeometry(r, 10, 8), leafMat);
+  // [ox, oy, oz, r, light?] -- lower/under blobs darker, the top crown lighter.
+  for (const [ox, oy, oz, r, light] of [
+    [0, 1.7, 0, 0.95, 0],
+    [0.6, 1.55, 0.2, 0.7, 0],
+    [-0.5, 1.6, -0.3, 0.65, 0],
+    [0.0, 2.15, 0.0, 0.85, 1],
+  ] as Array<[number, number, number, number, number]>) {
+    const blob = new THREE.Mesh(
+      new THREE.SphereGeometry(r, 10, 8),
+      light ? leafLight : leafDark,
+    );
     blob.position.set(ox, oy, oz);
     blob.castShadow = true;
     canopy.add(blob);
@@ -676,7 +686,7 @@ function addFrontFence(group: THREE.Group, bounds: WorldBounds): void {
 function addTrees(group: THREE.Group): void {
   const trunkMat = new THREE.MeshStandardMaterial({
     color: 0x8a5a38, // warm bark
-    roughness: 0.95,
+    roughness: 1.0, // fully matte, rougher bark
     metalness: 0.0,
   });
 
@@ -691,6 +701,16 @@ function addTrees(group: THREE.Group): void {
         metalness: 0.0,
       }),
   );
+  // A deeper shaded green per tone for the underside blobs, so the canopy reads
+  // as two-tone (dark below, lit on top) rather than one flat green ball.
+  const shadeMats = canopyTones.map((col) => {
+    const c = new THREE.Color(col).lerp(new THREE.Color(0x12260c), 0.42);
+    return new THREE.MeshStandardMaterial({
+      color: c,
+      roughness: 0.92,
+      metalness: 0.0,
+    });
+  });
   // A slightly lighter top-light material per tone for a sun-kissed crown.
   const highlightMats = canopyTones.map((col) => {
     const c = new THREE.Color(col).lerp(new THREE.Color(0xffffff), 0.18);
@@ -722,17 +742,21 @@ function addTrees(group: THREE.Group): void {
     trunk.castShadow = true;
     tree.add(trunk);
 
-    // Layered rounded canopy: a few overlapping spheres in a loose dome, with a
-    // lighter highlight cap on top.
-    const blobs: Array<[number, number, number, number, boolean]> = [
-      [0, 2.3, 0, 1.25, false],
-      [0.8, 2.05, 0.3, 0.85, false],
-      [-0.7, 2.15, -0.35, 0.9, false],
-      [0.15, 2.2, 0.75, 0.8, false],
-      [0.0, 3.0, -0.05, 0.95, true], // sun-kissed crown
+    // Layered rounded canopy: a few overlapping spheres in a loose dome. The
+    // lower/under blobs use a deeper shaded green, the body uses the base tone,
+    // and a lighter highlight cap crowns the top: a soft two-tone canopy.
+    // kind: -1 = shaded underside, 0 = body, 1 = sun-kissed crown.
+    const blobs: Array<[number, number, number, number, number]> = [
+      [0, 2.05, 0, 1.2, -1], // shaded lower mass
+      [0.8, 1.95, 0.3, 0.85, -1],
+      [-0.7, 2.0, -0.35, 0.9, -1],
+      [0, 2.45, 0, 1.15, 0], // lit body
+      [0.15, 2.4, 0.75, 0.8, 0],
+      [0.0, 3.05, -0.05, 0.9, 1], // sun-kissed crown
     ];
-    for (const [ox, oy, oz, s, hi] of blobs) {
-      const mat = hi ? highlightMats[tone] : foliageMats[tone];
+    for (const [ox, oy, oz, s, kind] of blobs) {
+      const mat =
+        kind > 0 ? highlightMats[tone] : kind < 0 ? shadeMats[tone] : foliageMats[tone];
       const blob = new THREE.Mesh(foliageGeo, mat);
       blob.position.set(ox, oy, oz);
       blob.scale.setScalar(s);
