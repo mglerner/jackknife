@@ -78,4 +78,33 @@ export const SOLUTIONS: Record<string, Maneuver> = {
     { gear: "reverse", steer: -0.43663049239002205, seconds: 3.2279808000209864 },
     { gear: "reverse", steer: -0.2215, seconds: 1.7375000000000003 },
   ],
+  // Second batch of search-found, adversarially-verified reverse-only demos.
+  "odyssey-utility/driveway-uphill": [
+    { gear: "reverse", steer: 0.3388465525297665, seconds: 6.718324283466594 },
+    { gear: "reverse", steer: 0.4508558626843643, seconds: 0.9992096345402348 },
+  ],
+  "odyssey-utility/s-curve-alley": [
+    { gear: "reverse", steer: 0.09044129103422163, seconds: 2.053448130735537 },
+    { gear: "reverse", steer: -0.49223926166236315, seconds: 2.229890421752368 },
+    { gear: "reverse", steer: 0.16916409698186943, seconds: 2.4136178172193468 },
+    { gear: "reverse", steer: 0.5363533648337149, seconds: 2.211238063530194 },
+    { gear: "reverse", steer: 0.03951190957599084, seconds: 1.2981540770650166 },
+    { gear: "reverse", steer: -0.10914602159702025, seconds: 1.44582180542387 },
+  ],
+  "odyssey-utility/garage-straight": [
+    { gear: "reverse", steer: -0.028891550303166515, seconds: 2.9777926672250032 },
+    { gear: "reverse", steer: 0.4726498799414807, seconds: 1.1183340085670352 },
+  ],
+  "odyssey-utility/angled-spot": [
+    { gear: "reverse", steer: -0.5249639771878719, seconds: 2.857694262359291 },
+    { gear: "reverse", steer: 0.24647840039804578, seconds: 0.8828421805985273 },
+  ],
+  "odyssey-utility/long-chute": [
+    { gear: "reverse", steer: -0.0161, seconds: 1.087 },
+    { gear: "reverse", steer: 0.0196, seconds: 1.382 },
+    { gear: "reverse", steer: 0.0443, seconds: 0.588 },
+    { gear: "reverse", steer: 0.0037, seconds: 1.034 },
+    { gear: "reverse", steer: 0.0098, seconds: 1.118 },
+    { gear: "reverse", steer: 0.1469, seconds: 1.44 },
+  ],
 };

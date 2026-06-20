@@ -284,12 +284,17 @@ function applyChoice(rigId: string, diffId: string, scenarioId: string = game.sc
 const SCENARIO_ORDER = [
   "street-to-driveway-90",
   "street-to-gate-narrow",
+  "garage-straight",
   "lcorner-backin-90",
   "blindside-backin",
   "apron-to-loading-dock",
   "flanked-loading-dock",
+  "long-chute",
   "driveway-straight-start",
+  "s-curve-alley",
   "driveway-downhill",
+  "driveway-uphill",
+  "angled-spot",
   "parallel-park-curb",
 ];
 
@@ -298,19 +303,35 @@ let menuTab: MenuTab = "vehicle";
 
 // Scenario picker grouped for the tabbed Garage; short labels keep buttons compact.
 const SCEN_GROUPS: { label: string; ids: string[] }[] = [
-  { label: "Driveways", ids: ["street-to-driveway-90", "driveway-straight-start", "driveway-downhill"] },
-  { label: "Docks", ids: ["apron-to-loading-dock", "flanked-loading-dock"] },
+  {
+    label: "Driveways",
+    ids: ["street-to-driveway-90", "driveway-straight-start", "driveway-downhill", "driveway-uphill"],
+  },
+  { label: "Docks", ids: ["apron-to-loading-dock", "flanked-loading-dock", "long-chute"] },
   {
     label: "Tight spots",
-    ids: ["street-to-gate-narrow", "parallel-park-curb", "lcorner-backin-90", "blindside-backin"],
+    ids: [
+      "street-to-gate-narrow",
+      "parallel-park-curb",
+      "lcorner-backin-90",
+      "blindside-backin",
+      "s-curve-alley",
+      "garage-straight",
+      "angled-spot",
+    ],
   },
 ];
 const SCEN_SHORT: Record<string, string> = {
   "street-to-driveway-90": "90°",
   "driveway-straight-start": "Straight",
   "driveway-downhill": "Downhill",
+  "driveway-uphill": "Uphill",
   "apron-to-loading-dock": "Standard",
   "flanked-loading-dock": "Flanked",
+  "long-chute": "Chute",
+  "s-curve-alley": "S-curve",
+  "garage-straight": "Garage",
+  "angled-spot": "Angled",
   "street-to-gate-narrow": "Gate",
   "parallel-park-curb": "Parallel",
   "lcorner-backin-90": "Corner",

@@ -237,6 +237,143 @@ export const BLINDSIDE_BACKIN: Scenario = {
   environment: "generic",
 };
 
+/** Uphill driveway back-in: STREET_TO_DRIVEWAY_90 on an 8% grade with downhill OUT
+ *  toward the street, so backing in fights gravity (the rig wants to roll back). */
+export const DRIVEWAY_UPHILL: Scenario = {
+  id: "driveway-uphill",
+  label: "Uphill driveway",
+  start: { x: 3.565, y: -2.386, carHeading: -0.842, trailerHeading: -1.028 },
+  target: { x: 0, y: 9, heading: -1.5707963267948966, halfWidth: 1.4, halfLength: 2.2 },
+  obstacles: [
+    { kind: "curb", shape: seg(-18, -5, 18, -5), penalty: 50 },
+    { kind: "curb", shape: seg(-18, 3, -3, 3), penalty: 50 },
+    { kind: "curb", shape: seg(3, 3, 18, 3), penalty: 50 },
+    { kind: "wall", shape: seg(-3, 3, -3, 15), penalty: 120 },
+    { kind: "wall", shape: seg(3, 3, 3, 15), penalty: 120 },
+    { kind: "wall", shape: seg(-3, 15, 3, 15), penalty: 200 },
+  ],
+  surface: "asphalt",
+  slope: 0.08,
+  slopeDir: -1.5707963267948966,
+  mirrorsAvailable: true,
+  cameraAvailable: true,
+  worldBounds: { minX: -18, minY: -8, maxX: 18, maxY: 17 },
+  environment: "suburban",
+};
+
+/** S-curve alley: a serpentine corridor you back through (left then right). */
+export const S_CURVE_ALLEY: Scenario = {
+  id: "s-curve-alley",
+  label: "S-curve alley",
+  start: { x: 13.5, y: 0, carHeading: 0, trailerHeading: 0 },
+  target: { x: -5.5, y: 0, heading: 0, halfWidth: 1.4, halfLength: 2.2 },
+  obstacles: [
+    { kind: "wall", shape: seg(14, -2.3, 9.95, -2.3), penalty: 120 },
+    { kind: "wall", shape: seg(9.95, -2.3, 8.63, -2.9), penalty: 120 },
+    { kind: "wall", shape: seg(8.63, -2.9, 7.1, -3.67), penalty: 120 },
+    { kind: "wall", shape: seg(7.1, -3.67, 5.45, -4.08), penalty: 120 },
+    { kind: "wall", shape: seg(5.45, -4.08, 4, -4.1), penalty: 120 },
+    { kind: "wall", shape: seg(4, -4.1, 2.5, -4.1), penalty: 120 },
+    { kind: "wall", shape: seg(2.5, -4.1, 1.11, -4.02), penalty: 120 },
+    { kind: "wall", shape: seg(1.11, -4.02, -0.45, -3.52), penalty: 120 },
+    { kind: "wall", shape: seg(-0.45, -3.52, -2.09, -2.65), penalty: 120 },
+    { kind: "wall", shape: seg(-2.09, -2.65, -3.5, -2.3), penalty: 120 },
+    { kind: "wall", shape: seg(-3.5, -2.3, -7, -2.3), penalty: 120 },
+    { kind: "wall", shape: seg(14, 2.3, 9.95, 2.3), penalty: 120 },
+    { kind: "wall", shape: seg(9.95, 2.3, 8.68, 2.13), penalty: 120 },
+    { kind: "wall", shape: seg(8.68, 2.13, 6.91, 1.41), penalty: 120 },
+    { kind: "wall", shape: seg(6.91, 1.41, 5.55, 0.66), penalty: 120 },
+    { kind: "wall", shape: seg(5.55, 0.66, 4, 0.5), penalty: 120 },
+    { kind: "wall", shape: seg(4, 0.5, 2.5, 0.5), penalty: 120 },
+    { kind: "wall", shape: seg(2.5, 0.5, 1.09, 0.85), penalty: 120 },
+    { kind: "wall", shape: seg(1.09, 0.85, -0.55, 1.72), penalty: 120 },
+    { kind: "wall", shape: seg(-0.55, 1.72, -2.11, 2.22), penalty: 120 },
+    { kind: "wall", shape: seg(-2.11, 2.22, -3.5, 2.3), penalty: 120 },
+    { kind: "wall", shape: seg(-3.5, 2.3, -7, 2.3), penalty: 120 },
+    { kind: "wall", shape: seg(-7, -2.3, -7, 2.3), penalty: 200 },
+  ],
+  surface: "asphalt",
+  slope: 0,
+  mirrorsAvailable: true,
+  cameraAvailable: true,
+  worldBounds: { minX: -12, minY: -10, maxX: 20, maxY: 10 },
+  environment: "generic",
+};
+
+/** Straight garage: back straight into a tight bay between close side walls. */
+export const GARAGE_STRAIGHT: Scenario = {
+  id: "garage-straight",
+  label: "Straight garage",
+  start: { x: 0.7, y: -5, carHeading: -1.4507963267948965, trailerHeading: -1.4507963267948965 },
+  target: { x: 0, y: 3.6, heading: -1.5707963267948966, halfWidth: 1.2, halfLength: 2.2 },
+  obstacles: [
+    { kind: "wall", shape: seg(-1.4, 0, -1.4, 6), penalty: 120 },
+    { kind: "wall", shape: seg(1.4, 0, 1.4, 6), penalty: 120 },
+    { kind: "wall", shape: seg(-1.4, 6, 1.4, 6), penalty: 200 },
+    { kind: "curb", shape: seg(-16, 0, -1.4, 0), penalty: 50 },
+    { kind: "curb", shape: seg(1.4, 0, 16, 0), penalty: 50 },
+    { kind: "curb", shape: seg(-16, -10.5, 16, -10.5), penalty: 40 },
+  ],
+  surface: "asphalt",
+  slope: 0,
+  mirrorsAvailable: true,
+  cameraAvailable: true,
+  worldBounds: { minX: -16, minY: -13, maxX: 16, maxY: 8 },
+  environment: "generic",
+};
+
+/** Angled spot: back into a 45-degree angled bay between two parked cars. */
+export const ANGLED_SPOT: Scenario = {
+  id: "angled-spot",
+  label: "Angled spot",
+  start: { x: -4.9156, y: -3.0934, carHeading: 3.6561, trailerHeading: 3.9013 },
+  target: { x: 0.8, y: 2.6, heading: 3.9269908169872414, halfWidth: 1.2, halfLength: 2.2 },
+  obstacles: [
+    { kind: "wall", shape: seg(-0.6849, 6.3477, 0.6586, 5.0042), penalty: 120 },
+    { kind: "wall", shape: seg(0.6586, 5.0042, -2.1698, 2.1757), penalty: 120 },
+    { kind: "wall", shape: seg(-2.1698, 2.1757, -3.5134, 3.5192), penalty: 120 },
+    { kind: "wall", shape: seg(-3.5134, 3.5192, -0.6849, 6.3477), penalty: 120 },
+    { kind: "wall", shape: seg(3.2042, 2.4586, 4.5477, 1.1151), penalty: 120 },
+    { kind: "wall", shape: seg(4.5477, 1.1151, 1.7192, -1.7134), penalty: 120 },
+    { kind: "wall", shape: seg(1.7192, -1.7134, 0.3757, -0.3698), penalty: 120 },
+    { kind: "wall", shape: seg(0.3757, -0.3698, 3.2042, 2.4586), penalty: 120 },
+    { kind: "curb", shape: seg(-14, 8, 14, 8), penalty: 50 },
+    { kind: "curb", shape: seg(-14, -4, 14, -4), penalty: 50 },
+  ],
+  surface: "asphalt",
+  slope: 0,
+  mirrorsAvailable: true,
+  cameraAvailable: true,
+  worldBounds: { minX: -14, minY: -6, maxX: 14, maxY: 10 },
+  environment: "generic",
+};
+
+/** Long chute: a long narrow lane to a dock bay, demanding sustained corrections. */
+export const LONG_CHUTE: Scenario = {
+  id: "long-chute",
+  label: "Long chute",
+  start: { x: 0, y: -1, carHeading: -1.5707963267948966, trailerHeading: -1.5707963267948966 },
+  target: { x: 0, y: 11.2, heading: -1.5707963267948966, halfWidth: 1.4, halfLength: 2.2 },
+  obstacles: [
+    { kind: "wall", shape: seg(-1.8, 0, -1.8, 12), penalty: 120 },
+    { kind: "wall", shape: seg(1.8, 0, 1.8, 12), penalty: 120 },
+    { kind: "wall", shape: seg(-1.8, 12, -2, 12), penalty: 120 },
+    { kind: "wall", shape: seg(1.8, 12, 2, 12), penalty: 120 },
+    { kind: "wall", shape: seg(-2, 12, -2, 14), penalty: 120 },
+    { kind: "wall", shape: seg(2, 12, 2, 14), penalty: 120 },
+    { kind: "wall", shape: seg(-2, 14, 2, 14), penalty: 200 },
+    { kind: "curb", shape: seg(-12, 0, -1.8, 0), penalty: 50 },
+    { kind: "curb", shape: seg(1.8, 0, 12, 0), penalty: 50 },
+    { kind: "curb", shape: seg(-12, -4, 12, -4), penalty: 40 },
+  ],
+  surface: "asphalt",
+  slope: 0,
+  mirrorsAvailable: true,
+  cameraAvailable: true,
+  worldBounds: { minX: -12, minY: -6, maxX: 12, maxY: 16 },
+  environment: "dock",
+};
+
 export const SCENARIOS: Record<string, Scenario> = {
   [STREET_TO_DRIVEWAY_90.id]: STREET_TO_DRIVEWAY_90,
   [DRIVEWAY_STRAIGHT_START.id]: DRIVEWAY_STRAIGHT_START,
@@ -247,6 +384,11 @@ export const SCENARIOS: Record<string, Scenario> = {
   [LCORNER_BACKIN_90.id]: LCORNER_BACKIN_90,
   [DRIVEWAY_DOWNHILL.id]: DRIVEWAY_DOWNHILL,
   [BLINDSIDE_BACKIN.id]: BLINDSIDE_BACKIN,
+  [DRIVEWAY_UPHILL.id]: DRIVEWAY_UPHILL,
+  [S_CURVE_ALLEY.id]: S_CURVE_ALLEY,
+  [GARAGE_STRAIGHT.id]: GARAGE_STRAIGHT,
+  [ANGLED_SPOT.id]: ANGLED_SPOT,
+  [LONG_CHUTE.id]: LONG_CHUTE,
 };
 
 export const DEFAULT_SCENARIO = STREET_TO_DRIVEWAY_90;
