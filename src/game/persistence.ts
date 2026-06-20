@@ -67,6 +67,13 @@ export function setViewMode(mode: string): void {
   saveProgress(p);
 }
 
+/** Persist the chosen difficulty so it survives reloads. */
+export function setDifficulty(id: string): void {
+  const p = loadProgress();
+  p.settings.difficultyId = id;
+  saveProgress(p);
+}
+
 /** Persist the ideal-line (solution path) aid preference. */
 export function setIdealLineOn(on: boolean): void {
   const p = loadProgress();

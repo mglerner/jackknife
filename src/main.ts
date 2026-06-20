@@ -28,6 +28,7 @@ import {
   setRealisticWheel,
   setViewMode,
   setIdealLineOn,
+  setDifficulty,
 } from "./game/persistence";
 
 const app = document.querySelector<HTMLDivElement>("#app")!;
@@ -95,7 +96,11 @@ title.addEventListener("pointerdown", () => {
 
 const params = new URLSearchParams(location.search);
 const initRig = RIGS[params.get("rig") ?? ""] ?? DEFAULT_RIG;
-const initDiff = DIFFICULTIES[params.get("difficulty") ?? ""] ?? DEFAULT_DIFFICULTY;
+// URL param wins (handy for testing); otherwise the last difficulty the player chose.
+const initDiff =
+  DIFFICULTIES[params.get("difficulty") ?? ""] ??
+  DIFFICULTIES[loadProgress().settings.difficultyId ?? ""] ??
+  DEFAULT_DIFFICULTY;
 const initScenario = SCENARIOS[params.get("scenario") ?? ""] ?? DEFAULT_SCENARIO;
 let game = createGame(initRig, initScenario, initDiff);
 // One View control cycles these three (top-down aid, backup camera, mirrors only).
@@ -266,6 +271,7 @@ function applyChoice(rigId: string, diffId: string, scenarioId: string = game.sc
   const rig = RIGS[rigId] ?? DEFAULT_RIG;
   const diff = DIFFICULTIES[diffId] ?? DEFAULT_DIFFICULTY;
   const scenario = SCENARIOS[scenarioId] ?? game.scenario;
+  setDifficulty(diff.id); // remember the choice across reloads
   game = createGame(rig, scenario, diff);
   renderer3d.rebuild(game);
   // Verified demo solutions are keyed by rig + scenario; Demo enables only when one exists.
@@ -600,14 +606,25 @@ function frame(t: number): void {
 
   hud.update(game, debug);
   const d = derive(game.physics, game.rig, { v: commandedSpeed(game), delta: game.delta });
+  // Expert's "no pulling forward unless physically necessary" rule silently vetoes
+  // forward while the fold is still recoverable in reverse. Surface WHY the forward
+  // input did nothing (this is rule feedback, not a hand-holding aid, so it shows
+  // even in Expert where coaching is otherwise off).
+  const forwardLocked =
+    !game.difficulty.allowPullForwardAlways &&
+    game.gear === "forward" &&
+    game.throttle > 1e-4 &&
+    (d.jackknifeState === "ok" || d.jackknifeState === "warn");
   // Coaching is an aid: Expert (showCoaching false) hides it, but the Demo always
-  // narrates.
-  const showCoach = demoActive || game.difficulty.showCoaching;
+  // narrates and the forward-lock feedback always shows.
+  const showCoach = demoActive || game.difficulty.showCoaching || forwardLocked;
   coach.hidden = !showCoach;
   if (showCoach) {
     coach.textContent = demoActive
       ? "Demo: easing back and steering toward the driveway. Watch the trailer follow the wheel."
-      : coachingMessage(game, d);
+      : forwardLocked
+        ? "Forward is locked. Straighten it in reverse; pulling forward is only for when it is folded too far to back out."
+        : coachingMessage(game, d);
   }
   const grade = game.scenario.slope;
   slopeBadge.hidden = grade <= 0;
