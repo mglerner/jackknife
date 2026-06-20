@@ -24,7 +24,6 @@ export interface SurfaceOpts {
   repeat?: number; // texture repeats across the region
   speckle?: number; // fine per-pixel grain on top of the smooth noise
   envMapIntensity?: number; // matte ground should be LOW (~0.3) so env light doesn't wash it flat
-  detile?: boolean; // break up tile repetition with an in-shader large-scale macro multiply
 }
 
 const SIZE = 256;
@@ -196,42 +195,5 @@ export function surfaceMaterial(opts: SurfaceOpts): THREE.MeshStandardMaterial {
     metalness: opts.metalness ?? 0,
     envMapIntensity: opts.envMapIntensity ?? 0.3,
   });
-  if (opts.detile) applyDetile(mat, repeat);
   return mat;
-}
-
-// In-shader de-tiling. A large-scale value-noise field is computed PROCEDURALLY in
-// the fragment shader and multiplied into the albedo as the surface is drawn, at a
-// scale much bigger than the detail tiles. Because the macro and tile periods are
-// incommensurate, the repeating grid dissolves into natural unevenness. It is pure
-// shader math -- no extra texture, no second mesh, no blend mode -- which is what
-// makes it iOS-safe: the old multiply-blended overlay mesh rendered grey on iOS, and
-// a macro TEXTURE added via onBeforeCompile is not tracked by the renderer, so it can
-// fail to upload and sample as black on iOS. Procedural noise sidesteps both.
-function applyDetile(mat: THREE.MeshStandardMaterial, detailRepeat: number): void {
-  const r = detailRepeat.toFixed(5);
-  mat.onBeforeCompile = (shader) => {
-    shader.fragmentShader = shader.fragmentShader
-      .replace(
-        "#include <common>",
-        `#include <common>
-        float jkHash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453123); }
-        float jkNoise(vec2 p) {
-          vec2 i = floor(p); vec2 f = fract(p); f = f * f * (3.0 - 2.0 * f);
-          float a = jkHash(i), b = jkHash(i + vec2(1.0, 0.0));
-          float c = jkHash(i + vec2(0.0, 1.0)), d = jkHash(i + vec2(1.0, 1.0));
-          return mix(mix(a, b, f.x), mix(c, d, f.x), f.y);
-        }`,
-      )
-      .replace(
-        "#include <map_fragment>",
-        `#include <map_fragment>
-        #ifdef USE_MAP
-          vec2 jkUv = vMapUv / ${r};
-          float jkM = 0.62 * jkNoise(jkUv * 3.0) + 0.38 * jkNoise(jkUv * 6.7 + 17.0);
-          diffuseColor.rgb *= mix(0.78, 1.16, jkM);
-        #endif`,
-      );
-  };
-  mat.customProgramCacheKey = () => "detile" + r;
 }
