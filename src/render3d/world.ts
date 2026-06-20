@@ -328,13 +328,29 @@ function limb(
   return m;
 }
 
+// Lumpy organic foliage blob: an icosphere whose vertices are pushed in/out so it
+// reads as a leaf cluster, not a smooth ball. A few cached variants, reused + scaled
+// across canopies; flat-shaded leaf materials make the facets read as foliage.
+function leafBlobGeo(): THREE.BufferGeometry {
+  const geo = new THREE.IcosahedronGeometry(1, 1);
+  const pos = geo.attributes.position;
+  for (let i = 0; i < pos.count; i++) {
+    const f = 0.68 + Math.random() * 0.58;
+    pos.setXYZ(i, pos.getX(i) * f, pos.getY(i) * f, pos.getZ(i) * f);
+  }
+  pos.needsUpdate = true;
+  geo.computeVertexNormals();
+  return geo;
+}
+const LEAF_GEOS = [leafBlobGeo(), leafBlobGeo(), leafBlobGeo(), leafBlobGeo(), leafBlobGeo()];
+
 function buildLotTree(x: number, y: number, phase: number, scale = 1): THREE.Group {
   const g = new THREE.Group();
   const trunkMat = new THREE.MeshStandardMaterial({ color: 0x6b4f33, roughness: 1.0 });
   // Two-tone foliage: deeper green on the shaded undersides, a sun-kissed lighter
   // green on the crown. Flat MeshStandardMaterial (no sheen) keeps it mobile-cheap.
-  const leafDark = new THREE.MeshStandardMaterial({ color: 0x3f6630, roughness: 0.98 });
-  const leafLight = new THREE.MeshStandardMaterial({ color: 0x639351, roughness: 0.95 });
+  const leafDark = new THREE.MeshStandardMaterial({ color: 0x3f6630, roughness: 0.98, flatShading: true });
+  const leafLight = new THREE.MeshStandardMaterial({ color: 0x639351, roughness: 0.95, flatShading: true });
 
   // Tapered trunk, then branches forking up and out into the canopy.
   g.add(limb([0, 0, 0], [0.05, 1.45, 0.02], 0.18, 0.1, trunkMat));
@@ -347,8 +363,10 @@ function buildLotTree(x: number, y: number, phase: number, scale = 1): THREE.Gro
     g.add(limb([0.04 * Math.sign(bx), 1.15, 0.02], [bx, 1.9, bz], 0.07, 0.035, trunkMat));
   }
 
-  // Irregular, fuller canopy: five lower/shaded blobs, four lighter crown blobs.
+  // Irregular, fuller canopy: five lower/shaded blobs, four lighter crown blobs,
+  // each a lumpy leaf cluster (not a sphere).
   const canopy = new THREE.Group();
+  let bi = 0;
   for (const [ox, oy, oz, r, light] of [
     [0, 1.85, 0, 0.85, 0],
     [0.55, 1.7, 0.25, 0.6, 0],
@@ -360,8 +378,9 @@ function buildLotTree(x: number, y: number, phase: number, scale = 1): THREE.Gro
     [0.4, 2.05, -0.05, 0.46, 1],
     [0, 2.4, 0, 0.46, 1],
   ] as Array<[number, number, number, number, number]>) {
-    const blob = new THREE.Mesh(new THREE.SphereGeometry(r, 8, 6), light ? leafLight : leafDark);
+    const blob = new THREE.Mesh(LEAF_GEOS[bi++ % LEAF_GEOS.length], light ? leafLight : leafDark);
     blob.position.set(ox, oy, oz);
+    blob.scale.setScalar(r);
     blob.castShadow = true;
     canopy.add(blob);
   }
@@ -718,6 +737,7 @@ function addTrees(group: THREE.Group): void {
         color: col,
         roughness: 0.85,
         metalness: 0.0,
+        flatShading: true,
       }),
   );
   // A deeper shaded green per tone for the underside blobs, so the canopy reads
@@ -728,6 +748,7 @@ function addTrees(group: THREE.Group): void {
       color: c,
       roughness: 0.92,
       metalness: 0.0,
+      flatShading: true,
     });
   });
   // A slightly lighter top-light material per tone for a sun-kissed crown.
@@ -737,12 +758,11 @@ function addTrees(group: THREE.Group): void {
       color: c,
       roughness: 0.8,
       metalness: 0.0,
+      flatShading: true,
     });
   });
 
-  // Reused geometries. Smooth spheres for a rounded, charming canopy.
   const trunkGeo = new THREE.CylinderGeometry(0.16, 0.26, 2.0, 10);
-  const foliageGeo = new THREE.SphereGeometry(1.0, 16, 14);
 
   // World positions on the lawn, well clear of street and driveway.
   // [x, y, scale, toneIndex]
@@ -783,10 +803,11 @@ function addTrees(group: THREE.Group): void {
       [0.15, 2.4, 0.75, 0.8, 0],
       [0.0, 3.05, -0.05, 0.9, 1], // sun-kissed crown
     ];
+    let bi = 0;
     for (const [ox, oy, oz, s, kind] of blobs) {
       const mat =
         kind > 0 ? highlightMats[tone] : kind < 0 ? shadeMats[tone] : foliageMats[tone];
-      const blob = new THREE.Mesh(foliageGeo, mat);
+      const blob = new THREE.Mesh(LEAF_GEOS[bi++ % LEAF_GEOS.length], mat);
       blob.position.set(ox, oy, oz);
       blob.scale.setScalar(s);
       blob.castShadow = true;
