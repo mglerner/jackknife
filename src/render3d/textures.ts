@@ -26,7 +26,7 @@ export interface SurfaceOpts {
   envMapIntensity?: number; // matte ground should be LOW (~0.3) so env light doesn't wash it flat
 }
 
-const SIZE = 512;
+const SIZE = 256;
 const canvasCache = new Map<string, { albedo: HTMLCanvasElement; normal: HTMLCanvasElement; rough: HTMLCanvasElement }>();
 
 /** Small deterministic RNG so a given key always generates the same surface. */
