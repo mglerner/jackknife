@@ -2,7 +2,7 @@ import * as THREE from "three";
 import type { GameState } from "../game/state";
 import type { WorldBounds } from "../scenarios/types";
 import { worldToThree, placeObject } from "./coords";
-import { surfaceMaterial, macroMaterial } from "./textures";
+import { surfaceMaterial } from "./textures";
 
 // =============================================================================
 // world.ts -- builds the static 3D environment for the current scenario.
@@ -49,23 +49,6 @@ function addGroundRegion(
   const c = worldToThree({ x: cx, y: cy }, y);
   mesh.position.copy(c);
   mesh.receiveShadow = true;
-  group.add(mesh);
-}
-
-// A large-scale macro overlay over the ground rectangle, to break up the visible
-// repeat of the tiled detail textures (its period is much larger than the tiles).
-function addMacroOverlay(
-  group: THREE.Group,
-  x0: number,
-  x1: number,
-  y0: number,
-  y1: number,
-): void {
-  const w = Math.abs(x1 - x0);
-  const d = Math.abs(y1 - y0);
-  const repeat = Math.max(1, w / 22);
-  const mesh = new THREE.Mesh(new THREE.BoxGeometry(w, 0.02, d), macroMaterial(repeat));
-  mesh.position.copy(worldToThree({ x: (x0 + x1) / 2, y: (y0 + y1) / 2 }, 0.008));
   group.add(mesh);
 }
 
