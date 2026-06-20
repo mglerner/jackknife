@@ -311,31 +311,56 @@ function buildLightPole(x: number, y: number): THREE.Group {
 }
 
 // Simple lot tree: trunk + a few canopy blobs. The canopy sways via the world tick.
+// A tapered limb (trunk or branch) as a cylinder oriented between two points.
+function limb(
+  a: [number, number, number],
+  b: [number, number, number],
+  r0: number,
+  r1: number,
+  mat: THREE.Material,
+): THREE.Mesh {
+  const dir = new THREE.Vector3(b[0] - a[0], b[1] - a[1], b[2] - a[2]);
+  const len = dir.length() || 0.01;
+  const m = new THREE.Mesh(new THREE.CylinderGeometry(r1, r0, len, 6), mat);
+  m.position.set((a[0] + b[0]) / 2, (a[1] + b[1]) / 2, (a[2] + b[2]) / 2);
+  m.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir.normalize());
+  m.castShadow = true;
+  return m;
+}
+
 function buildLotTree(x: number, y: number, phase: number, scale = 1): THREE.Group {
   const g = new THREE.Group();
-  // Rougher, slightly warmer bark with a faint normal-free relief via roughness.
   const trunkMat = new THREE.MeshStandardMaterial({ color: 0x6b4f33, roughness: 1.0 });
-  // Two-tone foliage: a deeper green for the shaded underside blobs, a lighter
-  // sun-kissed green for the crown. Flat MeshStandardMaterial (no sheen) keeps
-  // distant top-down foliage cheap on mobile.
+  // Two-tone foliage: deeper green on the shaded undersides, a sun-kissed lighter
+  // green on the crown. Flat MeshStandardMaterial (no sheen) keeps it mobile-cheap.
   const leafDark = new THREE.MeshStandardMaterial({ color: 0x3f6630, roughness: 0.98 });
   const leafLight = new THREE.MeshStandardMaterial({ color: 0x639351, roughness: 0.95 });
-  const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.16, 1.6, 8), trunkMat);
-  trunk.position.y = 0.8;
-  trunk.castShadow = true;
-  g.add(trunk);
+
+  // Tapered trunk, then branches forking up and out into the canopy.
+  g.add(limb([0, 0, 0], [0.05, 1.45, 0.02], 0.18, 0.1, trunkMat));
+  for (const [bx, bz] of [
+    [0.5, 0.25],
+    [-0.45, -0.2],
+    [0.15, -0.5],
+    [-0.2, 0.45],
+  ] as Array<[number, number]>) {
+    g.add(limb([0.04 * Math.sign(bx), 1.15, 0.02], [bx, 1.9, bz], 0.07, 0.035, trunkMat));
+  }
+
+  // Irregular, fuller canopy: five lower/shaded blobs, four lighter crown blobs.
   const canopy = new THREE.Group();
-  // [ox, oy, oz, r, light?] -- lower/under blobs darker, the top crown lighter.
   for (const [ox, oy, oz, r, light] of [
-    [0, 1.7, 0, 0.95, 0],
-    [0.6, 1.55, 0.2, 0.7, 0],
-    [-0.5, 1.6, -0.3, 0.65, 0],
-    [0.0, 2.15, 0.0, 0.85, 1],
+    [0, 1.85, 0, 0.85, 0],
+    [0.55, 1.7, 0.25, 0.6, 0],
+    [-0.5, 1.7, -0.3, 0.58, 0],
+    [0.25, 1.72, -0.5, 0.52, 0],
+    [-0.35, 1.8, 0.45, 0.54, 0],
+    [0.1, 2.15, 0.1, 0.68, 1],
+    [-0.3, 2.1, -0.15, 0.5, 1],
+    [0.4, 2.05, -0.05, 0.46, 1],
+    [0, 2.4, 0, 0.46, 1],
   ] as Array<[number, number, number, number, number]>) {
-    const blob = new THREE.Mesh(
-      new THREE.SphereGeometry(r, 10, 8),
-      light ? leafLight : leafDark,
-    );
+    const blob = new THREE.Mesh(new THREE.SphereGeometry(r, 8, 6), light ? leafLight : leafDark);
     blob.position.set(ox, oy, oz);
     blob.castShadow = true;
     canopy.add(blob);
@@ -735,6 +760,16 @@ function addTrees(group: THREE.Group): void {
     trunk.position.y = 1.0;
     trunk.castShadow = true;
     tree.add(trunk);
+
+    // Branches forking up and out into the canopy.
+    for (const [bx, bz] of [
+      [0.7, 0.3],
+      [-0.6, -0.25],
+      [0.2, -0.65],
+      [-0.25, 0.6],
+    ] as Array<[number, number]>) {
+      tree.add(limb([0.06 * Math.sign(bx), 1.55, 0.03], [bx, 2.35, bz], 0.09, 0.04, trunkMat));
+    }
 
     // Layered rounded canopy: a few overlapping spheres in a loose dome. The
     // lower/under blobs use a deeper shaded green, the body uses the base tone,
