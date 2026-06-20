@@ -225,8 +225,11 @@ function addLighting(group: THREE.Group, bounds: WorldBounds): void {
 
 // Shared PBR ground surfaces (albedo + normal + roughness; cached per key in
 // textures.ts). The repeat varies per region so texel density stays sensible.
-const GRASS_MAT = (repeat: number): THREE.MeshStandardMaterial =>
-  surfaceMaterial({ key: "grass", base: [96, 158, 74], freq: 22, octaves: 4, contrast: 0.3, speckle: 16, normalStrength: 0.32, roughness: 0.97, roughVar: 0.08, repeat });
+// Grass uses a plain green material (NOT the generated PBR texture): on iOS Safari
+// the textured/fully-rough green grass rendered grey, while plain colored materials
+// (like the trees) render fine. The macro overlay still gives it tonal variation.
+const GRASS_MAT = (_repeat: number): THREE.MeshStandardMaterial =>
+  new THREE.MeshStandardMaterial({ color: 0x6ba84e, roughness: 0.95, metalness: 0.0, envMapIntensity: 0.1 });
 const ASPHALT_MAT = (repeat: number): THREE.MeshStandardMaterial =>
   surfaceMaterial({ key: "asphalt", base: [92, 96, 102], freq: 10, octaves: 4, contrast: 0.28, speckle: 16, normalStrength: 1.1, roughness: 0.9, roughVar: 0.2, repeat });
 const CONCRETE_MAT = (repeat: number): THREE.MeshStandardMaterial =>
@@ -271,7 +274,6 @@ function addGround(group: THREE.Group, bounds: WorldBounds): void {
   const sidewalkMat = SIDEWALK_MAT(10);
   addGroundRegion(group, sidewalkMat, bounds.minX, -3, 3.0, 3.6, 0.01);
   addGroundRegion(group, sidewalkMat, 3, bounds.maxX, 3.0, 3.6, 0.01);
-  addMacroOverlay(group, bounds.minX - 14, bounds.maxX + 14, bounds.minY - 14, bounds.maxY + 14);
 }
 
 // -----------------------------------------------------------------------------
@@ -332,10 +334,12 @@ function limb(
 // reads as a leaf cluster, not a smooth ball. A few cached variants, reused + scaled
 // across canopies; flat-shaded leaf materials make the facets read as foliage.
 function leafBlobGeo(): THREE.BufferGeometry {
-  const geo = new THREE.IcosahedronGeometry(1, 1);
+  // Detail 2 + smooth-shaded materials + a GENTLE vertex push gives soft, rounded
+  // lumps (an organic blob) rather than sharp jagged facets.
+  const geo = new THREE.IcosahedronGeometry(1, 2);
   const pos = geo.attributes.position;
   for (let i = 0; i < pos.count; i++) {
-    const f = 0.68 + Math.random() * 0.58;
+    const f = 0.86 + Math.random() * 0.26;
     pos.setXYZ(i, pos.getX(i) * f, pos.getY(i) * f, pos.getZ(i) * f);
   }
   pos.needsUpdate = true;
@@ -349,8 +353,8 @@ function buildLotTree(x: number, y: number, phase: number, scale = 1): THREE.Gro
   const trunkMat = new THREE.MeshStandardMaterial({ color: 0x6b4f33, roughness: 1.0 });
   // Two-tone foliage: deeper green on the shaded undersides, a sun-kissed lighter
   // green on the crown. Flat MeshStandardMaterial (no sheen) keeps it mobile-cheap.
-  const leafDark = new THREE.MeshStandardMaterial({ color: 0x3f6630, roughness: 0.98, flatShading: true });
-  const leafLight = new THREE.MeshStandardMaterial({ color: 0x639351, roughness: 0.95, flatShading: true });
+  const leafDark = new THREE.MeshStandardMaterial({ color: 0x3f6630, roughness: 0.98, flatShading: false });
+  const leafLight = new THREE.MeshStandardMaterial({ color: 0x639351, roughness: 0.95, flatShading: false });
 
   // Tapered trunk, then branches forking up and out into the canopy.
   g.add(limb([0, 0, 0], [0.05, 1.45, 0.02], 0.18, 0.1, trunkMat));
@@ -430,7 +434,6 @@ function addGenericGround(group: THREE.Group, bounds: WorldBounds): void {
   // A thin concrete curb ringing the paved lot, then the asphalt inset just inside it.
   addGroundRegion(group, curbMat, bounds.minX - 0.25, bounds.maxX + 0.25, bounds.minY - 0.25, bounds.maxY + 0.25, -0.005);
   addGroundRegion(group, asphaltMat, bounds.minX, bounds.maxX, bounds.minY, bounds.maxY, 0.0);
-  addMacroOverlay(group, bounds.minX - 14, bounds.maxX + 14, bounds.minY - 16, bounds.maxY + 18);
   addGenericProps(group, bounds);
 }
 
@@ -462,7 +465,6 @@ function addDockGround(group: THREE.Group, bounds: WorldBounds): void {
   for (let yy = -10; yy < -1.2; yy += 1.7) {
     addGroundRegion(group, lineMat, -0.08, 0.08, yy, yy + 0.85, 0.02);
   }
-  addMacroOverlay(group, bounds.minX, bounds.maxX, bounds.minY, bounds.maxY);
 }
 
 function addDockEnvironment(group: THREE.Group): void {
@@ -737,7 +739,7 @@ function addTrees(group: THREE.Group): void {
         color: col,
         roughness: 0.85,
         metalness: 0.0,
-        flatShading: true,
+        flatShading: false,
       }),
   );
   // A deeper shaded green per tone for the underside blobs, so the canopy reads
@@ -748,7 +750,7 @@ function addTrees(group: THREE.Group): void {
       color: c,
       roughness: 0.92,
       metalness: 0.0,
-      flatShading: true,
+      flatShading: false,
     });
   });
   // A slightly lighter top-light material per tone for a sun-kissed crown.
@@ -758,7 +760,7 @@ function addTrees(group: THREE.Group): void {
       color: c,
       roughness: 0.8,
       metalness: 0.0,
-      flatShading: true,
+      flatShading: false,
     });
   });
 
@@ -829,8 +831,8 @@ function addShrubs(group: THREE.Group): void {
     color: 0x5fa84d, // cheerful, slightly saturated green
     roughness: 0.9,
     metalness: 0.0,
+    flatShading: false,
   });
-  const shrubGeo = new THREE.SphereGeometry(0.6, 14, 12);
 
   const spots: Array<[number, number]> = [
     [5.5, 14.6], // by the front door
@@ -839,10 +841,12 @@ function addShrubs(group: THREE.Group): void {
     [-9, 5],
   ];
 
+  let bi = 0;
   for (const [x, y] of spots) {
-    const shrub = new THREE.Mesh(shrubGeo, shrubMat);
-    shrub.scale.set(1, 0.7, 1);
-    shrub.position.copy(worldToThree({ x, y }, 0.42));
+    // Squat lumpy bush (the same deformed blobs as the canopies, flattened).
+    const shrub = new THREE.Mesh(LEAF_GEOS[bi++ % LEAF_GEOS.length], shrubMat);
+    shrub.scale.set(0.62, 0.44, 0.62);
+    shrub.position.copy(worldToThree({ x, y }, 0.4));
     shrub.castShadow = true;
     group.add(shrub);
   }
