@@ -104,25 +104,27 @@ function buildMinivan(gs: GameState): THREE.Group {
   // reads as light silver paint rather than charcoal under this lighting.
   const bodyMat = new THREE.MeshPhysicalMaterial({
     color: 0xb4babf, // Honda "Polished Metal Metallic": a light cool grey-silver
-    roughness: 0.12,
-    // Lower metalness so the light base color shows from EVERY angle (at 0.9 it
-    // went mirror-dark from the side); the clearcoat still gives a glossy glint.
+    // Softer base coat (was 0.12, which gave one tight plasticky highlight); the
+    // clearcoat carries the sharp glint, giving the layered base-coat-under-lacquer look.
+    roughness: 0.35,
     metalness: 0.62,
     envMapIntensity: 1.35,
     clearcoat: 1.0,
-    clearcoatRoughness: 0.05,
+    clearcoatRoughness: 0.06,
   });
   const lowerTrimMat = new THREE.MeshStandardMaterial({
     color: 0x35383c, // dark rocker / cladding (lighter than before so it isn't a black void)
     roughness: 0.7,
     metalness: 0.2,
   });
-  const glassMat = new THREE.MeshStandardMaterial({
-    color: 0x1c232b, // tinted glass: dark but not pure black
-    roughness: 0.1,
-    metalness: 0.4,
+  const glassMat = new THREE.MeshPhysicalMaterial({
+    color: 0x12181f, // tinted glass: dark but alive by REFLECTING the environment
+    roughness: 0.08,
+    metalness: 0.0,
+    ior: 1.5, // grazing-angle Fresnel for free; NO transmission (it tanks mobile)
+    envMapIntensity: 1.6,
     transparent: true,
-    opacity: 0.82,
+    opacity: 0.86,
   });
   const trimMat = new THREE.MeshStandardMaterial({
     color: 0x14171b, // black pillar trim / glass surround / mirror
@@ -130,9 +132,10 @@ function buildMinivan(gs: GameState): THREE.Group {
     metalness: 0.35,
   });
   const chromeMat = new THREE.MeshStandardMaterial({
-    color: 0xd6dade,
-    roughness: 0.18,
-    metalness: 0.95,
+    color: 0xf2f4f6,
+    roughness: 0.05,
+    metalness: 1.0,
+    envMapIntensity: 2.0,
   });
   const tireMat = new THREE.MeshStandardMaterial({
     color: 0x16161a,
@@ -2026,11 +2029,50 @@ function buildAgTrailer(gs: GameState): THREE.Group {
   return g;
 }
 
+// Soft radial blob used as a fake-AO contact shadow under each vehicle. One real
+// directional shadow gives the long cast shadow but no near-contact darkening, so
+// the rig reads as floating; this grounds it for ~free (one transparent quad).
+let blobTex: THREE.CanvasTexture | null = null;
+function blobShadowTexture(): THREE.CanvasTexture {
+  if (blobTex) return blobTex;
+  const s = 128;
+  const c = document.createElement("canvas");
+  c.width = c.height = s;
+  const ctx = c.getContext("2d")!;
+  const g = ctx.createRadialGradient(s / 2, s / 2, 0, s / 2, s / 2, s / 2);
+  g.addColorStop(0, "rgba(0,0,0,0.5)");
+  g.addColorStop(0.65, "rgba(0,0,0,0.18)");
+  g.addColorStop(1, "rgba(0,0,0,0)");
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, s, s);
+  blobTex = new THREE.CanvasTexture(c);
+  blobTex.colorSpace = THREE.SRGBColorSpace;
+  return blobTex;
+}
+function addContactShadow(group: THREE.Object3D, lenX: number, widthZ: number, centerX: number): void {
+  const mat = new THREE.MeshBasicMaterial({
+    map: blobShadowTexture(),
+    transparent: true,
+    depthWrite: false,
+    polygonOffset: true,
+    polygonOffsetFactor: -1, // sit on the ground without z-fighting the asphalt
+  });
+  const blob = new THREE.Mesh(new THREE.PlaneGeometry(lenX, widthZ), mat);
+  blob.rotation.x = -Math.PI / 2;
+  blob.position.set(centerX, 0.02, 0);
+  group.add(blob);
+}
+
 export function buildRig(gs: GameState): RigView {
   const group = new THREE.Group();
   const carGroup = buildCar(gs);
   const trailerGroup = buildTrailer(gs);
   group.add(carGroup, trailerGroup);
+
+  // Contact shadows, parented to each group so they follow + rotate for free.
+  const r = gs.rig;
+  addContactShadow(carGroup, r.carLength * 1.1, r.carWidth * 1.3, r.carFrontOverhang - r.carLength / 2);
+  addContactShadow(trailerGroup, r.trailerLength * 1.1, r.trailerWidth * 1.35, (r.D - r.trailerRearOverhang) / 2);
 
   // Front-wheel meshes/pivots tagged by steerWheel(), yawed to show the tires turn.
   const steerers: THREE.Object3D[] = [];
