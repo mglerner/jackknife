@@ -6,6 +6,7 @@ import { commandedSpeed } from "../game/loop";
 import type { GameState } from "../game/state";
 import { worldToThree, placeObject } from "./coords";
 import { buildWorld } from "./world";
+import { createPostFX, type PostFX } from "./postfx";
 import { createParticles } from "./particles";
 import { buildRig, type RigView } from "./rig";
 import { createTrails } from "./trails";
@@ -29,6 +30,8 @@ export interface Renderer3D {
   celebrate(gs: GameState): void;
   /** Draw the verified solution's trailer path as a "follow this" lane (null hides). */
   setIdealLine(points: { x: number; y: number }[] | null): void;
+  /** Toggle the post-processing pass (AO + bloom) on the main view. */
+  setEffects(on: boolean): void;
 }
 
 interface MirrorSpec {
@@ -94,6 +97,17 @@ export function createRenderer3d(canvas: HTMLCanvasElement, gs: GameState): Rend
   // Dial the env contribution so it adds reflections without washing out every
   // (mostly matte) world material.
   scene.environmentIntensity = 0.5;
+
+  // Optional post-processing (AO + bloom) on the main view. Resized in resize().
+  // Guarded: if a GPU can't allocate the composer's float targets, fall back to
+  // the direct render path instead of breaking the whole game.
+  let postfx: PostFX | null = null;
+  try {
+    postfx = createPostFX(renderer, 100, 100);
+  } catch {
+    postfx = null;
+  }
+  let effectsOn = true;
   // No scene fog: it ruins the top-down (camera is ~40 m up). The backup-cam reads
   // fine without it. A subtle ground-level haze can come back per-camera later.
 
@@ -245,6 +259,7 @@ export function createRenderer3d(canvas: HTMLCanvasElement, gs: GameState): Rend
     // sharpness. This is the single biggest mobile perf lever (fill-rate bound).
     renderer.setPixelRatio(Math.min(dpr, 2));
     renderer.setSize(wCss, hCss, false);
+    postfx?.setSize(wCss, hCss, dpr);
   }
 
   function mirror(cam: THREE.PerspectiveCamera): void {
@@ -531,11 +546,13 @@ export function createRenderer3d(canvas: HTMLCanvasElement, gs: GameState): Rend
       if (view === "topdown") {
         scene.fog = null; // fog would uniformly wash the far-up ortho top-down
         aimTopCam(g);
-        renderer.render(scene, topCam);
+        if (effectsOn && postfx) postfx.render(scene, topCam);
+        else renderer.render(scene, topCam);
       } else {
         scene.fog = depthFog; // perspective FPV: fade distant scene into the sky for depth
         aimBackCam(g);
-        renderer.render(scene, backCam);
+        if (effectsOn && postfx) postfx.render(scene, backCam);
+        else renderer.render(scene, backCam);
       }
       if (opts.mirrors) {
         scene.fog = depthFog; // mirrors are perspective too
@@ -560,5 +577,8 @@ export function createRenderer3d(canvas: HTMLCanvasElement, gs: GameState): Rend
     rebuild,
     celebrate,
     setIdealLine,
+    setEffects: (on: boolean) => {
+      effectsOn = on;
+    },
   };
 }
