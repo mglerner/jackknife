@@ -9,7 +9,6 @@ export interface Progress {
     realisticWheel?: boolean; // on-screen wheel turns at the real steering ratio
     viewMode?: string; // last view: "topdown" | "backupcam" | "mirrors"
     idealLine?: boolean; // draw the verified solution path as a lane to trace
-    effects?: boolean; // post-processing (AO + bloom); off to save mobile framerate
   };
 }
 
@@ -72,12 +71,5 @@ export function setViewMode(mode: string): void {
 export function setIdealLineOn(on: boolean): void {
   const p = loadProgress();
   p.settings.idealLine = on;
-  saveProgress(p);
-}
-
-/** Persist the post-processing effects preference. */
-export function setEffectsOn(on: boolean): void {
-  const p = loadProgress();
-  p.settings.effects = on;
   saveProgress(p);
 }

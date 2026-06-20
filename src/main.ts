@@ -28,7 +28,6 @@ import {
   setRealisticWheel,
   setViewMode,
   setIdealLineOn,
-  setEffectsOn,
 } from "./game/persistence";
 
 const app = document.querySelector<HTMLDivElement>("#app")!;
@@ -115,8 +114,6 @@ let isDemo = false; // the current attempt is a Demo playback (does not count to
 let realisticWheel = loadProgress().settings.realisticWheel ?? true;
 // Ideal line: trace the verified solution's trailer path. A teaching aid, default on.
 let idealLineOn = loadProgress().settings.idealLine ?? true;
-// Post-processing (AO + bloom). Default on; flip off if the phone framerate stutters.
-let effectsOn = loadProgress().settings.effects ?? true;
 let demoAcc = 0;
 let demoWheelU = 0; // eased on-screen wheel position during the demo (visual only)
 let demoFrames: (typeof game)[] = []; // recorded verified trajectory, replayed pose-by-pose
@@ -180,7 +177,6 @@ const controls = createControls(app, {
 controls.setDemoEnabled(solution !== undefined);
 controls.setWheelRatio(wheelDegPerU(game));
 controls.setViewLabel(viewLabel(view));
-renderer3d.setEffects(effectsOn);
 updateIdealLine();
 
 /** Degrees the on-screen wheel rotates at full lock (u=1): the rig's real steering
@@ -385,11 +381,6 @@ function renderMenu(animate = false): void {
       `<button data-ideal="on" class="${idealLineOn ? "sel" : ""}">On</button>` +
       `<button data-ideal="off" class="${!idealLineOn ? "sel" : ""}">Off</button>` +
       "</div>" +
-      '<div class="menu-label">Effects (AO + bloom)</div>' +
-      '<div class="menu-row">' +
-      `<button data-fx="on" class="${effectsOn ? "sel" : ""}">On</button>` +
-      `<button data-fx="off" class="${!effectsOn ? "sel" : ""}">Off</button>` +
-      "</div>" +
       '<button id="reset-best" class="menu-danger">Reset high scores</button>';
   }
 
@@ -449,15 +440,6 @@ function renderMenu(animate = false): void {
       idealLineOn = b.dataset.ideal === "on";
       setIdealLineOn(idealLineOn);
       updateIdealLine();
-      renderMenu();
-    }),
-  );
-  // Effects: post-processing AO + bloom. Persisted; applies live. Off saves framerate.
-  menu.querySelectorAll<HTMLElement>("[data-fx]").forEach((b) =>
-    b.addEventListener("pointerdown", () => {
-      effectsOn = b.dataset.fx === "on";
-      setEffectsOn(effectsOn);
-      renderer3d.setEffects(effectsOn);
       renderMenu();
     }),
   );
