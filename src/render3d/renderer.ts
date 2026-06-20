@@ -75,7 +75,9 @@ function buildBackupGuides(gs: GameState): THREE.Group {
 export function createRenderer3d(canvas: HTMLCanvasElement, gs: GameState): Renderer3D {
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
   renderer.shadowMap.enabled = true;
-  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  // PCFShadowMap is the soft path in three r182+ (PCFSoftShadowMap regressed to
+  // pixelated); shadow.radius still applies. Strictly better on this version.
+  renderer.shadowMap.type = THREE.PCFShadowMap;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
   renderer.toneMappingExposure = 1.05;
 
@@ -239,7 +241,9 @@ export function createRenderer3d(canvas: HTMLCanvasElement, gs: GameState): Rend
   function resize(wCss: number, hCss: number, dpr: number): void {
     W = wCss;
     Hc = hCss;
-    renderer.setPixelRatio(dpr);
+    // Cap at 2x: iPhones report DPR 3, which triples fragment work for marginal
+    // sharpness. This is the single biggest mobile perf lever (fill-rate bound).
+    renderer.setPixelRatio(Math.min(dpr, 2));
     renderer.setSize(wCss, hCss, false);
   }
 

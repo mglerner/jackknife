@@ -2,6 +2,7 @@ import * as THREE from "three";
 import type { GameState } from "../game/state";
 import type { WorldBounds } from "../scenarios/types";
 import { worldToThree, placeObject } from "./coords";
+import { surfaceMaterial } from "./textures";
 
 // =============================================================================
 // world.ts -- builds the static 3D environment for the current scenario.
@@ -53,6 +54,7 @@ function noiseTexture(
   tex.wrapS = THREE.RepeatWrapping;
   tex.wrapT = THREE.RepeatWrapping;
   tex.repeat.set(repeat, repeat);
+  tex.colorSpace = THREE.SRGBColorSpace; // this is an albedo map
   return tex;
 }
 
@@ -245,27 +247,23 @@ function addLighting(group: THREE.Group, bounds: WorldBounds): void {
 //    region data should later move into Scenario (e.g. scenario.regions[]).
 // -----------------------------------------------------------------------------
 
+// Shared PBR ground surfaces (albedo + normal + roughness; cached per key in
+// textures.ts). The repeat varies per region so texel density stays sensible.
+const GRASS_MAT = (repeat: number): THREE.MeshStandardMaterial =>
+  surfaceMaterial({ key: "grass", base: [96, 158, 74], freq: 22, octaves: 4, contrast: 0.3, speckle: 16, normalStrength: 0.32, roughness: 0.97, roughVar: 0.08, repeat });
+const ASPHALT_MAT = (repeat: number): THREE.MeshStandardMaterial =>
+  surfaceMaterial({ key: "asphalt", base: [92, 96, 102], freq: 10, octaves: 4, contrast: 0.28, speckle: 16, normalStrength: 1.1, roughness: 0.9, roughVar: 0.2, repeat });
+const CONCRETE_MAT = (repeat: number): THREE.MeshStandardMaterial =>
+  surfaceMaterial({ key: "concrete", base: [198, 192, 182], freq: 7, octaves: 4, contrast: 0.2, speckle: 8, normalStrength: 0.6, roughness: 0.85, roughVar: 0.12, repeat });
+const SIDEWALK_MAT = (repeat: number): THREE.MeshStandardMaterial =>
+  surfaceMaterial({ key: "sidewalk", base: [214, 210, 202], freq: 6, octaves: 3, contrast: 0.18, speckle: 6, normalStrength: 0.5, roughness: 0.85, repeat });
+const CURB_MAT = (repeat: number): THREE.MeshStandardMaterial =>
+  surfaceMaterial({ key: "curb", base: [168, 166, 160], freq: 7, octaves: 3, contrast: 0.18, speckle: 5, normalStrength: 0.5, roughness: 0.88, repeat });
+
 function addGround(group: THREE.Group, bounds: WorldBounds): void {
-  const grassMat = new THREE.MeshStandardMaterial({
-    // Fresh, slightly saturated lawn green; gentle speckle so it reads as grass
-    // without looking noisy from above.
-    map: noiseTexture([96, 158, 74], 14, 26),
-    roughness: 0.98,
-    metalness: 0.0,
-  });
-  const asphaltMat = new THREE.MeshStandardMaterial({
-    // Cool neutral grey, a touch lighter than before so it does not read as a
-    // muddy black pit next to the grass.
-    map: noiseTexture([92, 96, 102], 10, 12),
-    roughness: 0.92,
-    metalness: 0.0,
-  });
-  const concreteMat = new THREE.MeshStandardMaterial({
-    // Warm light grey driveway.
-    map: noiseTexture([198, 192, 182], 10, 8),
-    roughness: 0.88,
-    metalness: 0.0,
-  });
+  const grassMat = GRASS_MAT(26);
+  const asphaltMat = ASPHALT_MAT(12);
+  const concreteMat = CONCRETE_MAT(8);
 
   // Grass base layer covering the whole worldBounds, slightly recessed.
   addGroundRegion(
@@ -286,11 +284,7 @@ function addGround(group: THREE.Group, bounds: WorldBounds): void {
 
   // Sidewalk: light concrete strip along y in [3, 3.6], across the bounds, but
   // split around the driveway opening (x in [-3, 3]) so the opening stays clear.
-  const sidewalkMat = new THREE.MeshStandardMaterial({
-    map: noiseTexture([214, 210, 202], 8, 10),
-    roughness: 0.88,
-    metalness: 0.0,
-  });
+  const sidewalkMat = SIDEWALK_MAT(10);
   addGroundRegion(group, sidewalkMat, bounds.minX, -3, 3.0, 3.6, 0.01);
   addGroundRegion(group, sidewalkMat, 3, bounds.maxX, 3.0, 3.6, 0.01);
 }
@@ -389,21 +383,9 @@ function addGenericProps(group: THREE.Group, bounds: WorldBounds): void {
 }
 
 function addGenericGround(group: THREE.Group, bounds: WorldBounds): void {
-  const grassMat = new THREE.MeshStandardMaterial({
-    map: noiseTexture([96, 158, 74], 14, 30),
-    roughness: 0.98,
-    metalness: 0.0,
-  });
-  const asphaltMat = new THREE.MeshStandardMaterial({
-    map: noiseTexture([92, 96, 102], 10, 16),
-    roughness: 0.92,
-    metalness: 0.0,
-  });
-  const curbMat = new THREE.MeshStandardMaterial({
-    map: noiseTexture([168, 166, 160], 7, 5),
-    roughness: 0.9,
-    metalness: 0.0,
-  });
+  const grassMat = GRASS_MAT(30);
+  const asphaltMat = ASPHALT_MAT(16);
+  const curbMat = CURB_MAT(5);
   addGroundRegion(group, grassMat, bounds.minX - 14, bounds.maxX + 14, bounds.minY - 16, bounds.maxY + 18, -0.02);
   // A thin concrete curb ringing the paved lot, then the asphalt inset just inside it.
   addGroundRegion(group, curbMat, bounds.minX - 0.25, bounds.maxX + 0.25, bounds.minY - 0.25, bounds.maxY + 0.25, -0.005);
@@ -418,16 +400,8 @@ function addGenericGround(group: THREE.Group, bounds: WorldBounds): void {
 // scenario obstacles (addObstacles); this adds the surfaces and the building.
 // -----------------------------------------------------------------------------
 function addDockGround(group: THREE.Group, bounds: WorldBounds): void {
-  const asphaltMat = new THREE.MeshStandardMaterial({
-    map: noiseTexture([88, 92, 99], 9, 18),
-    roughness: 0.93,
-    metalness: 0.0,
-  });
-  const padMat = new THREE.MeshStandardMaterial({
-    map: noiseTexture([176, 174, 168], 8, 6),
-    roughness: 0.9,
-    metalness: 0.0,
-  });
+  const asphaltMat = ASPHALT_MAT(18);
+  const padMat = CONCRETE_MAT(6);
   const lineMat = new THREE.MeshStandardMaterial({
     color: 0xd6c049,
     roughness: 0.7,
