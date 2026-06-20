@@ -621,6 +621,21 @@ function buildCargoTrailer(gs: GameState): THREE.Group {
     handle.position.set(deckBack - 0.02, floorY + boxH * 0.5, hz);
     g.add(handle);
   }
+  // Horizontal panel seams wrapping the box, so the big walls (which fill the backup
+  // camera and rear-view mirror) read as paneled aluminum rather than a blank slab.
+  const seamMat = new THREE.MeshStandardMaterial({ color: 0xccd0d4, roughness: 0.55, metalness: 0.3 });
+  for (const sy of [floorY + boxH * 0.4, floorY + boxH * 0.72]) {
+    for (const sx of [deckFront + 0.01, deckBack - 0.01]) {
+      const s = box(0.02, 0.04, trailerWidth * 0.98, seamMat);
+      s.position.set(sx, sy, 0);
+      g.add(s);
+    }
+    for (const sz of [halfW + 0.01, -(halfW + 0.01)]) {
+      const s = box(len * 0.98, 0.04, 0.02, seamMat);
+      s.position.set(cx, sy, sz);
+      g.add(s);
+    }
+  }
   return g;
 }
 
