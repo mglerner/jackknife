@@ -214,9 +214,9 @@ function addLighting(group: THREE.Group, bounds: WorldBounds): void {
 const GRASS_MAT = (_repeat: number): THREE.MeshStandardMaterial =>
   new THREE.MeshStandardMaterial({ color: 0x6ba84e, roughness: 0.95, metalness: 0.0, envMapIntensity: 0.1 });
 const ASPHALT_MAT = (repeat: number): THREE.MeshStandardMaterial =>
-  surfaceMaterial({ key: "asphalt", base: [92, 96, 102], freq: 10, octaves: 4, contrast: 0.28, speckle: 16, normalStrength: 1.1, roughness: 0.9, roughVar: 0.2, repeat });
+  surfaceMaterial({ key: "asphalt", base: [92, 96, 102], freq: 10, octaves: 4, contrast: 0.28, speckle: 16, normalStrength: 1.1, roughness: 0.9, roughVar: 0.2, repeat, detile: true });
 const CONCRETE_MAT = (repeat: number): THREE.MeshStandardMaterial =>
-  surfaceMaterial({ key: "concrete", base: [198, 192, 182], freq: 7, octaves: 4, contrast: 0.2, speckle: 8, normalStrength: 0.6, roughness: 0.85, roughVar: 0.12, repeat });
+  surfaceMaterial({ key: "concrete", base: [198, 192, 182], freq: 7, octaves: 4, contrast: 0.2, speckle: 8, normalStrength: 0.6, roughness: 0.85, roughVar: 0.12, repeat, detile: true });
 const SIDEWALK_MAT = (repeat: number): THREE.MeshStandardMaterial =>
   surfaceMaterial({ key: "sidewalk", base: [214, 210, 202], freq: 6, octaves: 3, contrast: 0.18, speckle: 6, normalStrength: 0.5, roughness: 0.85, repeat });
 const CURB_MAT = (repeat: number): THREE.MeshStandardMaterial =>

@@ -24,6 +24,7 @@ export interface SurfaceOpts {
   repeat?: number; // texture repeats across the region
   speckle?: number; // fine per-pixel grain on top of the smooth noise
   envMapIntensity?: number; // matte ground should be LOW (~0.3) so env light doesn't wash it flat
+  detile?: boolean; // break up tile repetition with an in-shader large-scale macro multiply
 }
 
 const SIZE = 256;
@@ -186,7 +187,7 @@ export function surfaceMaterial(opts: SurfaceOpts): THREE.MeshStandardMaterial {
   }
   const repeat = opts.repeat ?? 6;
   const s = opts.normalStrength ?? 1;
-  return new THREE.MeshStandardMaterial({
+  const mat = new THREE.MeshStandardMaterial({
     map: tex(c.albedo, repeat, true),
     normalMap: tex(c.normal, repeat, false),
     normalScale: new THREE.Vector2(s, s),
@@ -195,24 +196,28 @@ export function surfaceMaterial(opts: SurfaceOpts): THREE.MeshStandardMaterial {
     metalness: opts.metalness ?? 0,
     envMapIntensity: opts.envMapIntensity ?? 0.3,
   });
+  if (opts.detile) applyDetile(mat, repeat);
+  return mat;
 }
 
-// Large-scale "macro" variation: soft low-frequency blobs that gently darken the
-// ground in patches at a scale much bigger than the detail tiles. Overlaid with
-// multiply blending, it breaks up the obvious repeating grid of the tiled detail
-// texture (the detail period and this macro period are incommensurate), and reads
-// as natural ground unevenness. One cached grayscale canvas, reused everywhere.
+// In-shader de-tiling. A large, soft, low-frequency grayscale field (one cached
+// texture) is multiplied into the albedo AS THE SURFACE IS DRAWN, at a scale much
+// bigger than the detail tiles. Because the macro period and the tile period are
+// incommensurate, the obvious repeating grid dissolves into natural unevenness.
+// Unlike the old overlay mesh, this is a plain texture multiply inside the standard
+// MeshStandard shader: no second mesh, no transparency, no blend mode -- so it is
+// safe on iOS Safari (the multiply-blended overlay rendered grey there).
 let macroCanvas: HTMLCanvasElement | null = null;
 function macroGen(): HTMLCanvasElement {
   if (macroCanvas) return macroCanvas;
-  const h = heightField(3, 3, mulberry32(0x5eed));
+  const h = heightField(3, 3, mulberry32(0x5eed)); // freq 3 = big soft blobs
   const c = document.createElement("canvas");
   c.width = SIZE;
   c.height = SIZE;
   const ctx = c.getContext("2d")!;
   const img = ctx.createImageData(SIZE, SIZE);
   for (let i = 0; i < SIZE * SIZE; i++) {
-    const v = clamp255((0.87 + h[i] * 0.13) * 255); // 0.87..1.0: gentle darken-only patches
+    const v = clamp255(h[i] * 255); // raw 0..1 field; the shader maps it to a gentle range
     img.data[i * 4] = v;
     img.data[i * 4 + 1] = v;
     img.data[i * 4 + 2] = v;
@@ -223,12 +228,33 @@ function macroGen(): HTMLCanvasElement {
   return c;
 }
 
-/** A multiply-blended overlay material that breaks up ground tile repetition. */
-export function macroMaterial(repeat: number): THREE.MeshBasicMaterial {
-  return new THREE.MeshBasicMaterial({
-    map: tex(macroGen(), repeat, true),
-    transparent: true,
-    blending: THREE.MultiplyBlending,
-    depthWrite: false,
-  });
+let macroTex: THREE.CanvasTexture | null = null;
+function macroTexture(): THREE.CanvasTexture {
+  if (macroTex) return macroTex;
+  macroTex = new THREE.CanvasTexture(macroGen());
+  macroTex.wrapS = THREE.RepeatWrapping;
+  macroTex.wrapT = THREE.RepeatWrapping;
+  macroTex.colorSpace = THREE.NoColorSpace; // sampled as data, not color
+  return macroTex;
+}
+
+// Multiply a large-scale macro variation into the albedo of a MeshStandardMaterial.
+// detailRepeat is baked in as a literal (so each repeat gets its own cached program
+// and there is no shared-uniform aliasing); the macro texture is the one shared field.
+function applyDetile(mat: THREE.MeshStandardMaterial, detailRepeat: number): void {
+  const texture = macroTexture();
+  const r = detailRepeat.toFixed(5);
+  mat.onBeforeCompile = (shader) => {
+    shader.uniforms.uMacro = { value: texture };
+    shader.fragmentShader = shader.fragmentShader
+      .replace("#include <common>", "#include <common>\nuniform sampler2D uMacro;")
+      .replace(
+        "#include <map_fragment>",
+        `#include <map_fragment>
+        #ifdef USE_MAP
+          diffuseColor.rgb *= mix(0.84, 1.10, texture2D(uMacro, (vMapUv / ${r}) * 2.5).r);
+        #endif`,
+      );
+  };
+  mat.customProgramCacheKey = () => "detile" + r;
 }
