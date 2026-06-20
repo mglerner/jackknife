@@ -25,38 +25,11 @@ import { surfaceMaterial } from "./textures";
 // Ground region helper: a thin Box on the XZ plane covering a world rectangle.
 // -----------------------------------------------------------------------------
 
-// Smooth 2D value noise, computed in JS (double precision, deterministic). Used to
-// bake natural large-scale tonal variation into ground vertices. Because it is a
-// continuous function of WORLD position (not a tiled image), the ground gets organic
-// unevenness with NO repeating grid and NO directional streaks -- and because it ends
-// up as plain vertex colors in the mesh, it renders reliably on iOS (no texture to
-// fail to upload, no blend mode, no GPU-precision-sensitive shader noise).
-function vhash(x: number, z: number): number {
-  const n = Math.sin(x * 127.1 + z * 311.7) * 43758.5453;
-  return n - Math.floor(n);
-}
-function vnoise(x: number, z: number): number {
-  const xi = Math.floor(x);
-  const zi = Math.floor(z);
-  const xf = x - xi;
-  const zf = z - zi;
-  const u = xf * xf * (3 - 2 * xf);
-  const v = zf * zf * (3 - 2 * zf);
-  const a = vhash(xi, zi);
-  const b = vhash(xi + 1, zi);
-  const c = vhash(xi, zi + 1);
-  const d = vhash(xi + 1, zi + 1);
-  return a + (b - a) * u + (c - a) * v + (a - b - c + d) * u * v;
-}
-// Two-octave mottle in [0,1] at a world point: big soft patches + medium variation.
-function mottle(x: number, z: number): number {
-  return 0.66 * vnoise(x / 6.5, z / 6.5) + 0.34 * vnoise(x / 2.3 + 11, z / 2.3 + 7);
-}
-
 /**
- * Add a thin ground region spanning the world rectangle [x0,x1] x [y0,y1] at height
- * `y`. The region is a subdivided plane whose vertices carry baked tonal mottling
- * (materials with `vertexColors` show it); no tiled texture, so no repeat artifacts.
+ * Add a thin ground slab spanning the world rectangle [x0,x1] x [y0,y1] at height `y`.
+ * Solid colour by design: tiled textures rendered as directional streaks ("pillars")
+ * on iOS Safari, and neither overlay/shader macros nor per-vertex mottling rendered at
+ * all there, so the ground is kept as clean flat colour (no texture, no tiling).
  */
 function addGroundRegion(
   group: THREE.Group,
@@ -71,28 +44,7 @@ function addGroundRegion(
   const d = Math.abs(y1 - y0);
   const cx = (x0 + x1) / 2;
   const cy = (y0 + y1) / 2;
-
-  // ~1.3 m per segment so the mottle reads as soft metre-scale patches.
-  const wseg = Math.max(1, Math.round(w / 1.3));
-  const dseg = Math.max(1, Math.round(d / 1.3));
-  const geo = new THREE.PlaneGeometry(w, d, wseg, dseg);
-  geo.rotateX(-Math.PI / 2); // XY plane -> horizontal XZ ground
-
-  const pos = geo.attributes.position;
-  const colors = new Float32Array(pos.count * 3);
-  for (let i = 0; i < pos.count; i++) {
-    // World point under this vertex (continuous across regions, so no seams).
-    const wx = cx + pos.getX(i);
-    const wz = cy - pos.getZ(i);
-    // Darken-only, high contrast: every value stays <= 1.0 (some GPUs clamp vertex
-    // colours above 1), and the swing is large so it cannot be dismissed as subtle.
-    const f = 0.55 + mottle(wx, wz) * 0.45;
-    colors[i * 3] = f;
-    colors[i * 3 + 1] = f;
-    colors[i * 3 + 2] = f;
-  }
-  geo.setAttribute("color", new THREE.BufferAttribute(colors, 3));
-
+  const geo = new THREE.BoxGeometry(w, 0.04, d);
   const mesh = new THREE.Mesh(geo, material);
   mesh.position.copy(worldToThree({ x: cx, y: cy }, y));
   mesh.receiveShadow = true;
@@ -253,12 +205,11 @@ function addLighting(group: THREE.Group, bounds: WorldBounds): void {
 //    region data should later move into Scenario (e.g. scenario.regions[]).
 // -----------------------------------------------------------------------------
 
-// Ground surfaces: a solid base colour plus `vertexColors`, so the per-vertex mottle
-// baked by addGroundRegion supplies all the tonal variation. No tiled texture (those
-// rendered as directional streaks / "pillars" on iOS), no normal map, no shader hacks
-// -- just colored geometry, which renders reliably on the phone.
+// Ground surfaces: clean solid colours. Tiled textures streaked into "pillars" on iOS
+// and every variation trick (overlay, shader macro, per-vertex mottle) failed to
+// render there, so a flat colour per surface is the reliable, tidy result.
 const groundMat = (color: number, roughness: number): THREE.MeshStandardMaterial =>
-  new THREE.MeshStandardMaterial({ color, roughness, metalness: 0, envMapIntensity: 0.12, vertexColors: true });
+  new THREE.MeshStandardMaterial({ color, roughness, metalness: 0, envMapIntensity: 0.12 });
 const GRASS_MAT = (_repeat: number): THREE.MeshStandardMaterial => groundMat(0x6ba84e, 0.95);
 const ASPHALT_MAT = (_repeat: number): THREE.MeshStandardMaterial => groundMat(0x595e66, 0.92);
 const CONCRETE_MAT = (_repeat: number): THREE.MeshStandardMaterial => groundMat(0xc2bcb2, 0.9);
