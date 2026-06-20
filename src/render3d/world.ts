@@ -80,12 +80,13 @@ function addGroundRegion(
 
   const pos = geo.attributes.position;
   const colors = new Float32Array(pos.count * 3);
-  const amp = 0.28; // +/- tonal swing the mottle multiplies into the base colour
   for (let i = 0; i < pos.count; i++) {
     // World point under this vertex (continuous across regions, so no seams).
     const wx = cx + pos.getX(i);
     const wz = cy - pos.getZ(i);
-    const f = 1 - amp + mottle(wx, wz) * 2 * amp;
+    // Darken-only, high contrast: every value stays <= 1.0 (some GPUs clamp vertex
+    // colours above 1), and the swing is large so it cannot be dismissed as subtle.
+    const f = 0.55 + mottle(wx, wz) * 0.45;
     colors[i * 3] = f;
     colors[i * 3 + 1] = f;
     colors[i * 3 + 2] = f;
